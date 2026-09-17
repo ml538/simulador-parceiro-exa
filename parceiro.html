@@ -3,53 +3,408 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Simuladores · exa energia</title>
+<title>Simulador do parceiro · exa energia</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- ESTILO · tokens de cor no :root, tema claro e escuro -->
 <style>
-:root{--bg:#F7F3E7;--card:#FFFFFF;--panel:#E4EFE0;--accent:#00A95B;--accent2:#0B7A45;
---head:#11201A;--body:#5E6B62;--dim:#94A096;--border:#E3DDCC;--word:#0B4F2E;--mark:#00A95B}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#001409;--card:#031812;--panel:#14382A;
---accent:#ADF98E;--accent2:#00C86B;--head:#FFFFFF;--body:#8FA79A;--dim:#5E6F65;--border:#1D3A2C;--word:#CDEAC2;--mark:#00C86B}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--body);
-font-family:Inter,-apple-system,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
-.wrap{max-width:840px;margin:0 auto;padding:64px 20px}
-.logo{width:150px;height:auto;display:block;margin-bottom:34px}
-h1{font-family:Oxanium,Inter,sans-serif;font-weight:700;font-size:clamp(26px,4vw,36px);
-color:var(--head);margin:0 0 8px;letter-spacing:-.01em}
-h1 em{font-style:normal;color:var(--accent2)}
-p.sub{margin:0 0 34px;max-width:56ch}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:700px){.cards{grid-template-columns:1fr}}
-a.card{display:block;background:var(--card);border:1px solid var(--border);border-radius:14px;
-padding:24px;text-decoration:none;transition:border-color .15s}
-a.card:hover{border-color:var(--accent)}
-a.card h2{font-family:Oxanium,Inter,sans-serif;font-size:19px;color:var(--head);margin:0 0 6px}
-a.card p{margin:0;font-size:13.5px;color:var(--body)}
-a.card .go{display:inline-block;margin-top:14px;font-size:12px;font-weight:700;color:var(--accent2)}
-footer{margin-top:44px;font-size:11.5px;color:var(--dim)}
+:root{
+  --bg:#F7F3E7; --card:#FFFFFF; --card2:#EFEBDB; --panel:#E4EFE0;
+  --accent:#00A95B; --accent2:#0B7A45; --head:#11201A; --text:#2E3B33;
+  --body:#5E6B62; --dim:#94A096; --border:#E3DDCC; --warn:#C4685F;
+  --word:#0B4F2E; --mark:#00A95B; --shadow:0 1px 2px rgba(17,32,26,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#001409; --card:#031812; --card2:#0C2820; --panel:#14382A;
+    --accent:#ADF98E; --accent2:#00C86B; --head:#FFFFFF; --text:#CDEAC2;
+    --body:#8FA79A; --dim:#5E6F65; --border:#1D3A2C; --warn:#E08C84;
+    --word:#CDEAC2; --mark:#00C86B; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#001409; --card:#031812; --card2:#0C2820; --panel:#14382A;
+  --accent:#ADF98E; --accent2:#00C86B; --head:#FFFFFF; --text:#CDEAC2;
+  --body:#8FA79A; --dim:#5E6F65; --border:#1D3A2C; --warn:#E08C84;
+  --word:#CDEAC2; --mark:#00C86B; --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:28px 20px 56px}
+header{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:26px}
+.brand{display:flex; align-items:center; gap:14px}
+.brand .logo{width:132px; height:auto; display:block}
+.kicker{font-size:10px; font-weight:700; letter-spacing:.19em; text-transform:uppercase; color:var(--accent2); margin:0 0 6px}
+h1{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:clamp(23px,3.4vw,33px); line-height:1.12; color:var(--head); margin:0 0 6px; letter-spacing:-.01em}
+h1 em{font-style:normal; color:var(--accent2)}
+.sub{color:var(--body); font-size:14px; margin:0; max-width:62ch}
+.themebtn{background:var(--card); color:var(--body); border:1px solid var(--border); border-radius:999px; padding:8px 15px; font:inherit; font-size:12px; cursor:pointer}
+.themebtn:hover{color:var(--head)}
+
+.grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.08fr); gap:18px; align-items:start}
+@media (max-width:880px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:22px; box-shadow:var(--shadow)}
+.card.green{background:var(--panel); border-color:transparent}
+.label{font-size:10px; font-weight:700; letter-spacing:.17em; text-transform:uppercase; color:var(--body); margin:0 0 16px}
+.card.green .label{color:var(--accent2)}
+
+.field{margin-bottom:17px}
+.field:last-child{margin-bottom:0}
+.field label{display:flex; justify-content:space-between; align-items:baseline; gap:10px; font-size:13px; color:var(--body); margin-bottom:7px}
+.field .hint{font-size:11px; color:var(--dim)}
+.inputrow{display:flex; align-items:center; gap:9px}
+.inputrow .pre{font-size:13px; color:var(--dim); min-width:16px}
+input[type=number]{
+  flex:1; min-width:0; background:var(--bg); color:var(--head); border:1px solid var(--border);
+  border-radius:9px; padding:10px 12px; font:inherit; font-family:Oxanium,Inter,sans-serif;
+  font-weight:700; font-size:16px;
+}
+input[type=number]:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:transparent}
+input[type=range]{width:100%; accent-color:var(--accent); margin:0}
+.inputrow input[type=range]{flex:1}
+input.pct{flex:none; width:74px; text-align:center; padding:8px 6px; font-size:15px}
+.unit{font-size:13px; color:var(--dim)}
+.sep{height:1px; background:var(--border); margin:20px 0}
+
+.big{font-family:Oxanium,Inter,sans-serif; font-weight:700; color:var(--head); letter-spacing:-.02em}
+.row{display:flex; justify-content:space-between; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--border)}
+.row:last-of-type{border-bottom:none}
+.row .k{font-size:13px; color:var(--body)}
+.row .v{font-size:17px}
+.hero{background:var(--panel); border-radius:12px; padding:18px 20px; margin-top:14px}
+.hero .t{font-size:10px; font-weight:700; letter-spacing:.17em; text-transform:uppercase; color:var(--accent2); margin:0 0 4px}
+.hero .n{font-size:clamp(30px,5.4vw,42px); color:var(--accent2); line-height:1.05}
+.hero .s{font-size:13px; color:var(--body); margin-top:4px}
+.mini{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
+.mini div{background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px 14px}
+.card.green .mini div{background:var(--card)}
+.mini .n{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:19px; color:var(--head)}
+.mini .l{font-size:11px; color:var(--body); margin-top:2px}
+
+.bars{margin-top:6px}
+.bar{display:grid; grid-template-columns:132px 1fr 62px; align-items:center; gap:11px; margin-bottom:11px}
+@media (max-width:520px){.bar{grid-template-columns:96px 1fr 52px; gap:8px}}
+.bar .bl{font-size:11.5px; color:var(--body); line-height:1.25}
+.bar .track{height:22px; background:var(--bg); border-radius:6px; overflow:hidden; display:flex}
+.bar .seg{height:100%}
+.bar .bv{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:13px; color:var(--head); text-align:right}
+.legend{font-size:11px; color:var(--dim); margin-top:2px}
+
+.chart{display:flex; align-items:flex-end; gap:5px; height:132px; margin-top:16px}
+.chart .c{flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:5px}
+.chart .b{width:100%; background:var(--panel); border:1px solid var(--accent2); border-radius:4px 4px 0 0; min-height:3px}
+.chart .c.on .b{background:var(--accent); border-color:transparent}
+.chart .m{font-size:9px; color:var(--dim)}
+
+.note{display:flex; gap:10px; align-items:flex-start; background:var(--card2); border-radius:10px; padding:13px 15px; margin-top:16px; font-size:12.5px; color:var(--body); line-height:1.5}
+.note b{color:var(--head)}
+.note.alert{background:transparent; border:1px solid var(--warn); color:var(--warn)}
+.note.alert b{color:var(--warn)}
+.dot{width:7px; height:7px; border-radius:99px; background:var(--accent); margin-top:6px; flex:none}
+.note.alert .dot{background:var(--warn)}
+
+footer{margin-top:30px; font-size:11.5px; color:var(--dim); line-height:1.6}
+footer b{color:var(--body)}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg>
-  <h1>Simuladores <em>exa energia</em>.</h1>
-  <p class="sub">Duas calculadoras para usar em reunião. Os números são preenchidos na hora e o resultado pode ser impresso ou salvo em PDF.</p>
-  <div class="cards">
-    <a class="card" href="cliente.html">
-      <h2>Economia do cliente</h2>
-      <p>Quanto ele paga hoje na distribuidora, quanto passa a pagar com a exa e quanto sobra por mês e por ano.</p>
-      <span class="go">abrir &rarr;</span>
-    </a>
-    <a class="card" href="parceiro.html">
-      <h2>Ganho do parceiro</h2>
-      <p>Quanto a rede dele pode render, com o spread entre o deságio de aquisição e o que ele oferece.</p>
-      <span class="go">abrir &rarr;</span>
-    </a>
+
+  <!-- ================= CABECALHO ================= -->
+  <header>
+    <div class="brand"><svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg></div>
+    <button class="themebtn" id="tg" type="button">Alternar tema</button>
+  </header>
+
+  <p class="kicker">Simulador de parceria</p>
+  <h1>Quanto a sua rede pode <em>render por mês</em>.</h1>
+  <p class="sub">Coloque os números da sua realidade. A conta é a mesma da apresentação: você adquire o saldo de geração com um deságio maior e comercializa com um deságio menor. A diferença é o seu spread.</p>
+
+  <div class="grid" style="margin-top:22px">
+
+    <!-- ================= ENTRADAS ================= -->
+    <section class="card">
+      <p class="label">Os seus números</p>
+
+      <div class="field">
+        <label for="pessoas">Pessoas ou empresas na sua rede <span class="hint" id="h-pessoas"></span></label>
+        <div class="inputrow"><span class="pre">#</span><input type="number" id="pessoas" value="200" min="0" step="10"></div>
+      </div>
+
+      <div class="field">
+        <label for="conv">Quantas você converte <span class="hint">da sua rede</span></label>
+        <div class="inputrow"><input type="range" id="conv" value="20" min="1" max="100" step="1"><input type="number" class="pct" id="conv-n" value="20" min="0" max="100" step="1"><span class="unit">%</span></div>
+      </div>
+
+      <div class="field">
+        <label for="conta">Conta de energia média <span class="hint">por cliente, por mês</span></label>
+        <div class="inputrow"><span class="pre">R$</span><input type="number" id="conta" value="900" min="0" step="50"></div>
+      </div>
+
+      <div class="field">
+        <label for="tarifa">Tarifa média <span class="hint">para converter em kWh</span></label>
+        <div class="inputrow"><span class="pre">R$</span><input type="number" id="tarifa" value="1.00" min="0.1" step="0.05"></div>
+      </div>
+
+      <div class="sep"></div>
+      <p class="label">A condição da plataforma hoje</p>
+
+      <div class="field">
+        <label for="vmin">Carteira mínima da condição <span class="hint">muda conforme a oferta</span></label>
+        <div class="inputrow"><input type="number" id="vmin" value="30" min="0" step="1"><span class="unit">MWh</span></div>
+      </div>
+
+      <div class="field">
+        <label for="daq">Deságio de aquisição <span class="hint">o que a exa te entrega</span></label>
+        <div class="inputrow"><input type="range" id="daq" value="40" min="1" max="80" step="1"><input type="number" class="pct" id="daq-n" value="40" min="0" max="99" step="1"><span class="unit">%</span></div>
+      </div>
+
+      <div class="field">
+        <label for="dcli">Deságio ao seu cliente <span class="hint">o que você oferece</span></label>
+        <div class="inputrow"><input type="range" id="dcli" value="30" min="1" max="80" step="1"><input type="number" class="pct" id="dcli-n" value="30" min="0" max="99" step="1"><span class="unit">%</span></div>
+      </div>
+    </section>
+
+    <!-- ================= RESULTADO ================= -->
+    <section class="card green">
+      <p class="label">O seu resultado</p>
+
+      <div class="row"><span class="k">Clientes que viram exa</span><span class="v big" id="o-clientes">—</span></div>
+      <div class="row"><span class="k">Carteira sob sua gestão</span><span class="v big" id="o-carteira">—</span></div>
+      <div class="row"><span class="k">Valor de referência das contas</span><span class="v big" id="o-ref">—</span></div>
+      <div class="row"><span class="k">Você adquire o saldo por</span><span class="v big" id="o-compra">—</span></div>
+      <div class="row"><span class="k">Você comercializa por</span><span class="v big" id="o-venda">—</span></div>
+
+      <div class="hero">
+        <p class="t">Seu spread</p>
+        <div class="n big" id="o-spread">—</div>
+        <div class="s" id="o-spread-s">por mês, enquanto os clientes estiverem ativos</div>
+      </div>
+
+      <div class="mini">
+        <div><div class="n" id="o-ano">—</div><div class="l">em 12 meses</div></div>
+        <div><div class="n" id="o-cli">—</div><div class="l">de spread por cliente / mês</div></div>
+      </div>
+
+      <div id="avisos"></div>
+    </section>
   </div>
-  <footer>exa energia &middot; exaenergia.com</footer>
+
+  <section class="card" style="margin-top:18px">
+    <p class="label">Onde a sua oferta fica</p>
+    <div class="bars">
+      <div class="bar">
+        <div class="bl">O mercado oferece ao consumidor final</div>
+        <div class="track"><div class="seg" id="s-mkt" style="background:var(--card2)"></div></div>
+        <div class="bv">10 a 20%</div>
+      </div>
+      <div class="bar">
+        <div class="bl">Você oferece ao seu cliente</div>
+        <div class="track"><div class="seg" id="s-cli" style="background:var(--accent2)"></div></div>
+        <div class="bv" id="b-cli">30%</div>
+      </div>
+      <div class="bar">
+        <div class="bl">A exa entrega para você</div>
+        <div class="track"><div class="seg" id="s-base" style="background:var(--accent2)"></div><div class="seg" id="s-spread" style="background:var(--accent)"></div></div>
+        <div class="bv" id="b-aq">40%</div>
+      </div>
+    </div>
+    <p class="legend">A faixa mais clara na última barra é o seu spread: o que sobra entre o que você paga e o que você cobra.</p>
+  </section>
+
+  <section class="card" style="margin-top:18px">
+    <p class="label">Acumulado nos 12 primeiros meses</p>
+    <div class="chart" id="chart"></div>
+    <p class="legend" id="chart-legend" style="margin-top:10px"></p>
+  </section>
+
+  <div class="note">
+    <span class="dot"></span>
+    <div><b>Os deságios desta tela são um exemplo.</b> A condição real de aquisição e o volume mínimo de carteira variam conforme as ofertas disponíveis na plataforma e são informados pelo consultor da exa.</div>
+  </div>
+
+  <div class="note">
+    <span class="dot"></span>
+    <div><b>A carteira não cresce sozinha.</b> Para somar cada bloco novo você entra na plataforma, encontra a oferta com o melhor deságio, adquire o saldo e comercializa abaixo dele. É esse movimento, repetido a cada ciclo, que sustenta o spread.</div>
+  </div>
+
+  <footer>
+    <b>Simulação ilustrativa.</b> Volume mínimo de carteira, deságio de aquisição e prazo são definidos em contrato e dependem das ofertas disponíveis na plataforma no momento da adesão. A conversão em kWh usa a tarifa média informada e serve para dimensionar a carteira.<br>
+    <span id="rodape-contato">exa energia · exaenergia.com</span>
+  </footer>
 </div>
+
+<!-- ================= CALCULO ================= -->
+<script>
+(function(){
+
+  /* ===========================================================
+     CONFIGURACAO  ·  mude so aqui
+     =========================================================== */
+  var CONFIG = {
+    volumeMinimo:      0,      // MWh · 0 desliga o alerta de carteira minima
+    desagioAquisicao:  25,     // % · valor neutro; a condicao real vai pela URL
+    desagioCliente:    15,     // % · valor neutro; a condicao real vai pela URL
+    pessoasPadrao:     200,    // contatos na rede do parceiro
+    conversaoPadrao:   20,     // % de conversao
+    contaPadrao:       900,    // conta media de energia, em R$
+    tarifaPadrao:      1.00,   // R$ por kWh, so para converter em MWh
+    contato:           "exa energia · exaenergia.com"
+  };
+  /* =========================================================== */
+
+  var brl0 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+  var num  = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
+  var num1 = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
+  var $ = function(id){ return document.getElementById(id); };
+
+  // parametros pela URL: ?vmin=50&daq=35&dcli=28&pessoas=300&conv=25&conta=1200&tarifa=1.05
+  var QS = {};
+  try {
+    new URLSearchParams(window.location.search).forEach(function(v, k){
+      var n = parseFloat(String(v).replace(',', '.'));
+      if (isFinite(n)) QS[k] = n;
+    });
+  } catch (e) {}
+  function inicial(chave, padrao){
+    return (QS[chave] !== undefined) ? QS[chave] : padrao;
+  }
+  var ids  = ['pessoas','conv','conta','tarifa','daq','dcli','vmin'];
+  var sync = [['conv','conv-n'], ['daq','daq-n'], ['dcli','dcli-n']];
+
+  function val(id){ var v = parseFloat($(id).value); return isFinite(v) ? v : 0; }
+
+  function calc(){
+    var pessoas = Math.max(0, val('pessoas'));
+    var conv    = val('conv');
+    var conta   = Math.max(0, val('conta'));
+    var tarifa  = Math.max(0.01, val('tarifa'));
+    var daq     = val('daq');
+    var dcli    = val('dcli');
+    var vmin    = Math.max(0, val('vmin'));
+
+    $('h-pessoas').textContent = pessoas > 0 ? num.format(pessoas) + ' contatos' : '';
+
+    var clientes = Math.floor(pessoas * conv / 100);
+    var ref      = clientes * conta;
+    var kwh      = conta / tarifa;
+    var mwh      = clientes * kwh / 1000;
+    var compra   = ref * (1 - daq / 100);
+    var venda    = ref * (1 - dcli / 100);
+    var spread   = venda - compra;
+
+    $('o-clientes').textContent = num.format(clientes);
+    $('o-carteira').textContent = num1.format(mwh) + ' MWh/mês';
+    $('o-ref').textContent      = brl0.format(ref);
+    $('o-compra').textContent   = brl0.format(compra);
+    $('o-venda').textContent    = brl0.format(venda);
+    $('o-spread').textContent   = brl0.format(spread);
+    $('o-ano').textContent      = brl0.format(spread * 12);
+    $('o-cli').textContent      = clientes > 0 ? brl0.format(spread / clientes) : brl0.format(0);
+    $('o-spread-s').textContent = spread >= 0
+      ? 'por mês, enquanto os clientes estiverem ativos'
+      : 'negativo: você está cobrando menos do que paga';
+
+    // barras
+    var MAXP = Math.max(50, Math.ceil((Math.max(daq, dcli) + 8) / 10) * 10);
+    $('s-mkt').style.width    = (20 / MAXP * 100) + '%';
+    $('s-cli').style.width    = (Math.min(dcli, MAXP) / MAXP * 100) + '%';
+    var base  = Math.min(dcli, daq);
+    var extra = Math.max(0, daq - dcli);
+    $('s-base').style.width   = (base / MAXP * 100) + '%';
+    $('s-spread').style.width = (extra / MAXP * 100) + '%';
+    $('b-cli').textContent    = num.format(dcli) + '%';
+    $('b-aq').textContent     = num.format(daq) + '%';
+
+    // acumulado 12 meses
+    var chart = $('chart');
+    chart.innerHTML = '';
+    var top = Math.max(spread * 12, 1);
+    for (var i = 1; i <= 12; i++){
+      var acc = spread * i;
+      var c = document.createElement('div');
+      c.className = 'c' + (i >= 10 ? ' on' : '');
+      var b = document.createElement('div');
+      b.className = 'b';
+      b.style.height = Math.max(3, (Math.max(acc,0) / top) * 108) + 'px';
+      var m = document.createElement('div');
+      m.className = 'm';
+      m.textContent = 'M' + i;
+      c.appendChild(b); c.appendChild(m); chart.appendChild(c);
+    }
+    $('chart-legend').textContent = spread > 0
+      ? 'No mês 12 o acumulado chega a ' + brl0.format(spread * 12) + ', mantendo a mesma carteira ativa.'
+      : 'Ajuste os deságios para que o de aquisição fique acima do que você oferece ao cliente.';
+
+    // avisos
+    var av = $('avisos');
+    av.innerHTML = '';
+    function aviso(txt, alerta){
+      var d = document.createElement('div');
+      d.className = 'note' + (alerta ? ' alert' : '');
+      d.innerHTML = '<span class="dot"></span><div>' + txt + '</div>';
+      av.appendChild(d);
+    }
+    if (dcli >= daq){
+      aviso('<b>Sem margem.</b> O deságio que você oferece precisa ser menor que o de aquisição, senão não sobra spread.', true);
+    }
+    if (vmin > 0 && mwh > 0 && mwh < vmin){
+      aviso('<b>Abaixo de ' + num1.format(vmin) + ' MWh.</b> Essa é a carteira que dá acesso à condição de aquisição informada. Faltam ' + num1.format(vmin - mwh) + ' MWh.', true);
+    }
+    if (vmin > 0 && mwh >= vmin && dcli < daq){
+      aviso('<b>Carteira suficiente.</b> Com ' + num1.format(mwh) + ' MWh você alcança os ' + num1.format(vmin) + ' MWh da condição informada.');
+    }
+  }
+
+  $('pessoas').value = inicial('pessoas', CONFIG.pessoasPadrao);
+  $('conv').value    = inicial('conv',    CONFIG.conversaoPadrao);
+  $('conta').value   = inicial('conta',   CONFIG.contaPadrao);
+  $('tarifa').value  = inicial('tarifa',  CONFIG.tarifaPadrao);
+  $('daq').value     = inicial('daq',     CONFIG.desagioAquisicao);
+  $('dcli').value    = inicial('dcli',    CONFIG.desagioCliente);
+  $('vmin').value    = inicial('vmin',    CONFIG.volumeMinimo);
+  sync.forEach(function(par){ $(par[1]).value = $(par[0]).value; });
+  var rodape = document.getElementById('rodape-contato');
+  if (rodape) rodape.textContent = CONFIG.contato;
+
+  function liga(id, fn){
+    $(id).addEventListener('input', fn);
+    $(id).addEventListener('change', fn);
+  }
+  ids.forEach(function(id){ liga(id, calc); });
+  sync.forEach(function(par){
+    var faixa = par[0], caixa = par[1];
+    liga(faixa, function(){ $(caixa).value = $(faixa).value; });
+    liga(caixa, function(){
+      var v = parseFloat($(caixa).value);
+      if (isFinite(v)){
+        var lo = parseFloat($(faixa).min), hi = parseFloat($(faixa).max);
+        $(faixa).value = Math.min(hi, Math.max(lo, v));
+      }
+      calc();
+    });
+  });
+
+  $('tg').addEventListener('click', function(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var next = cur ? (cur === 'dark' ? 'light' : 'dark') : (dark ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', next);
+  });
+
+  calc();
+})();
+</script>
+
+<!-- ============================================================
+     LOGO EXA EM VETOR · nao precisa mexer aqui
+     ============================================================ -->
 <svg style="display:none" aria-hidden="true"><symbol id="exa-logo" viewBox="0 0 3288.000000 1372.000000"><g transform="translate(0.000000,1372.000000) scale(0.100000,-0.100000)"
 fill="var(--mark)" stroke="none">
 <path d="M6397 13700 c-5 -19 -14 -20 -216 -20 -200 0 -211 -1 -221 -20 -10

@@ -3,53 +3,397 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Simuladores · exa energia</title>
+<title>Simulador de economia · exa energia</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#F7F3E7;--card:#FFFFFF;--panel:#E4EFE0;--accent:#00A95B;--accent2:#0B7A45;
---head:#11201A;--body:#5E6B62;--dim:#94A096;--border:#E3DDCC;--word:#0B4F2E;--mark:#00A95B}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#001409;--card:#031812;--panel:#14382A;
---accent:#ADF98E;--accent2:#00C86B;--head:#FFFFFF;--body:#8FA79A;--dim:#5E6F65;--border:#1D3A2C;--word:#CDEAC2;--mark:#00C86B}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--body);
-font-family:Inter,-apple-system,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
-.wrap{max-width:840px;margin:0 auto;padding:64px 20px}
-.logo{width:150px;height:auto;display:block;margin-bottom:34px}
-h1{font-family:Oxanium,Inter,sans-serif;font-weight:700;font-size:clamp(26px,4vw,36px);
-color:var(--head);margin:0 0 8px;letter-spacing:-.01em}
-h1 em{font-style:normal;color:var(--accent2)}
-p.sub{margin:0 0 34px;max-width:56ch}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:700px){.cards{grid-template-columns:1fr}}
-a.card{display:block;background:var(--card);border:1px solid var(--border);border-radius:14px;
-padding:24px;text-decoration:none;transition:border-color .15s}
-a.card:hover{border-color:var(--accent)}
-a.card h2{font-family:Oxanium,Inter,sans-serif;font-size:19px;color:var(--head);margin:0 0 6px}
-a.card p{margin:0;font-size:13.5px;color:var(--body)}
-a.card .go{display:inline-block;margin-top:14px;font-size:12px;font-weight:700;color:var(--accent2)}
-footer{margin-top:44px;font-size:11.5px;color:var(--dim)}
+:root{
+  --bg:#F7F3E7; --card:#FFFFFF; --card2:#EFEBDB; --panel:#E4EFE0;
+  --accent:#00A95B; --accent2:#0B7A45; --head:#11201A; --text:#2E3B33;
+  --body:#5E6B62; --dim:#94A096; --border:#E3DDCC; --warn:#C4685F;
+  --word:#0B4F2E; --mark:#00A95B; --onaccent:#FFFFFF; --shadow:0 1px 2px rgba(17,32,26,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#001409; --card:#031812; --card2:#0C2820; --panel:#14382A;
+    --accent:#ADF98E; --accent2:#00C86B; --head:#FFFFFF; --text:#CDEAC2;
+    --body:#8FA79A; --dim:#5E6F65; --border:#1D3A2C; --warn:#E08C84;
+    --word:#CDEAC2; --mark:#00C86B; --onaccent:#001409; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#001409; --card:#031812; --card2:#0C2820; --panel:#14382A;
+  --accent:#ADF98E; --accent2:#00C86B; --head:#FFFFFF; --text:#CDEAC2;
+  --body:#8FA79A; --dim:#5E6F65; --border:#1D3A2C; --warn:#E08C84;
+  --word:#CDEAC2; --mark:#00C86B; --onaccent:#001409; --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg); color:var(--text); font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased}
+.wrap{max-width:1220px; margin:0 auto; padding:26px 20px 56px}
+header{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px}
+.brand{display:flex; align-items:center; gap:14px}
+.brand .logo{width:128px; height:auto; display:block}
+.acts{display:flex; gap:8px}
+.btn{background:var(--card); color:var(--body); border:1px solid var(--border); border-radius:999px; padding:8px 15px; font:inherit; font-size:12px; cursor:pointer}
+.btn:hover{color:var(--head)}
+.btn.solid{background:var(--accent); color:var(--onaccent); border-color:transparent; font-weight:600}
+
+.kicker{font-size:10px; font-weight:700; letter-spacing:.19em; text-transform:uppercase; color:var(--accent2); margin:0 0 6px}
+h1{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:clamp(23px,3.3vw,32px); line-height:1.12; color:var(--head); margin:0 0 6px; letter-spacing:-.01em}
+h1 em{font-style:normal; color:var(--accent2)}
+.sub{color:var(--body); font-size:14px; margin:0; max-width:64ch}
+
+.grid{display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); gap:18px; align-items:start; margin-top:22px}
+@media (max-width:920px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:22px; box-shadow:var(--shadow)}
+.card.green{background:var(--panel); border-color:transparent}
+.label{font-size:10px; font-weight:700; letter-spacing:.17em; text-transform:uppercase; color:var(--body); margin:0 0 15px}
+.card.green .label, .lbl-ac{color:var(--accent2)}
+
+.field{margin-bottom:15px}
+.field label{display:flex; justify-content:space-between; align-items:baseline; gap:10px; font-size:13px; color:var(--body); margin-bottom:6px}
+.hint{font-size:11px; color:var(--dim)}
+.inputrow{display:flex; align-items:center; gap:8px}
+.pre{font-size:13px; color:var(--dim)}
+input[type=text],input[type=number]{flex:1; min-width:0; background:var(--bg); color:var(--head); border:1px solid var(--border); border-radius:9px; padding:9px 11px; font:inherit; font-weight:600; font-size:15px}
+input[type=text]{font-weight:500}
+input:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:transparent}
+input[type=range]{flex:1; accent-color:var(--accent); margin:0}
+input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
+.sep{height:1px; background:var(--border); margin:18px 0}
+
+.uc{display:grid; grid-template-columns:1fr 104px 30px; gap:7px; margin-bottom:7px; align-items:center}
+.uc .del{background:none; border:none; color:var(--dim); font-size:17px; cursor:pointer; padding:0; line-height:1}
+.uc .del:hover{color:var(--warn)}
+.addbtn{width:100%; background:var(--bg); border:1px dashed var(--border); color:var(--body); border-radius:9px; padding:9px; font:inherit; font-size:12.5px; cursor:pointer; margin-top:3px}
+.addbtn:hover{color:var(--accent2); border-color:var(--accent)}
+
+.switch{display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:11px 13px; cursor:pointer}
+.switch span{font-size:13px; color:var(--head); font-weight:500}
+.knob{width:40px; height:22px; border-radius:99px; background:var(--border); position:relative; flex:none; transition:background .15s}
+.knob::after{content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:99px; background:var(--card); transition:left .15s}
+.switch.on .knob{background:var(--accent)}
+.switch.on .knob::after{left:21px}
+
+/* ---- documento ---- */
+.doc .who{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:16px}
+.doc .who .nome{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:20px; color:var(--head); line-height:1.2}
+.doc .who .quando{font-size:12px; color:var(--dim); text-align:right; white-space:nowrap}
+.ucs{background:var(--bg); border-radius:11px; padding:14px 16px; margin-bottom:18px}
+.ucline{display:flex; justify-content:space-between; gap:12px; padding:6px 0; font-size:13px}
+.ucline .n{color:var(--text)} .ucline .v{color:var(--head); font-weight:600; white-space:nowrap}
+.ucs .tot{display:flex; justify-content:space-between; gap:12px; border-top:1px solid var(--border); margin-top:7px; padding-top:9px; font-size:14px}
+.ucs .tot .n{color:var(--head); font-weight:600} .ucs .tot .v{color:var(--head); font-weight:700; font-family:Oxanium,Inter,sans-serif}
+
+.tier{margin-bottom:16px}
+.tier .top{display:flex; justify-content:space-between; align-items:baseline; gap:12px}
+.tier .nm{font-size:14.5px; font-weight:600; color:var(--head)}
+.tier .tag{font-size:10.5px; font-weight:700; background:var(--panel); color:var(--accent2); border-radius:99px; padding:2px 9px; margin-left:7px; white-space:nowrap}
+.tier .pv{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:clamp(19px,2.6vw,25px); color:var(--head); white-space:nowrap}
+.tier .track{height:26px; background:var(--bg); border-radius:7px; margin:8px 0 6px; display:flex; overflow:hidden}
+.tier .paga{height:100%; background:var(--card2); display:flex; align-items:center; padding-left:11px; font-size:11.5px; color:var(--body)}
+.tier .eco{height:100%; background:var(--accent); display:flex; align-items:center; justify-content:flex-end; padding-right:11px; font-size:11.5px; font-weight:700; color:var(--onaccent); white-space:nowrap; overflow:hidden}
+.tier .note{font-size:12px; color:var(--body)}
+.tier .note.right{text-align:right; margin-top:4px}
+.tier.exa{background:var(--panel); border-radius:12px; padding:15px 16px; margin-left:-16px; margin-right:-16px}
+.tier.exa .nm, .tier.exa .pv{color:var(--accent2)}
+.tier.exa .track{background:var(--card)}
+.tier.exa .note b{color:var(--head)}
+
+.final{background:var(--accent); color:var(--onaccent); border-radius:13px; padding:18px 20px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-top:4px}
+.final .n{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:clamp(28px,4.6vw,40px); line-height:1; letter-spacing:-.02em}
+.final .t{font-size:13.5px; line-height:1.45}
+.final .t b{font-weight:700}
+
+.benef{display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-top:18px}
+@media (max-width:620px){.benef{grid-template-columns:1fr 1fr}}
+.benef div{display:flex; gap:8px; align-items:flex-start; background:var(--bg); border-radius:9px; padding:10px 11px; font-size:11.5px; color:var(--head); line-height:1.35}
+.benef .ck{color:var(--accent2); font-weight:700; flex:none}
+.foot{font-size:11px; color:var(--dim); margin-top:14px; line-height:1.55}
+.foot b{color:var(--body); font-weight:600}
+
+@media print{
+  @page{margin:12mm}
+  body{background:#fff}
+  .no-print{display:none !important}
+  .wrap{max-width:none; padding:0}
+  .grid{display:block}
+  .card{border:none; box-shadow:none; padding:0}
+  .tier.exa{margin:0; border:1px solid var(--border)}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg>
-  <h1>Simuladores <em>exa energia</em>.</h1>
-  <p class="sub">Duas calculadoras para usar em reunião. Os números são preenchidos na hora e o resultado pode ser impresso ou salvo em PDF.</p>
-  <div class="cards">
-    <a class="card" href="cliente.html">
-      <h2>Economia do cliente</h2>
-      <p>Quanto ele paga hoje na distribuidora, quanto passa a pagar com a exa e quanto sobra por mês e por ano.</p>
-      <span class="go">abrir &rarr;</span>
-    </a>
-    <a class="card" href="parceiro.html">
-      <h2>Ganho do parceiro</h2>
-      <p>Quanto a rede dele pode render, com o spread entre o deságio de aquisição e o que ele oferece.</p>
-      <span class="go">abrir &rarr;</span>
-    </a>
+
+  <header>
+    <div class="brand"><svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg></div>
+    <div class="acts no-print">
+      <button class="btn" id="tg" type="button">Tema</button>
+      <button class="btn solid" id="pr" type="button">Imprimir ou salvar PDF</button>
+    </div>
+  </header>
+
+  <div class="no-print">
+    <p class="kicker">Simulador de economia</p>
+    <h1>Mesma energia, <em>menos conta</em>.</h1>
+    <p class="sub">Preencha à esquerda. A peça da direita é o que o cliente vê, e dá para imprimir ou salvar em PDF para mandar depois da reunião.</p>
   </div>
-  <footer>exa energia &middot; exaenergia.com</footer>
+
+  <div class="grid">
+
+    <!-- ============ ENTRADAS ============ -->
+    <section class="card no-print">
+      <p class="label">Dados do cliente</p>
+
+      <div class="field">
+        <label for="cliente">Nome do cliente</label>
+        <div class="inputrow"><input type="text" id="cliente" value="Nome do cliente"></div>
+      </div>
+
+      <div class="field">
+        <label for="tarifa">Tarifa da distribuidora <span class="hint">R$ por kWh</span></label>
+        <div class="inputrow"><span class="pre">R$</span><input type="number" id="tarifa" value="1.18" min="0.1" step="0.01"></div>
+      </div>
+
+      <div class="sep"></div>
+      <p class="label">Unidades consumidoras</p>
+      <div id="ucs"></div>
+      <button class="addbtn" id="add" type="button">+ adicionar unidade</button>
+
+      <div class="sep"></div>
+      <p class="label lbl-ac">A oferta</p>
+
+      <div class="field">
+        <label for="dexa">Desconto que você oferece <span class="hint">com a exa</span></label>
+        <div class="inputrow"><input type="range" id="dexa" value="30" min="1" max="60" step="1"><input type="number" class="pct" id="dexa-n" value="30" min="0" max="99" step="1"><span class="pre">%</span></div>
+      </div>
+
+      <div class="switch" id="sw" role="button" tabindex="0">
+        <span>O cliente já tem desconto hoje?</span>
+        <div class="knob"></div>
+      </div>
+
+      <div class="field" id="box-atual" style="display:none; margin-top:14px">
+        <label for="datual">Desconto atual dele <span class="hint">com o fornecedor de hoje</span></label>
+        <div class="inputrow"><input type="range" id="datual" value="20" min="1" max="60" step="1"><input type="number" class="pct" id="datual-n" value="20" min="0" max="99" step="1"><span class="pre">%</span></div>
+      </div>
+    </section>
+
+    <!-- ============ DOCUMENTO ============ -->
+    <section class="card doc">
+      <div class="who">
+        <div>
+          <div class="nome" id="d-cliente">Nome do cliente</div>
+          <div class="hint" id="d-linha">economia com energia solar por assinatura</div>
+        </div>
+        <div class="quando" id="d-data"></div>
+      </div>
+
+      <p class="label lbl-ac">Unidades consideradas</p>
+      <div class="ucs">
+        <div id="d-ucs"></div>
+        <div class="tot"><span class="n" id="d-tot-l">Total · tarifa de R$ 1,18/kWh</span><span class="v" id="d-tot">0 kWh/mês</span></div>
+      </div>
+
+      <p class="label">Quanto custa por mês</p>
+
+      <div class="tier">
+        <div class="top"><span class="nm">Tarifa cheia da distribuidora</span><span class="pv" id="t1-v">—</span></div>
+        <div class="note right" id="t1-n">—</div>
+      </div>
+
+      <div class="tier" id="t2" style="display:none">
+        <div class="top"><span class="nm">Hoje, com o desconto atual<span class="tag" id="t2-tag">20% off</span></span><span class="pv" id="t2-v">—</span></div>
+        <div class="track"><div class="paga" id="t2-paga">paga</div><div class="eco" id="t2-eco"></div></div>
+        <div class="note" id="t2-n"></div>
+      </div>
+
+      <div class="tier exa">
+        <div class="top"><span class="nm">Com a exa energia<span class="tag" id="t3-tag">30% off</span></span><span class="pv" id="t3-v">—</span></div>
+        <div class="track"><div class="paga" id="t3-paga">paga</div><div class="eco" id="t3-eco"></div></div>
+        <div class="note" id="t3-n"></div>
+      </div>
+
+      <div class="final">
+        <div class="n" id="f-n">—</div>
+        <div class="t" id="f-t"></div>
+      </div>
+
+      <div class="benef">
+        <div><span class="ck">✓</span><span>Uma cobrança só, com a conta da distribuidora dentro</span></div>
+        <div><span class="ck">✓</span><span>Atendimento 24 horas, com resposta em minutos</span></div>
+        <div><span class="ck">✓</span><span>A exa revisa a sua fatura item por item, todo mês</span></div>
+        <div><span class="ck">✓</span><span>Consumo e faturas no app, no portal e no WhatsApp</span></div>
+        <div><span class="ck">✓</span><span>Sem obra, sem instalação e sem investimento inicial</span></div>
+        <div><span class="ck">✓</span><span>A mesma rede e a mesma distribuidora de sempre</span></div>
+      </div>
+
+      <p class="foot" id="d-foot"></p>
+    </section>
+  </div>
 </div>
+
+<script>
+(function(){
+
+  /* ===========================================================
+     CONFIGURACAO  ·  mude so aqui
+     =========================================================== */
+  var CONFIG = {
+    tarifaPadrao:   1.18,   // R$ por kWh da distribuidora
+    descontoExa:    30,     // % que o consultor oferece com a exa
+    descontoAtual:  20,     // % que o cliente ja tem hoje, se tiver
+    nomeCliente:    "Nome do cliente",
+    rodapeExtra:    "Sem obra, sem instalação e sem investimento inicial.",
+    aviso:          "* A economia apresentada é um valor aproximado e precisa ser revista no estudo completo."
+  };
+  /* =========================================================== */
+
+  var brl  = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2});
+  var brl0 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+  var num  = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
+  var $ = function(id){ return document.getElementById(id); };
+
+  var QS = {};
+  try { new URLSearchParams(location.search).forEach(function(v,k){ QS[k]=v; }); } catch(e){}
+  function ini(k, d){ if (QS[k] === undefined) return d; var n = parseFloat(String(QS[k]).replace(',','.')); return isFinite(n) ? n : d; }
+
+  var temAtual = false;
+
+  function linhaUC(nome, kwh){
+    var d = document.createElement('div');
+    d.className = 'uc';
+    d.innerHTML = '<input type="text" class="u-n" placeholder="identificação da unidade">' +
+                  '<input type="number" class="u-k" min="0" step="10" placeholder="kWh/mês">' +
+                  '<button class="del" type="button" title="remover">×</button>';
+    d.querySelector('.u-n').value = nome || '';
+    d.querySelector('.u-k').value = (kwh === undefined ? '' : kwh);
+    d.querySelector('.del').addEventListener('click', function(){
+      if ($('ucs').children.length > 1){ d.remove(); calc(); }
+    });
+    d.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', calc); });
+    return d;
+  }
+
+  function calc(){
+    var tarifa = Math.max(0.01, parseFloat($('tarifa').value) || 0);
+    var dexa   = parseFloat($('dexa').value) || 0;
+    var datual = parseFloat($('datual').value) || 0;
+
+    // unidades
+    var unidades = [], total = 0;
+    Array.prototype.forEach.call($('ucs').children, function(row){
+      var n = row.querySelector('.u-n').value.trim();
+      var k = parseFloat(row.querySelector('.u-k').value) || 0;
+      if (k > 0){ unidades.push({ n: n || 'Unidade', k: k }); total += k; }
+    });
+
+    var alvo = $('d-ucs'); alvo.innerHTML = '';
+    unidades.forEach(function(u){
+      var l = document.createElement('div');
+      l.className = 'ucline';
+      l.innerHTML = '<span class="n"></span><span class="v"></span>';
+      l.querySelector('.n').textContent = u.n;
+      l.querySelector('.v').textContent = num.format(u.k) + ' kWh/mês';
+      alvo.appendChild(l);
+    });
+    if (!unidades.length){
+      alvo.innerHTML = '<div class="ucline"><span class="n">Informe ao menos uma unidade</span><span class="v">—</span></div>';
+    }
+
+    var cheio  = total * tarifa;
+    var comExa = cheio * (1 - dexa / 100);
+    var atual  = cheio * (1 - datual / 100);
+    var base   = temAtual ? atual : cheio;
+    var ganho  = base - comExa;
+
+    $('d-cliente').textContent = $('cliente').value.trim() || 'Nome do cliente';
+    $('d-tot-l').textContent = 'Total · tarifa de R$ ' + tarifa.toFixed(2).replace('.', ',') + '/kWh';
+    $('d-tot').textContent   = num.format(total) + ' kWh/mês';
+
+    $('t1-v').textContent = brl.format(cheio);
+    $('t1-n').textContent = brl.format(cheio * 12) + ' por ano';
+
+    $('t2').style.display = temAtual ? '' : 'none';
+    if (temAtual){
+      var ecoA = cheio - atual;
+      $('t2-tag').textContent = num.format(datual) + '% off';
+      $('t2-v').textContent   = brl.format(atual);
+      $('t2-paga').style.width = (100 - datual) + '%';
+      $('t2-eco').style.width  = datual + '%';
+      $('t2-eco').textContent  = '+ ' + brl0.format(ecoA);
+      $('t2-n').textContent    = 'economia de ' + brl.format(ecoA) + ' por mês · ' + brl.format(ecoA * 12) + ' por ano';
+    }
+
+    var ecoE = cheio - comExa;
+    $('t3-tag').textContent = num.format(dexa) + '% off';
+    $('t3-v').textContent   = brl.format(comExa);
+    $('t3-paga').style.width = (100 - dexa) + '%';
+    $('t3-eco').style.width  = dexa + '%';
+    $('t3-eco').textContent  = '+ ' + brl0.format(ecoE);
+    $('t3-n').innerHTML      = 'economia de <b>' + brl.format(ecoE) + '</b> por mês · <b>' + brl.format(ecoE * 12) + '</b> por ano*';
+
+    $('f-n').textContent = brl0.format(Math.max(0, ganho) * 12) + '*';
+    $('f-t').innerHTML = temAtual
+      ? '<b>a mais no bolso por ano</b>, além do que ele já economiza hoje.<br>São ' + brl.format(Math.max(0, ganho)) + ' por mês acima do desconto atual.'
+      : '<b>de economia por ano</b>, nestas unidades.<br>São ' + brl.format(Math.max(0, ganho)) + ' por mês que deixam de sair do caixa.';
+
+    $('d-foot').innerHTML = '<b>' + CONFIG.aviso + '</b> '
+      + 'Cálculo sobre o consumo médio informado de cada unidade, à tarifa de R$ '
+      + tarifa.toFixed(2).replace('.', ',') + '/kWh. O desconto incide sobre a tarifa de energia. '
+      + CONFIG.rodapeExtra;
+  }
+
+  // sincroniza faixa e caixa
+  [['dexa','dexa-n'], ['datual','datual-n']].forEach(function(par){
+    var f = $(par[0]), c = $(par[1]);
+    f.addEventListener('input', function(){ c.value = f.value; calc(); });
+    c.addEventListener('input', function(){
+      var v = parseFloat(c.value);
+      if (isFinite(v)) f.value = Math.min(parseFloat(f.max), Math.max(parseFloat(f.min), v));
+      calc();
+    });
+  });
+
+  function toggle(){
+    temAtual = !temAtual;
+    $('sw').classList.toggle('on', temAtual);
+    $('box-atual').style.display = temAtual ? '' : 'none';
+    calc();
+  }
+  $('sw').addEventListener('click', toggle);
+  $('sw').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); } });
+
+  $('add').addEventListener('click', function(){ $('ucs').appendChild(linhaUC('', '')); calc(); });
+  ['cliente','tarifa'].forEach(function(id){ $(id).addEventListener('input', calc); });
+  $('tg').addEventListener('click', function(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', cur ? (cur === 'dark' ? 'light' : 'dark') : (dark ? 'light' : 'dark'));
+  });
+  $('pr').addEventListener('click', function(){ window.print(); });
+
+  // estado inicial
+  $('cliente').value  = QS.cliente || CONFIG.nomeCliente;
+  $('tarifa').value   = ini('tarifa', CONFIG.tarifaPadrao);
+  $('dexa').value     = ini('dexa',  CONFIG.descontoExa);   $('dexa-n').value   = $('dexa').value;
+  $('datual').value   = ini('atual', CONFIG.descontoAtual); $('datual-n').value = $('datual').value;
+  $('ucs').appendChild(linhaUC('', ini('kwh', '') || ''));
+  if (QS.atual !== undefined) toggle();
+
+  var hoje = new Date();
+  $('d-data').textContent = hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  calc();
+})();
+</script>
+
+<!-- ============================================================
+     LOGO EXA EM VETOR · nao precisa mexer aqui
+     ============================================================ -->
 <svg style="display:none" aria-hidden="true"><symbol id="exa-logo" viewBox="0 0 3288.000000 1372.000000"><g transform="translate(0.000000,1372.000000) scale(0.100000,-0.100000)"
 fill="var(--mark)" stroke="none">
 <path d="M6397 13700 c-5 -19 -14 -20 -216 -20 -200 0 -211 -1 -221 -20 -10

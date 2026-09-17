@@ -1,72 +1,177 @@
-# Simulador do parceiro · exa energia
+# Simuladores · exa energia
 
-Arquivo único, sem dependências. Abre com dois cliques, sobe em qualquer
-hospedagem, funciona offline (só a tipografia muda, porque as fontes vêm
-do Google Fonts).
+Duas calculadoras comerciais em HTML puro, sem dependências, sem build.
+Cada arquivo abre com dois cliques e funciona offline (só a tipografia muda,
+porque as fontes vêm do Google Fonts).
 
-## Estrutura do arquivo
+```
+index.html      capa com os dois links
+cliente.html    economia do cliente final
+parceiro.html   ganho do parceiro
+README.md       este arquivo
+```
 
-`simulador_parceiro_exa.html` tem quatro partes, nesta ordem:
+---
+
+## Publicar no GitHub Pages
+
+1. Crie um repositório, por exemplo `exa-simuladores`.
+2. Suba os quatro arquivos na raiz do repositório.
+3. Em **Settings → Pages**, escolha `Deploy from a branch`, branch `main`, pasta `/ (root)`.
+4. O endereço sai como `https://SEU-USUARIO.github.io/exa-simuladores/`.
+
+Para usar domínio próprio, por exemplo `simulador.exaenergia.com.br`:
+
+1. No DNS do domínio, crie um registro `CNAME` apontando
+   `simulador` para `SEU-USUARIO.github.io`.
+2. Em **Settings → Pages → Custom domain**, informe o domínio e salve.
+   O GitHub cria um arquivo `CNAME` no repositório.
+3. Marque **Enforce HTTPS** depois que o certificado for emitido.
+
+Os links finais ficam:
+
+```
+simulador.exaenergia.com.br/            capa
+simulador.exaenergia.com.br/cliente     economia do cliente
+simulador.exaenergia.com.br/parceiro    ganho do parceiro
+```
+
+---
+
+## Estrutura interna dos arquivos
+
+Os dois simuladores têm o mesmo formato, nesta ordem:
 
 | Onde | O quê |
 |---|---|
 | `<style>` | Tokens de cor no `:root`, tema claro e escuro, layout |
-| `CABEÇALHO` / `ENTRADAS` / `RESULTADO` | A marcação da página |
+| Marcação | Cabeçalho, entradas e resultado |
 | `<script>` | Bloco `CONFIG` e a função `calc()` |
-| `LOGO EXA EM VETOR` | O logo traçado, no fim do arquivo, fora do caminho |
+| Fim do arquivo | O logo da exa em vetor, isolado, não precisa mexer |
 
-Os primeiros 20 KB são o que você edita. O resto é o vetor do logo.
+Os primeiros 20 KB são tudo o que se edita. O resto é o vetor do logo.
 
-## Onde mexer
+---
 
-**Valores iniciais** — bloco `CONFIG`, no começo do `<script>`:
+## cliente.html · economia do cliente
+
+Mostra quanto o cliente paga na tarifa cheia, quanto passa a pagar com a exa e
+quanto sobra por mês e por ano. Aceita várias unidades consumidoras e tem um
+interruptor para o caso de o cliente já ter desconto com outro fornecedor. Com
+ele ligado, o cálculo final passa a comparar contra o desconto atual, não
+contra a tarifa cheia.
+
+O botão **Imprimir ou salvar PDF** esconde a coluna de entrada e gera só o
+documento, para mandar ao cliente depois da reunião.
+
+### Valores iniciais
+
+```js
+var CONFIG = {
+  tarifaPadrao:   1.18,   // R$ por kWh da distribuidora
+  descontoExa:    30,     // % oferecido com a exa
+  descontoAtual:  20,     // % que o cliente já tem hoje, se tiver
+  nomeCliente:    "Nome do cliente",
+  rodapeExtra:    "Sem obra, sem instalação e sem investimento inicial.",
+  aviso:          "* A economia apresentada é um valor aproximado e precisa ser revista no estudo completo."
+};
+```
+
+### Parâmetros pela URL
+
+```
+cliente.html?cliente=Rede%20Aguia&tarifa=1.18&kwh=9954&dexa=30&atual=20
+```
+
+| Parâmetro | O quê |
+|---|---|
+| `cliente` | nome que aparece no documento |
+| `tarifa` | R$ por kWh da distribuidora |
+| `kwh` | consumo da primeira unidade |
+| `dexa` | desconto oferecido com a exa, em % |
+| `atual` | desconto que o cliente já tem; informar este parâmetro já liga o interruptor |
+
+---
+
+## parceiro.html · ganho do parceiro
+
+Mostra quanto a rede do parceiro pode render. Ele informa quantas pessoas
+conhece, quantas converte, a conta média e os dois deságios. O resultado é o
+spread mensal, o acumulado de doze meses e a régua que compara a oferta dele
+com o padrão do mercado.
+
+### Valores iniciais
 
 ```js
 var CONFIG = {
   volumeMinimo:      0,      // MWh · 0 desliga o alerta de carteira mínima
-  desagioAquisicao:  25,     // %
-  desagioCliente:    15,     // %
+  desagioAquisicao:  25,     // % · valor neutro, a condição real vai pela URL
+  desagioCliente:    15,     // % · valor neutro, a condição real vai pela URL
   pessoasPadrao:     200,
   conversaoPadrao:   20,
   contaPadrao:       900,
-  tarifaPadrao:      1.00,
+  tarifaPadrao:      1.00,   // R$ por kWh, só para converter em MWh
   contato:           "exa energia · exaenergia.com"
 };
 ```
 
-**Cores** — `:root` no `<style>`. O tema escuro repete os mesmos tokens
-em dois blocos: `@media (prefers-color-scheme:dark)` e `[data-theme="dark"]`.
-Mudou um, muda os dois.
-
-**A conta** — função `calc()`. A lógica inteira são seis linhas:
-
-```js
-var clientes = Math.floor(pessoas * conv / 100);
-var ref      = clientes * conta;          // valor de referência das faturas
-var mwh      = clientes * (conta / tarifa) / 1000;
-var compra   = ref * (1 - daq  / 100);    // o que o parceiro paga
-var venda    = ref * (1 - dcli / 100);    // o que o parceiro recebe
-var spread   = venda - compra;            // o ganho
-```
-
-## Parâmetros pela URL
-
-Todos opcionais. Servem para mandar um link já preenchido por parceiro:
+### Parâmetros pela URL
 
 ```
-simulador.html?vmin=30&daq=40&dcli=30&pessoas=300&conv=25&conta=1200&tarifa=1.05
+parceiro.html?vmin=30&daq=40&dcli=30&pessoas=300&conv=25&conta=1200&tarifa=1.05
 ```
 
-`vmin` MWh mínimos · `daq` deságio de aquisição · `dcli` deságio ao cliente
-`pessoas` tamanho da rede · `conv` % de conversão · `conta` R$/mês por cliente
-`tarifa` R$/kWh
+| Parâmetro | O quê |
+|---|---|
+| `vmin` | MWh de carteira mínima da condição |
+| `daq` | deságio de aquisição, em % |
+| `dcli` | deságio oferecido ao cliente, em % |
+| `pessoas` | tamanho da rede |
+| `conv` | conversão, em % |
+| `conta` | conta média por cliente, em R$ |
+| `tarifa` | R$ por kWh |
 
-Cuidado: link com parâmetro circula. Se o parceiro reencaminhar, a condição
-de aquisição vai junto.
+---
 
-## Regras de conteúdo que não devem ser quebradas
+## Cuidados que valem mais que o código
 
-- Nunca escrever "comprar energia", "vender energia" ou "venda de créditos".
-  O objeto é **saldo de geração**, adquirido em **EXAs** dentro da plataforma.
-- Os deságios padrão são neutros de propósito, porque a página é pública.
-  A condição real entra pela URL ou é digitada na reunião.
+**A página do parceiro é pública.** Os deságios padrão são neutros de propósito.
+A condição comercial real entra pela URL ou é digitada na reunião, nunca fica
+no arquivo.
+
+**Link com parâmetro circula.** Se o parceiro reencaminhar um endereço com
+`daq=40`, a condição de aquisição vai junto. Para negociação sensível, o
+consultor digita na tela.
+
+**Terminologia que não pode ser quebrada.** Nunca escrever "comprar energia",
+"vender energia" ou "venda de créditos". O objeto é **saldo de geração**,
+adquirido em **EXAs** dentro da plataforma. A operação é rateio de aluguel
+dentro da associação civil, e os créditos vêm por consequência no SCEE.
+
+**Padrões de desconto da exa**, por unidade consumidora:
+
+| Consumo por unidade | O que pode ser oferecido |
+|---|---|
+| Até 500 kWh | Plano Fixo |
+| 500 a 2.000 kWh | Plano Fixo ou desconto de até 20% |
+| Acima de 2.000 kWh | Desconto de até 30% |
+
+Nenhum dos dois simuladores trava esses limites hoje, porque quem preenche é o
+consultor. Se um dia forem usados pelo cliente sozinho, essa trava precisa
+existir.
+
+---
+
+## Cores
+
+Os dois arquivos usam os mesmos tokens, definidos em três lugares que precisam
+ser alterados juntos: `:root`, o bloco `@media (prefers-color-scheme:dark)` e
+o bloco `:root[data-theme="dark"]`.
+
+| Token | Claro | Escuro |
+|---|---|---|
+| `--bg` | `#F7F3E7` | `#001409` |
+| `--accent` | `#00A95B` | `#ADF98E` |
+| `--head` | `#11201A` | `#FFFFFF` |
+
+Tipografia: **Inter** no texto, **Oxanium** só nos números e títulos de destaque.
