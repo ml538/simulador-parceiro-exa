@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Simulador de economia · exa energia</title>
+<script>try{var t=localStorage.getItem('exa-tema');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -150,12 +151,12 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 
       <div class="field">
         <label for="cliente">Nome do cliente</label>
-        <div class="inputrow"><input type="text" id="cliente" value="Nome do cliente"></div>
+        <div class="inputrow"><input type="text" id="cliente" placeholder="Nome do cliente"></div>
       </div>
 
       <div class="field">
         <label for="tarifa">Tarifa da distribuidora <span class="hint">R$ por kWh</span></label>
-        <div class="inputrow"><span class="pre">R$</span><input type="number" id="tarifa" value="1.18" min="0.1" step="0.01"></div>
+        <div class="inputrow"><span class="pre">R$</span><input type="number" id="tarifa" value="0" min="0" step="0.01"></div>
       </div>
 
       <div class="sep"></div>
@@ -168,7 +169,7 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 
       <div class="field">
         <label for="dexa">Desconto que você oferece <span class="hint">com a exa</span></label>
-        <div class="inputrow"><input type="range" id="dexa" value="30" min="1" max="60" step="1"><input type="number" class="pct" id="dexa-n" value="30" min="0" max="99" step="1"><span class="pre">%</span></div>
+        <div class="inputrow"><input type="range" id="dexa" value="0" min="0" max="1" step="1"><input type="number" class="pct" id="dexa-n" value="0" min="0" max="99" step="1"><span class="pre">%</span></div>
       </div>
 
       <div class="switch" id="sw" role="button" tabindex="0">
@@ -178,7 +179,7 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 
       <div class="field" id="box-atual" style="display:none; margin-top:14px">
         <label for="datual">Desconto atual dele <span class="hint">com o fornecedor de hoje</span></label>
-        <div class="inputrow"><input type="range" id="datual" value="20" min="1" max="60" step="1"><input type="number" class="pct" id="datual-n" value="20" min="0" max="99" step="1"><span class="pre">%</span></div>
+        <div class="inputrow"><input type="range" id="datual" value="0" min="0" max="1" step="1"><input type="number" class="pct" id="datual-n" value="0" min="0" max="99" step="1"><span class="pre">%</span></div>
       </div>
     </section>
 
@@ -207,12 +208,14 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 
       <div class="tier" id="t2" style="display:none">
         <div class="top"><span class="nm">Hoje, com o desconto atual<span class="tag" id="t2-tag">20% off</span></span><span class="pv" id="t2-v">—</span></div>
+        <div class="note right" id="t2-ano">—</div>
         <div class="track"><div class="paga" id="t2-paga">paga</div><div class="eco" id="t2-eco"></div></div>
         <div class="note" id="t2-n"></div>
       </div>
 
       <div class="tier exa">
         <div class="top"><span class="nm">Com a exa energia<span class="tag" id="t3-tag">30% off</span></span><span class="pv" id="t3-v">—</span></div>
+        <div class="note right" id="t3-ano">—</div>
         <div class="track"><div class="paga" id="t3-paga">paga</div><div class="eco" id="t3-eco"></div></div>
         <div class="note" id="t3-n"></div>
       </div>
@@ -243,10 +246,10 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
      CONFIGURACAO  ·  mude so aqui
      =========================================================== */
   var CONFIG = {
-    tarifaPadrao:   1.18,   // R$ por kWh da distribuidora
-    descontoExa:    30,     // % que o consultor oferece com a exa
-    descontoAtual:  20,     // % que o cliente ja tem hoje, se tiver
-    nomeCliente:    "Nome do cliente",
+    tarifaPadrao:   0,      // R$ por kWh da distribuidora · comeca zerado, o consultor preenche
+    descontoExa:    0,      // % que o consultor oferece com a exa · comeca zerado de proposito
+    descontoAtual:  0,      // % que o cliente ja tem hoje, se tiver · comeca zerado de proposito
+    nomeCliente:    "",
     rodapeExtra:    "Sem obra, sem instalação e sem investimento inicial.",
     aviso:          "* A economia apresentada é um valor aproximado e precisa ser revista no estudo completo."
   };
@@ -322,6 +325,7 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
       var ecoA = cheio - atual;
       $('t2-tag').textContent = num.format(datual) + '% off';
       $('t2-v').textContent   = brl.format(atual);
+      $('t2-ano').textContent = brl.format(atual * 12) + ' por ano';
       $('t2-paga').style.width = (100 - datual) + '%';
       $('t2-eco').style.width  = datual + '%';
       $('t2-eco').textContent  = '+ ' + brl0.format(ecoA);
@@ -331,6 +335,7 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
     var ecoE = cheio - comExa;
     $('t3-tag').textContent = num.format(dexa) + '% off';
     $('t3-v').textContent   = brl.format(comExa);
+    $('t3-ano').textContent = brl.format(comExa * 12) + ' por ano';
     $('t3-paga').style.width = (100 - dexa) + '%';
     $('t3-eco').style.width  = dexa + '%';
     $('t3-eco').textContent  = '+ ' + brl0.format(ecoE);
@@ -347,16 +352,23 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
       + CONFIG.rodapeExtra;
   }
 
-  // sincroniza faixa e caixa
-  [['dexa','dexa-n'], ['datual','datual-n']].forEach(function(par){
-    var f = $(par[0]), c = $(par[1]);
-    f.addEventListener('input', function(){ c.value = f.value; calc(); });
-    c.addEventListener('input', function(){
-      var v = parseFloat(c.value);
-      if (isFinite(v)) f.value = Math.min(parseFloat(f.max), Math.max(parseFloat(f.min), v));
+  // sincroniza faixa e caixa · a faixa sempre termina exatamente no valor
+  // digitado, entao a barra verde aparece cheia (o maximo que da para oferecer)
+  function ligaPct(rangeId, boxId){
+    var f = $(rangeId), c = $(boxId);
+    function aplicar(v){
+      v = Math.max(0, Math.min(99, isFinite(v) ? v : 0));
+      f.max = Math.max(v, 1);
+      f.value = v;
+      c.value = v;
       calc();
-    });
-  });
+    }
+    f.addEventListener('input', function(){ aplicar(parseFloat(f.value)); });
+    c.addEventListener('input', function(){ aplicar(parseFloat(c.value)); });
+    return aplicar;
+  }
+  var aplicarDexa   = ligaPct('dexa', 'dexa-n');
+  var aplicarDatual = ligaPct('datual', 'datual-n');
 
   function toggle(){
     temAtual = !temAtual;
@@ -372,15 +384,18 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
   $('tg').addEventListener('click', function(){
     var cur = document.documentElement.getAttribute('data-theme');
     var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme', cur ? (cur === 'dark' ? 'light' : 'dark') : (dark ? 'light' : 'dark'));
+    var next = cur ? (cur === 'dark' ? 'light' : 'dark') : (dark ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', next);
+    try{ localStorage.setItem('exa-tema', next); }catch(e){}
   });
   $('pr').addEventListener('click', function(){ window.print(); });
 
-  // estado inicial
+  // estado inicial · tudo zerado por padrao, para nunca abrir parecendo
+  // que ja existe uma oferta melhor do que a que sera feita na reuniao
   $('cliente').value  = QS.cliente || CONFIG.nomeCliente;
   $('tarifa').value   = ini('tarifa', CONFIG.tarifaPadrao);
-  $('dexa').value     = ini('dexa',  CONFIG.descontoExa);   $('dexa-n').value   = $('dexa').value;
-  $('datual').value   = ini('atual', CONFIG.descontoAtual); $('datual-n').value = $('datual').value;
+  aplicarDexa(ini('dexa', CONFIG.descontoExa));
+  aplicarDatual(ini('atual', CONFIG.descontoAtual));
   $('ucs').appendChild(linhaUC('', ini('kwh', '') || ''));
   if (QS.atual !== undefined) toggle();
 

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Simulador do parceiro · exa energia</title>
+<script>try{var t=localStorage.getItem('exa-tema');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
@@ -134,22 +135,22 @@ footer b{color:var(--body)}
 
       <div class="field">
         <label for="pessoas">Pessoas ou empresas na sua rede <span class="hint" id="h-pessoas"></span></label>
-        <div class="inputrow"><span class="pre">#</span><input type="number" id="pessoas" value="200" min="0" step="10"></div>
+        <div class="inputrow"><span class="pre">#</span><input type="number" id="pessoas" value="0" min="0" step="10"></div>
       </div>
 
       <div class="field">
         <label for="conv">Quantas você converte <span class="hint">da sua rede</span></label>
-        <div class="inputrow"><input type="range" id="conv" value="20" min="1" max="100" step="1"><input type="number" class="pct" id="conv-n" value="20" min="0" max="100" step="1"><span class="unit">%</span></div>
+        <div class="inputrow"><input type="range" id="conv" value="0" min="0" max="100" step="1"><input type="number" class="pct" id="conv-n" value="0" min="0" max="100" step="1"><span class="unit">%</span></div>
       </div>
 
       <div class="field">
         <label for="conta">Conta de energia média <span class="hint">por cliente, por mês</span></label>
-        <div class="inputrow"><span class="pre">R$</span><input type="number" id="conta" value="900" min="0" step="50"></div>
+        <div class="inputrow"><span class="pre">R$</span><input type="number" id="conta" value="0" min="0" step="50"></div>
       </div>
 
       <div class="field">
         <label for="tarifa">Tarifa média <span class="hint">para converter em kWh</span></label>
-        <div class="inputrow"><span class="pre">R$</span><input type="number" id="tarifa" value="1.00" min="0.1" step="0.05"></div>
+        <div class="inputrow"><span class="pre">R$</span><input type="number" id="tarifa" value="0" min="0" step="0.05"></div>
       </div>
 
       <div class="sep"></div>
@@ -157,17 +158,17 @@ footer b{color:var(--body)}
 
       <div class="field">
         <label for="vmin">Carteira mínima da condição <span class="hint">muda conforme a oferta</span></label>
-        <div class="inputrow"><input type="number" id="vmin" value="30" min="0" step="1"><span class="unit">MWh</span></div>
+        <div class="inputrow"><input type="number" id="vmin" value="0" min="0" step="1"><span class="unit">MWh</span></div>
       </div>
 
       <div class="field">
         <label for="daq">Deságio de aquisição <span class="hint">o que a exa te entrega</span></label>
-        <div class="inputrow"><input type="range" id="daq" value="40" min="1" max="80" step="1"><input type="number" class="pct" id="daq-n" value="40" min="0" max="99" step="1"><span class="unit">%</span></div>
+        <div class="inputrow"><input type="range" id="daq" value="0" min="0" max="1" step="1"><input type="number" class="pct" id="daq-n" value="0" min="0" max="99" step="1"><span class="unit">%</span></div>
       </div>
 
       <div class="field">
         <label for="dcli">Deságio ao seu cliente <span class="hint">o que você oferece</span></label>
-        <div class="inputrow"><input type="range" id="dcli" value="30" min="1" max="80" step="1"><input type="number" class="pct" id="dcli-n" value="30" min="0" max="99" step="1"><span class="unit">%</span></div>
+        <div class="inputrow"><input type="range" id="dcli" value="0" min="0" max="1" step="1"><input type="number" class="pct" id="dcli-n" value="0" min="0" max="99" step="1"><span class="unit">%</span></div>
       </div>
     </section>
 
@@ -249,12 +250,12 @@ footer b{color:var(--body)}
      =========================================================== */
   var CONFIG = {
     volumeMinimo:      0,      // MWh · 0 desliga o alerta de carteira minima
-    desagioAquisicao:  25,     // % · valor neutro; a condicao real vai pela URL
-    desagioCliente:    15,     // % · valor neutro; a condicao real vai pela URL
-    pessoasPadrao:     200,    // contatos na rede do parceiro
-    conversaoPadrao:   20,     // % de conversao
-    contaPadrao:       900,    // conta media de energia, em R$
-    tarifaPadrao:      1.00,   // R$ por kWh, so para converter em MWh
+    desagioAquisicao:  0,      // % · comeca zerado de proposito; a condicao real vai pela URL
+    desagioCliente:    0,      // % · comeca zerado de proposito; a condicao real vai pela URL
+    pessoasPadrao:     0,      // contatos na rede do parceiro · comeca zerado
+    conversaoPadrao:   0,      // % de conversao · comeca zerado
+    contaPadrao:       0,      // conta media de energia, em R$ · comeca zerada
+    tarifaPadrao:      0,      // R$ por kWh, so para converter em MWh · comeca zerada
     contato:           "exa energia · exaenergia.com"
   };
   /* =========================================================== */
@@ -275,8 +276,8 @@ footer b{color:var(--body)}
   function inicial(chave, padrao){
     return (QS[chave] !== undefined) ? QS[chave] : padrao;
   }
-  var ids  = ['pessoas','conv','conta','tarifa','daq','dcli','vmin'];
-  var sync = [['conv','conv-n'], ['daq','daq-n'], ['dcli','dcli-n']];
+  var ids  = ['pessoas','conv','conta','tarifa','vmin'];
+  var sync = [['conv','conv-n']];
 
   function val(id){ var v = parseFloat($(id).value); return isFinite(v) ? v : 0; }
 
@@ -362,21 +363,42 @@ footer b{color:var(--body)}
     }
   }
 
-  $('pessoas').value = inicial('pessoas', CONFIG.pessoasPadrao);
-  $('conv').value    = inicial('conv',    CONFIG.conversaoPadrao);
-  $('conta').value   = inicial('conta',   CONFIG.contaPadrao);
-  $('tarifa').value  = inicial('tarifa',  CONFIG.tarifaPadrao);
-  $('daq').value     = inicial('daq',     CONFIG.desagioAquisicao);
-  $('dcli').value    = inicial('dcli',    CONFIG.desagioCliente);
-  $('vmin').value    = inicial('vmin',    CONFIG.volumeMinimo);
-  sync.forEach(function(par){ $(par[1]).value = $(par[0]).value; });
-  var rodape = document.getElementById('rodape-contato');
-  if (rodape) rodape.textContent = CONFIG.contato;
-
   function liga(id, fn){
     $(id).addEventListener('input', fn);
     $(id).addEventListener('change', fn);
   }
+
+  // deságios: a faixa sempre termina exatamente no valor digitado, entao a
+  // barra verde aparece cheia — parece o maximo que da para oferecer
+  function ligaPct(rangeId, boxId){
+    var f = $(rangeId), c = $(boxId);
+    function aplicar(v){
+      v = Math.max(0, Math.min(99, isFinite(v) ? v : 0));
+      f.max = Math.max(v, 1);
+      f.value = v;
+      c.value = v;
+      calc();
+    }
+    liga(rangeId, function(){ aplicar(parseFloat(f.value)); });
+    liga(boxId,   function(){ aplicar(parseFloat(c.value)); });
+    return aplicar;
+  }
+  var aplicarDaq  = ligaPct('daq',  'daq-n');
+  var aplicarDcli = ligaPct('dcli', 'dcli-n');
+
+  // estado inicial · tudo zerado por padrao, para nunca abrir parecendo que
+  // ja existe uma condicao melhor do que a que sera oferecida na reuniao
+  $('pessoas').value = inicial('pessoas', CONFIG.pessoasPadrao);
+  $('conv').value    = inicial('conv',    CONFIG.conversaoPadrao);
+  $('conta').value   = inicial('conta',   CONFIG.contaPadrao);
+  $('tarifa').value  = inicial('tarifa',  CONFIG.tarifaPadrao);
+  $('vmin').value    = inicial('vmin',    CONFIG.volumeMinimo);
+  sync.forEach(function(par){ $(par[1]).value = $(par[0]).value; });
+  aplicarDaq(inicial('daq', CONFIG.desagioAquisicao));
+  aplicarDcli(inicial('dcli', CONFIG.desagioCliente));
+  var rodape = document.getElementById('rodape-contato');
+  if (rodape) rodape.textContent = CONFIG.contato;
+
   ids.forEach(function(id){ liga(id, calc); });
   sync.forEach(function(par){
     var faixa = par[0], caixa = par[1];
@@ -396,6 +418,7 @@ footer b{color:var(--body)}
     var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     var next = cur ? (cur === 'dark' ? 'light' : 'dark') : (dark ? 'light' : 'dark');
     document.documentElement.setAttribute('data-theme', next);
+    try{ localStorage.setItem('exa-tema', next); }catch(e){}
   });
 
   calc();
