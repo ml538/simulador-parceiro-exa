@@ -39,6 +39,7 @@ header{display:flex; align-items:center; justify-content:space-between; gap:16px
 .acts{display:flex; gap:8px}
 .btn{background:var(--card); color:var(--body); border:1px solid var(--border); border-radius:999px; padding:8px 15px; font:inherit; font-size:12px; cursor:pointer}
 .btn:hover{color:var(--head)}
+.backbtn{text-decoration:none; display:inline-flex; align-items:center; gap:5px}
 .btn.solid{background:var(--accent); color:var(--onaccent); border-color:transparent; font-weight:600}
 
 .kicker{font-size:10px; font-weight:700; letter-spacing:.19em; text-transform:uppercase; color:var(--accent2); margin:0 0 6px}
@@ -134,7 +135,10 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 <div class="wrap">
 
   <header>
-    <div class="brand"><svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg></div>
+    <div class="brand">
+      <a class="btn backbtn no-print" href="index.html" title="Voltar para a capa">← Voltar</a>
+      <svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg>
+    </div>
     <div class="acts no-print">
       <button class="btn" id="tg" type="button">Tema</button>
       <button class="btn solid" id="pr" type="button">Imprimir ou salvar PDF</button>

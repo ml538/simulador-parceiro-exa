@@ -46,6 +46,7 @@ h1{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:clamp(23px,3
 h1 em{font-style:normal; color:var(--accent2)}
 .sub{color:var(--body); font-size:14px; margin:0; max-width:62ch}
 .themebtn{background:var(--card); color:var(--body); border:1px solid var(--border); border-radius:999px; padding:8px 15px; font:inherit; font-size:12px; cursor:pointer}
+.backbtn{text-decoration:none; display:inline-flex; align-items:center; gap:5px}
 .themebtn:hover{color:var(--head)}
 
 .grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.08fr); gap:18px; align-items:start}
@@ -122,7 +123,10 @@ footer b{color:var(--body)}
 
   <!-- ================= CABECALHO ================= -->
   <header>
-    <div class="brand"><svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg></div>
+    <div class="brand">
+      <a class="themebtn backbtn" href="index.html" title="Voltar para a capa">← Voltar</a>
+      <svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg>
+    </div>
     <button class="themebtn" id="tg" type="button">Alternar tema</button>
   </header>
 
