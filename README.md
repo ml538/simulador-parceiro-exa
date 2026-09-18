@@ -114,18 +114,19 @@ conhece, quantas converte, a conta média e os dois deságios. O resultado é o
 spread mensal, o acumulado de doze meses e a régua que compara a oferta dele
 com o padrão do mercado.
 
-Assim como no `cliente.html`, o deságio ao cliente tem um campo de "Deságio
-máximo que você pode oferecer" (com o mesmo ícone 👁 para esconder) e um
-campo "agora" logo abaixo que arrasta de 0 até esse teto, sem passar dele.
-Todos os campos abrem zerados.
+Diferente do `cliente.html`, aqui não existe um campo de teto separado: o
+próprio **deságio de aquisição** (`daq`) é o teto. Defina o `daq` primeiro
+(ex. 40%) — ele fica cravado ali, é informação que já é aberta com o parceiro
+— e o campo "Deságio ao seu cliente agora", logo abaixo, arrasta de 0 até o
+`daq` sem passar dele, mostrando visualmente o quanto sobra de spread para
+você. Todos os campos abrem zerados.
 
 ### Valores iniciais
 
 ```js
 var CONFIG = {
   volumeMinimo:      0,      // MWh · 0 desliga o alerta de carteira mínima
-  desagioAquisicao:  0,      // % · valor neutro, a condição real vai pela URL
-  desagioClienteMax: 0,      // % · teto do que você oferece ao cliente
+  desagioAquisicao:  0,      // % · valor neutro, a condição real vai pela URL · também é o teto do dcli
   desagioCliente:    0,      // % · valor neutro, a condição real vai pela URL
   pessoasPadrao:     0,
   conversaoPadrao:   0,
@@ -138,15 +139,14 @@ var CONFIG = {
 ### Parâmetros pela URL
 
 ```
-parceiro.html?vmin=30&daq=40&maxdcli=30&dcli=30&pessoas=300&conv=25&conta=1200&tarifa=1.05
+parceiro.html?vmin=30&daq=40&dcli=30&pessoas=300&conv=25&conta=1200&tarifa=1.05
 ```
 
 | Parâmetro | O quê |
 |---|---|
 | `vmin` | MWh de carteira mínima da condição |
-| `daq` | deságio de aquisição, em % |
-| `maxdcli` | teto do deságio que você pode oferecer ao cliente, em % |
-| `dcli` | deságio oferecido ao cliente agora, em % (não pode passar de `maxdcli`) |
+| `daq` | deságio de aquisição, em % · também é o teto do `dcli` |
+| `dcli` | deságio oferecido ao cliente agora, em % (não pode passar de `daq`) |
 | `pessoas` | tamanho da rede |
 | `conv` | conversão, em % |
 | `conta` | conta média por cliente, em R$ |

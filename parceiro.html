@@ -165,20 +165,12 @@ footer b{color:var(--body)}
       </div>
 
       <div class="field">
-        <label for="daq">Deságio de aquisição <span class="hint">o que a exa te entrega</span></label>
+        <label for="daq">Deságio de aquisição <span class="hint">o que a exa te entrega · defina primeiro</span></label>
         <div class="inputrow"><input type="range" id="daq" value="0" min="0" max="80" step="1"><input type="number" class="pct" id="daq-n" value="0" min="0" max="99" step="1"><span class="unit">%</span></div>
       </div>
 
       <div class="field">
-        <label for="dcliMax">Deságio máximo que você pode oferecer <span class="hint">defina antes de começar</span></label>
-        <div class="inputrow">
-          <input type="number" id="dcliMax" value="0" min="0" max="99" step="1"><span class="unit">%</span>
-          <button type="button" class="eyebtn" id="dcliMax-eye" title="ocultar da tela na hora de apresentar" aria-label="ocultar da tela">👁</button>
-        </div>
-      </div>
-
-      <div class="field">
-        <label for="dcli">Deságio ao seu cliente agora <span class="hint">arraste durante a reunião</span></label>
+        <label for="dcli">Deságio ao seu cliente agora <span class="hint">arraste até o de aquisição</span></label>
         <div class="inputrow"><input type="range" id="dcli" value="0" min="0" max="1" step="1"><input type="number" class="pct" id="dcli-n" value="0" min="0" max="99" step="1"><span class="unit">%</span></div>
       </div>
     </section>
@@ -262,7 +254,6 @@ footer b{color:var(--body)}
   var CONFIG = {
     volumeMinimo:      0,      // MWh · 0 desliga o alerta de carteira minima
     desagioAquisicao:  0,      // % · comeca zerado de proposito; a condicao real vai pela URL
-    desagioClienteMax: 0,      // % · teto do que voce oferece ao cliente, defina antes da reuniao
     desagioCliente:    0,      // % · comeca zerado de proposito; a condicao real vai pela URL
     pessoasPadrao:     0,      // contatos na rede do parceiro · comeca zerado
     conversaoPadrao:   0,      // % de conversao · comeca zerado
@@ -294,6 +285,13 @@ footer b{color:var(--body)}
   function val(id){ var v = parseFloat($(id).value); return isFinite(v) ? v : 0; }
 
   function calc(){
+    // o "deságio ao cliente" trava no "deságio de aquisição": defina o daq
+    // primeiro (ex. 40%), ele crava ali, e o dcli arrasta de 0 ate ele — sem
+    // recalcular isso durante o proprio arraste do dcli, so quando o daq muda
+    var teto = Math.max(0, Math.min(99, val('daq')));
+    $('dcli').max = Math.max(teto, 1);
+    if (val('dcli') > teto){ $('dcli').value = teto; $('dcli-n').value = teto; }
+
     var pessoas = Math.max(0, val('pessoas'));
     var conv    = val('conv');
     var conta   = Math.max(0, val('conta'));
@@ -380,17 +378,8 @@ footer b{color:var(--body)}
     $(id).addEventListener('change', fn);
   }
 
-  // "deságio ao cliente agora" arrasta de 0 ate o maximo definido em cima,
-  // sem recalcular o teto a cada movimento (isso que bugava o arraste)
-  function tetoAtual(){ return Math.max(0, Math.min(99, parseFloat($('dcliMax').value) || 0)); }
-
-  function atualizarTeto(){
-    var teto = tetoAtual();
-    $('dcli').max = Math.max(teto, 1);
-    if (parseFloat($('dcli').value) > teto){ $('dcli').value = teto; $('dcli-n').value = teto; }
-    calc();
-  }
-
+  // dcli arrasta dentro do teto que o proprio calc() ja mantem atualizado
+  // (o teto muda quando o daq muda, nunca durante o proprio arraste do dcli)
   function aplicarDcli(v){
     var f = $('dcli');
     v = Math.max(parseFloat(f.min) || 0, Math.min(parseFloat(f.max) || 99, isFinite(v) ? v : 0));
@@ -399,15 +388,6 @@ footer b{color:var(--body)}
   }
   liga('dcli',    function(){ aplicarDcli(parseFloat($('dcli').value)); });
   liga('dcli-n',  function(){ aplicarDcli(parseFloat($('dcli-n').value)); });
-  liga('dcliMax', atualizarTeto);
-
-  $('dcliMax-eye').addEventListener('click', function(){
-    var oculto = $('dcliMax').type === 'password';
-    $('dcliMax').type = oculto ? 'number' : 'password';
-    this.textContent = oculto ? '👁' : '🙈';
-    this.classList.toggle('on', !oculto);
-    this.title = oculto ? 'ocultar da tela na hora de apresentar' : 'mostrar de novo';
-  });
 
   // estado inicial · tudo zerado por padrao, para nunca abrir parecendo que
   // ja existe uma condicao melhor do que a que sera oferecida na reuniao
@@ -418,8 +398,7 @@ footer b{color:var(--body)}
   $('vmin').value    = inicial('vmin',    CONFIG.volumeMinimo);
   $('daq').value     = inicial('daq',     CONFIG.desagioAquisicao);
   sync.forEach(function(par){ $(par[1]).value = $(par[0]).value; });
-  $('dcliMax').value = inicial('maxdcli', CONFIG.desagioClienteMax);
-  atualizarTeto();
+  calc(); // define o teto do dcli a partir do daq antes de aplicar o valor inicial dele
   aplicarDcli(inicial('dcli', CONFIG.desagioCliente));
   var rodape = document.getElementById('rodape-contato');
   if (rodape) rodape.textContent = CONFIG.contato;
