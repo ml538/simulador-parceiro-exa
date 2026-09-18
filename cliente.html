@@ -62,7 +62,14 @@ h1 em{font-style:normal; color:var(--accent2)}
 input[type=text],input[type=number]{flex:1; min-width:0; background:var(--bg); color:var(--head); border:1px solid var(--border); border-radius:9px; padding:9px 11px; font:inherit; font-weight:600; font-size:15px}
 input[type=text]{font-weight:500}
 input:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:transparent}
-input[type=range]{flex:1; accent-color:var(--accent); margin:0}
+input[type=range]{-webkit-appearance:none; appearance:none; flex:1; height:8px; border-radius:99px; margin:0;
+  background:linear-gradient(to right, var(--accent) 0%, var(--card2) 0%); cursor:pointer}
+input[type=range]:focus{outline:2px solid var(--accent); outline-offset:3px; border-color:transparent}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%;
+  background:var(--accent); border:2px solid var(--card); box-shadow:0 1px 3px rgba(0,0,0,.25)}
+input[type=range]::-moz-range-thumb{width:16px; height:16px; border-radius:50%; background:var(--accent); border:2px solid var(--card)}
+input[type=range]::-moz-range-track{height:8px; border-radius:99px; background:var(--card2)}
+input[type=range]::-moz-range-progress{height:8px; border-radius:99px; background:var(--accent)}
 input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 .sep{height:1px; background:var(--border); margin:18px 0}
 
@@ -298,7 +305,18 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
     return d;
   }
 
+  // pinta o preenchimento verde do slider (o Chrome nao faz isso sozinho com
+  // trilho customizado; o trilho vazio fica claro em vez de preto)
+  function pintar(id){
+    var el = $(id); if (!el) return;
+    var lo = parseFloat(el.min) || 0, hi = parseFloat(el.max) || 100;
+    var pct = hi > lo ? ((parseFloat(el.value) || 0) - lo) / (hi - lo) * 100 : 0;
+    pct = Math.max(0, Math.min(100, pct));
+    el.style.background = 'linear-gradient(to right, var(--accent) ' + pct + '%, var(--card2) ' + pct + '%)';
+  }
+
   function calc(){
+    ['dexa','datual'].forEach(pintar);
     var tarifa = Math.max(0.01, parseFloat($('tarifa').value) || 0);
     var dexa   = parseFloat($('dexa').value) || 0;
     var datual = parseFloat($('datual').value) || 0;

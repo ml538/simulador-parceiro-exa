@@ -68,7 +68,14 @@ input[type=number]{
   font-weight:700; font-size:16px;
 }
 input[type=number]:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:transparent}
-input[type=range]{width:100%; accent-color:var(--accent); margin:0}
+input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:8px; border-radius:99px; margin:0;
+  background:linear-gradient(to right, var(--accent) 0%, var(--card2) 0%); cursor:pointer}
+input[type=range]:focus{outline:2px solid var(--accent); outline-offset:3px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%;
+  background:var(--accent); border:2px solid var(--card); box-shadow:0 1px 3px rgba(0,0,0,.25)}
+input[type=range]::-moz-range-thumb{width:16px; height:16px; border-radius:50%; background:var(--accent); border:2px solid var(--card)}
+input[type=range]::-moz-range-track{height:8px; border-radius:99px; background:var(--card2)}
+input[type=range]::-moz-range-progress{height:8px; border-radius:99px; background:var(--accent)}
 .inputrow input[type=range]{flex:1}
 input.pct{flex:none; width:74px; text-align:center; padding:8px 6px; font-size:15px}
 .unit{font-size:13px; color:var(--dim)}
@@ -170,7 +177,7 @@ footer b{color:var(--body)}
 
       <div class="field">
         <label for="daq">Deságio de aquisição <span class="hint">o que a exa te entrega · defina primeiro</span></label>
-        <div class="inputrow"><input type="range" id="daq" value="0" min="0" max="80" step="1"><input type="number" class="pct" id="daq-n" value="0" min="0" max="99" step="1"><span class="unit">%</span></div>
+        <div class="inputrow"><input type="range" id="daq" value="0" min="0" max="60" step="1"><input type="number" class="pct" id="daq-n" value="0" min="0" max="60" step="1"><span class="unit">%</span></div>
       </div>
 
       <div class="field">
@@ -288,6 +295,16 @@ footer b{color:var(--body)}
 
   function val(id){ var v = parseFloat($(id).value); return isFinite(v) ? v : 0; }
 
+  // pinta o preenchimento verde do slider (o Chrome nao faz isso sozinho com
+  // trilho customizado; o trilho vazio fica claro em vez de preto)
+  function pintar(id){
+    var el = $(id); if (!el) return;
+    var lo = parseFloat(el.min) || 0, hi = parseFloat(el.max) || 100;
+    var pct = hi > lo ? ((parseFloat(el.value) || 0) - lo) / (hi - lo) * 100 : 0;
+    pct = Math.max(0, Math.min(100, pct));
+    el.style.background = 'linear-gradient(to right, var(--accent) ' + pct + '%, var(--card2) ' + pct + '%)';
+  }
+
   function calc(){
     // o "deságio ao cliente" trava no "deságio de aquisição": defina o daq
     // primeiro (ex. 40%), ele crava ali, e o dcli arrasta de 0 ate ele — sem
@@ -295,6 +312,8 @@ footer b{color:var(--body)}
     var teto = Math.max(0, Math.min(99, val('daq')));
     $('dcli').max = Math.max(teto, 1);
     if (val('dcli') > teto){ $('dcli').value = teto; $('dcli-n').value = teto; }
+
+    ['conv','daq','dcli'].forEach(pintar);
 
     var pessoas = Math.max(0, val('pessoas'));
     var conv    = val('conv');
