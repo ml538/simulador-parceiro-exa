@@ -79,9 +79,10 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 .addbtn{width:100%; background:var(--bg); border:1px dashed var(--border); color:var(--body); border-radius:9px; padding:9px; font:inherit; font-size:12.5px; cursor:pointer; margin-top:3px}
 .addbtn:hover{color:var(--accent2); border-color:var(--accent)}
 
-.eyebtn{background:none; border:none; color:var(--dim); font-size:16px; cursor:pointer; padding:2px 4px; line-height:1; flex:none}
-.eyebtn:hover{color:var(--head)}
+.eyebtn{background:none; border:none; color:var(--dim); cursor:pointer; padding:4px; line-height:0; flex:none; display:inline-flex; align-items:center; justify-content:center; border-radius:7px}
+.eyebtn:hover{color:var(--head); background:var(--bg)}
 .eyebtn.on{color:var(--accent2)}
+.eyebtn svg{width:18px; height:18px; display:block}
 
 .switch{display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:11px 13px; cursor:pointer}
 .switch span{font-size:13px; color:var(--head); font-weight:500}
@@ -186,7 +187,7 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
         <label for="dexaMax">Desconto máximo que você pode oferecer <span class="hint">defina antes de começar</span></label>
         <div class="inputrow">
           <input type="number" id="dexaMax" value="0" min="0" max="99" step="1"><span class="pre">%</span>
-          <button type="button" class="eyebtn" id="dexaMax-eye" title="ocultar da tela na hora de apresentar" aria-label="ocultar da tela">👁</button>
+          <button type="button" class="eyebtn" id="dexaMax-eye" title="ocultar da tela na hora de apresentar" aria-label="ocultar da tela"></button>
         </div>
       </div>
 
@@ -430,10 +431,14 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 
   $('dexaMax').addEventListener('input', atualizarTetos);
 
-  $('dexaMax-eye').addEventListener('click', function(){
+  var ICONE_OLHO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var ICONE_OLHO_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  var eyeBtn = $('dexaMax-eye');
+  eyeBtn.innerHTML = ICONE_OLHO;
+  eyeBtn.addEventListener('click', function(){
     var oculto = $('dexaMax').type === 'password';
     $('dexaMax').type = oculto ? 'number' : 'password';
-    this.textContent = oculto ? '👁' : '🙈';
+    this.innerHTML = oculto ? ICONE_OLHO : ICONE_OLHO_OFF;
     this.classList.toggle('on', !oculto);
     this.title = oculto ? 'ocultar da tela na hora de apresentar' : 'mostrar de novo';
   });
