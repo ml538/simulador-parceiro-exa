@@ -64,14 +64,27 @@ contra a tarifa cheia.
 O botão **Imprimir ou salvar PDF** esconde a coluna de entrada e gera só o
 documento, para mandar ao cliente depois da reunião.
 
+**Desconto máximo e arraste ao vivo.** O campo "Desconto máximo que você pode
+oferecer" define o teto. O campo abaixo dele ("Desconto que você oferece
+agora") arrasta de 0 até esse teto — dá para definir o máximo antes da
+reunião e ir arrastando o desconto real na frente do cliente, sem que a barra
+deixe passar do teto. O ícone 👁 ao lado do máximo esconde o número (vira uma
+senha, com pontinhos) na hora de virar a tela para o cliente; clique de novo
+para revelar. O desconto atual do concorrente usa a mesma escala do teto, então
+a posição dele na barra mostra visualmente se está abaixo ou acima do seu máximo.
+
+Todos os campos abrem **zerados** de propósito — nada de números de exemplo
+que possam parecer uma oferta real antes do consultor preencher.
+
 ### Valores iniciais
 
 ```js
 var CONFIG = {
-  tarifaPadrao:   1.18,   // R$ por kWh da distribuidora
-  descontoExa:    30,     // % oferecido com a exa
-  descontoAtual:  20,     // % que o cliente já tem hoje, se tiver
-  nomeCliente:    "Nome do cliente",
+  tarifaPadrao:   0,      // R$ por kWh da distribuidora
+  descontoMaximo: 0,      // % · teto do desconto, defina antes da reunião
+  descontoExa:    0,      // % oferecido com a exa
+  descontoAtual:  0,      // % que o cliente já tem hoje, se tiver
+  nomeCliente:    "",
   rodapeExtra:    "Sem obra, sem instalação e sem investimento inicial.",
   aviso:          "* A economia apresentada é um valor aproximado e precisa ser revista no estudo completo."
 };
@@ -80,7 +93,7 @@ var CONFIG = {
 ### Parâmetros pela URL
 
 ```
-cliente.html?cliente=Rede%20Aguia&tarifa=1.18&kwh=9954&dexa=30&atual=20
+cliente.html?cliente=Rede%20Aguia&tarifa=1.18&kwh=9954&maxexa=30&dexa=30&atual=20
 ```
 
 | Parâmetro | O quê |
@@ -88,7 +101,8 @@ cliente.html?cliente=Rede%20Aguia&tarifa=1.18&kwh=9954&dexa=30&atual=20
 | `cliente` | nome que aparece no documento |
 | `tarifa` | R$ por kWh da distribuidora |
 | `kwh` | consumo da primeira unidade |
-| `dexa` | desconto oferecido com a exa, em % |
+| `maxexa` | teto do desconto que você pode oferecer, em % |
+| `dexa` | desconto oferecido com a exa agora, em % (não pode passar de `maxexa`) |
 | `atual` | desconto que o cliente já tem; informar este parâmetro já liga o interruptor |
 
 ---
@@ -100,17 +114,23 @@ conhece, quantas converte, a conta média e os dois deságios. O resultado é o
 spread mensal, o acumulado de doze meses e a régua que compara a oferta dele
 com o padrão do mercado.
 
+Assim como no `cliente.html`, o deságio ao cliente tem um campo de "Deságio
+máximo que você pode oferecer" (com o mesmo ícone 👁 para esconder) e um
+campo "agora" logo abaixo que arrasta de 0 até esse teto, sem passar dele.
+Todos os campos abrem zerados.
+
 ### Valores iniciais
 
 ```js
 var CONFIG = {
   volumeMinimo:      0,      // MWh · 0 desliga o alerta de carteira mínima
-  desagioAquisicao:  25,     // % · valor neutro, a condição real vai pela URL
-  desagioCliente:    15,     // % · valor neutro, a condição real vai pela URL
-  pessoasPadrao:     200,
-  conversaoPadrao:   20,
-  contaPadrao:       900,
-  tarifaPadrao:      1.00,   // R$ por kWh, só para converter em MWh
+  desagioAquisicao:  0,      // % · valor neutro, a condição real vai pela URL
+  desagioClienteMax: 0,      // % · teto do que você oferece ao cliente
+  desagioCliente:    0,      // % · valor neutro, a condição real vai pela URL
+  pessoasPadrao:     0,
+  conversaoPadrao:   0,
+  contaPadrao:       0,
+  tarifaPadrao:      0,      // R$ por kWh, só para converter em MWh
   contato:           "exa energia · exaenergia.com"
 };
 ```
@@ -118,14 +138,15 @@ var CONFIG = {
 ### Parâmetros pela URL
 
 ```
-parceiro.html?vmin=30&daq=40&dcli=30&pessoas=300&conv=25&conta=1200&tarifa=1.05
+parceiro.html?vmin=30&daq=40&maxdcli=30&dcli=30&pessoas=300&conv=25&conta=1200&tarifa=1.05
 ```
 
 | Parâmetro | O quê |
 |---|---|
 | `vmin` | MWh de carteira mínima da condição |
 | `daq` | deságio de aquisição, em % |
-| `dcli` | deságio oferecido ao cliente, em % |
+| `maxdcli` | teto do deságio que você pode oferecer ao cliente, em % |
+| `dcli` | deságio oferecido ao cliente agora, em % (não pode passar de `maxdcli`) |
 | `pessoas` | tamanho da rede |
 | `conv` | conversão, em % |
 | `conta` | conta média por cliente, em R$ |

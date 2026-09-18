@@ -71,6 +71,10 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 .addbtn{width:100%; background:var(--bg); border:1px dashed var(--border); color:var(--body); border-radius:9px; padding:9px; font:inherit; font-size:12.5px; cursor:pointer; margin-top:3px}
 .addbtn:hover{color:var(--accent2); border-color:var(--accent)}
 
+.eyebtn{background:none; border:none; color:var(--dim); font-size:16px; cursor:pointer; padding:2px 4px; line-height:1; flex:none}
+.eyebtn:hover{color:var(--head)}
+.eyebtn.on{color:var(--accent2)}
+
 .switch{display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:11px 13px; cursor:pointer}
 .switch span{font-size:13px; color:var(--head); font-weight:500}
 .knob{width:40px; height:22px; border-radius:99px; background:var(--border); position:relative; flex:none; transition:background .15s}
@@ -168,7 +172,15 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
       <p class="label lbl-ac">A oferta</p>
 
       <div class="field">
-        <label for="dexa">Desconto que você oferece <span class="hint">com a exa</span></label>
+        <label for="dexaMax">Desconto máximo que você pode oferecer <span class="hint">defina antes de começar</span></label>
+        <div class="inputrow">
+          <input type="number" id="dexaMax" value="0" min="0" max="99" step="1"><span class="pre">%</span>
+          <button type="button" class="eyebtn" id="dexaMax-eye" title="ocultar da tela na hora de apresentar" aria-label="ocultar da tela">👁</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="dexa">Desconto que você oferece agora <span class="hint">arraste durante a reunião</span></label>
         <div class="inputrow"><input type="range" id="dexa" value="0" min="0" max="1" step="1"><input type="number" class="pct" id="dexa-n" value="0" min="0" max="99" step="1"><span class="pre">%</span></div>
       </div>
 
@@ -247,6 +259,7 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
      =========================================================== */
   var CONFIG = {
     tarifaPadrao:   0,      // R$ por kWh da distribuidora · comeca zerado, o consultor preenche
+    descontoMaximo: 0,      // % · teto do desconto, defina antes da reuniao
     descontoExa:    0,      // % que o consultor oferece com a exa · comeca zerado de proposito
     descontoAtual:  0,      // % que o cliente ja tem hoje, se tiver · comeca zerado de proposito
     nomeCliente:    "",
@@ -352,23 +365,56 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
       + CONFIG.rodapeExtra;
   }
 
-  // sincroniza faixa e caixa · a faixa sempre termina exatamente no valor
-  // digitado, entao a barra verde aparece cheia (o maximo que da para oferecer)
-  function ligaPct(rangeId, boxId){
+  // "desconto que voce oferece agora" arrasta de 0 ate o maximo definido em
+  // cima, sem recalcular o teto a cada movimento (isso que bugava o arraste).
+  // o desconto do concorrente usa o mesmo teto, entao a posicao dele na
+  // barra mostra visualmente se esta abaixo ou acima do seu maximo.
+  function tetoAtual(){ return Math.max(0, Math.min(99, parseFloat($('dexaMax').value) || 0)); }
+
+  function atualizarTetos(){
+    var teto = tetoAtual();
+    $('dexa').max = Math.max(teto, 1);
+    if (parseFloat($('dexa').value) > teto){ $('dexa').value = teto; $('dexa-n').value = teto; }
+    var datualV = parseFloat($('datual').value) || 0;
+    $('datual').max = Math.max(teto, datualV, 1);
+    calc();
+  }
+
+  // dexa: trava dura no maximo (nao deixa arrastar nem digitar acima do teto)
+  function ligaFaixa(rangeId, boxId){
     var f = $(rangeId), c = $(boxId);
     function aplicar(v){
-      v = Math.max(0, Math.min(99, isFinite(v) ? v : 0));
-      f.max = Math.max(v, 1);
-      f.value = v;
-      c.value = v;
+      v = Math.max(parseFloat(f.min) || 0, Math.min(parseFloat(f.max) || 99, isFinite(v) ? v : 0));
+      f.value = v; c.value = v;
       calc();
     }
     f.addEventListener('input', function(){ aplicar(parseFloat(f.value)); });
     c.addEventListener('input', function(){ aplicar(parseFloat(c.value)); });
     return aplicar;
   }
-  var aplicarDexa   = ligaPct('dexa', 'dexa-n');
-  var aplicarDatual = ligaPct('datual', 'datual-n');
+  var aplicarDexa = ligaFaixa('dexa', 'dexa-n');
+
+  // datual: sem trava — a escala so estica para caber o valor do concorrente,
+  // nunca corta o numero digitado
+  function aplicarDatual(v){
+    v = Math.max(0, Math.min(99, isFinite(v) ? v : 0));
+    $('datual').max = Math.max(tetoAtual(), v, 1);
+    $('datual').value = v;
+    $('datual-n').value = v;
+    calc();
+  }
+  $('datual').addEventListener('input', function(){ aplicarDatual(parseFloat($('datual').value)); });
+  $('datual-n').addEventListener('input', function(){ aplicarDatual(parseFloat($('datual-n').value)); });
+
+  $('dexaMax').addEventListener('input', atualizarTetos);
+
+  $('dexaMax-eye').addEventListener('click', function(){
+    var oculto = $('dexaMax').type === 'password';
+    $('dexaMax').type = oculto ? 'number' : 'password';
+    this.textContent = oculto ? '👁' : '🙈';
+    this.classList.toggle('on', !oculto);
+    this.title = oculto ? 'ocultar da tela na hora de apresentar' : 'mostrar de novo';
+  });
 
   function toggle(){
     temAtual = !temAtual;
@@ -394,6 +440,8 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
   // que ja existe uma oferta melhor do que a que sera feita na reuniao
   $('cliente').value  = QS.cliente || CONFIG.nomeCliente;
   $('tarifa').value   = ini('tarifa', CONFIG.tarifaPadrao);
+  $('dexaMax').value  = ini('maxexa', CONFIG.descontoMaximo);
+  atualizarTetos();
   aplicarDexa(ini('dexa', CONFIG.descontoExa));
   aplicarDatual(ini('atual', CONFIG.descontoAtual));
   $('ucs').appendChild(linhaUC('', ini('kwh', '') || ''));
