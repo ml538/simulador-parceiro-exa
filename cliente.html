@@ -152,11 +152,14 @@ body.pdf-mode{
   background:#fff;
 }
 body.pdf-mode .no-print{display:none !important}
-body.pdf-mode .wrap{max-width:none; padding:20px}
+body.pdf-mode .wrap{max-width:760px; margin:0 auto; padding:0}
 body.pdf-mode .grid{display:block}
 body.pdf-mode .card{border:none; box-shadow:none; padding:0}
 body.pdf-mode .tier.exa{margin:0; border:1px solid var(--border)}
-body.pdf-mode .brand .logo{width:150px}
+body.pdf-mode header{margin-bottom:18px}
+body.pdf-mode .brand .logo{display:none}
+body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
+.logo-pdf{display:none}
 </style>
 </head>
 <body>
@@ -166,6 +169,7 @@ body.pdf-mode .brand .logo{width:150px}
     <div class="brand">
       <a class="btn backbtn no-print" href="index.html" title="Voltar para a capa">← Voltar</a>
       <svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg>
+      <img class="logo-pdf" id="logo-pdf" alt="exa energia">
     </div>
     <div class="acts no-print">
       <button class="btn" id="tg" type="button">Tema</button>
@@ -306,6 +310,20 @@ body.pdf-mode .brand .logo{width:150px}
   var brl0 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
   var num  = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
   var $ = function(id){ return document.getElementById(id); };
+
+  // o logo da tela usa <use href="#exa-logo">, que o gerador de PDF nao
+  // consegue desenhar. montamos uma copia do logo como imagem SVG embutida,
+  // usada so no PDF (o consultor nunca ve diferenca na tela).
+  (function montarLogoPdf(){
+    try {
+      var sym = document.getElementById('exa-logo');
+      var img = document.getElementById('logo-pdf');
+      if (!sym || !img) return;
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3288 1372">'
+              + sym.innerHTML.replace(/var\(--mark\)/g, '#00A95B') + '</svg>';
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    } catch (e) {}
+  })();
 
   var QS = {};
   try { new URLSearchParams(location.search).forEach(function(v,k){ QS[k]=v; }); } catch(e){}
@@ -498,10 +516,10 @@ body.pdf-mode .brand .logo{width:150px}
     btn.disabled = true;
     document.body.classList.add('pdf-mode');
     var opt = {
-      margin:       0,
+      margin:       10,
       filename:     'economia-' + nome + '.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 900 },
+      html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
       pagebreak:    { mode: ['css', 'legacy'] }
     };
