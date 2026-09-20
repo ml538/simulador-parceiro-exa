@@ -317,16 +317,21 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   // demanda porque o simbolo do logo so existe no fim do arquivo.
   var logoPronto = false;
   function montarLogoPdf(){
-    if (logoPronto) return;
-    try {
-      var sym = document.getElementById('exa-logo');
-      var img = document.getElementById('logo-pdf');
-      if (!sym || !img) return;
-      var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3288 1372">'
-              + sym.innerHTML.replace(/var\(--mark\)/g, '#00A95B') + '</svg>';
-      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-      logoPronto = true;
-    } catch (e) {}
+    return new Promise(function(resolve){
+      if (logoPronto) { resolve(); return; }
+      try {
+        var sym = document.getElementById('exa-logo');
+        var img = document.getElementById('logo-pdf');
+        if (!sym || !img) { resolve(); return; }
+        var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3288 1372">'
+                + sym.innerHTML.replace(/var\(--mark\)/g, '#00A95B') + '</svg>';
+        img.onload = function(){ logoPronto = true; resolve(); };
+        img.onerror = function(){ resolve(); };
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        // rede de seguranca: nao trava a geracao se o onload nao disparar
+        setTimeout(function(){ logoPronto = true; resolve(); }, 1500);
+      } catch (e) { resolve(); }
+    });
   }
 
   var QS = {};
@@ -518,8 +523,6 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     var txtOriginal = btn.textContent;
     btn.textContent = 'Gerando PDF…';
     btn.disabled = true;
-    montarLogoPdf();
-    document.body.classList.add('pdf-mode');
     var opt = {
       margin:       10,
       filename:     'economia-' + nome + '.pdf',
@@ -528,7 +531,10 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
       pagebreak:    { mode: ['css', 'legacy'] }
     };
-    html2pdf().set(opt).from(document.querySelector('.wrap')).save()
+    montarLogoPdf().then(function(){
+      document.body.classList.add('pdf-mode');
+      return html2pdf().set(opt).from(document.querySelector('.wrap')).save();
+    })
       .then(function(){ limpar(); })
       .catch(function(){ limpar(); window.print(); });
     function limpar(){
