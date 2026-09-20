@@ -140,6 +140,23 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
   .card{border:none; box-shadow:none; padding:0}
   .tier.exa{margin:0; border:1px solid var(--border)}
 }
+
+/* modo PDF · usado ao gerar o arquivo pelo botao (funciona no iPad, onde a
+   impressao nativa do Safari as vezes nao abre). forca sempre o tema claro
+   e o layout de documento, independente do tema em que o consultor esta */
+body.pdf-mode{
+  --bg:#F7F3E7; --card:#FFFFFF; --card2:#EFEBDB; --panel:#E4EFE0;
+  --accent:#00A95B; --accent2:#0B7A45; --head:#11201A; --text:#2E3B33;
+  --body:#5E6B62; --dim:#94A096; --border:#E3DDCC; --warn:#C4685F;
+  --word:#0B4F2E; --mark:#00A95B; --onaccent:#FFFFFF;
+  background:#fff;
+}
+body.pdf-mode .no-print{display:none !important}
+body.pdf-mode .wrap{max-width:none; padding:20px}
+body.pdf-mode .grid{display:block}
+body.pdf-mode .card{border:none; box-shadow:none; padding:0}
+body.pdf-mode .tier.exa{margin:0; border:1px solid var(--border)}
+body.pdf-mode .brand .logo{width:150px}
 </style>
 </head>
 <body>
@@ -267,6 +284,7 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 (function(){
 
@@ -466,7 +484,36 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
     document.documentElement.setAttribute('data-theme', next);
     try{ localStorage.setItem('exa-tema', next); }catch(e){}
   });
-  $('pr').addEventListener('click', function(){ window.print(); });
+  // gera o PDF direto no navegador (nao depende da impressao do sistema, que
+  // no Safari do iPad as vezes nao abre). se a biblioteca nao carregar, cai
+  // de volta para a impressao nativa.
+  $('pr').addEventListener('click', function(){
+    var btn = this;
+    if (typeof html2pdf === 'undefined'){ window.print(); return; }
+    var nome = ($('cliente').value.trim() || 'cliente')
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'cliente';
+    var txtOriginal = btn.textContent;
+    btn.textContent = 'Gerando PDF…';
+    btn.disabled = true;
+    document.body.classList.add('pdf-mode');
+    var opt = {
+      margin:       0,
+      filename:     'economia-' + nome + '.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 900 },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak:    { mode: ['css', 'legacy'] }
+    };
+    html2pdf().set(opt).from(document.querySelector('.wrap')).save()
+      .then(function(){ limpar(); })
+      .catch(function(){ limpar(); window.print(); });
+    function limpar(){
+      document.body.classList.remove('pdf-mode');
+      btn.textContent = txtOriginal;
+      btn.disabled = false;
+    }
+  });
 
   // estado inicial · tudo zerado por padrao, para nunca abrir parecendo
   // que ja existe uma oferta melhor do que a que sera feita na reuniao
