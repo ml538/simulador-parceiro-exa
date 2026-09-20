@@ -315,21 +315,32 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   // consegue desenhar. montamos uma copia do logo como imagem SVG embutida,
   // usada so no PDF (o consultor nunca ve diferenca na tela). e feito sob
   // demanda porque o simbolo do logo so existe no fim do arquivo.
+  // o gerador de PDF (html2canvas) nao rasteriza bem imagens SVG, entao
+  // convertemos o logo para PNG em alta resolucao antes de gerar o arquivo.
   var logoPronto = false;
   function montarLogoPdf(){
     return new Promise(function(resolve){
       if (logoPronto) { resolve(); return; }
       try {
         var sym = document.getElementById('exa-logo');
-        var img = document.getElementById('logo-pdf');
-        if (!sym || !img) { resolve(); return; }
+        var alvo = document.getElementById('logo-pdf');
+        if (!sym || !alvo) { resolve(); return; }
         var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3288 1372">'
                 + sym.innerHTML.replace(/var\(--mark\)/g, '#00A95B') + '</svg>';
-        img.onload = function(){ logoPronto = true; resolve(); };
-        img.onerror = function(){ resolve(); };
-        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-        // rede de seguranca: nao trava a geracao se o onload nao disparar
-        setTimeout(function(){ logoPronto = true; resolve(); }, 1500);
+        var fonte = new Image();
+        fonte.onload = function(){
+          try {
+            var c = document.createElement('canvas');
+            c.width = 900; c.height = Math.round(900 * 1372 / 3288);
+            var ctx = c.getContext('2d');
+            ctx.drawImage(fonte, 0, 0, c.width, c.height);
+            alvo.src = c.toDataURL('image/png');
+          } catch (e) {}
+          logoPronto = true; resolve();
+        };
+        fonte.onerror = function(){ resolve(); };
+        fonte.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        setTimeout(function(){ resolve(); }, 1500);
       } catch (e) { resolve(); }
     });
   }
