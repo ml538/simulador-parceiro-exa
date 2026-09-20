@@ -522,12 +522,14 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     document.documentElement.setAttribute('data-theme', next);
     try{ localStorage.setItem('exa-tema', next); }catch(e){}
   });
-  // gera o PDF direto no navegador (nao depende da impressao do sistema, que
-  // no Safari do iPad as vezes nao abre). se a biblioteca nao carregar, cai
-  // de volta para a impressao nativa.
+  // no iPad/iPhone a impressao nativa do Safari nao abre, entao geramos o PDF
+  // por codigo (baixa o arquivo). no computador usamos a janela de impressao
+  // normal, que deixa escolher imprimir ou salvar como PDF com pre-visualizacao.
+  var ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+           || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   $('pr').addEventListener('click', function(){
     var btn = this;
-    if (typeof html2pdf === 'undefined'){ window.print(); return; }
+    if (!ehIOS || typeof html2pdf === 'undefined'){ window.print(); return; }
     var nome = ($('cliente').value.trim() || 'cliente')
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'cliente';
