@@ -313,8 +313,11 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
 
   // o logo da tela usa <use href="#exa-logo">, que o gerador de PDF nao
   // consegue desenhar. montamos uma copia do logo como imagem SVG embutida,
-  // usada so no PDF (o consultor nunca ve diferenca na tela).
-  (function montarLogoPdf(){
+  // usada so no PDF (o consultor nunca ve diferenca na tela). e feito sob
+  // demanda porque o simbolo do logo so existe no fim do arquivo.
+  var logoPronto = false;
+  function montarLogoPdf(){
+    if (logoPronto) return;
     try {
       var sym = document.getElementById('exa-logo');
       var img = document.getElementById('logo-pdf');
@@ -322,8 +325,9 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3288 1372">'
               + sym.innerHTML.replace(/var\(--mark\)/g, '#00A95B') + '</svg>';
       img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      logoPronto = true;
     } catch (e) {}
-  })();
+  }
 
   var QS = {};
   try { new URLSearchParams(location.search).forEach(function(v,k){ QS[k]=v; }); } catch(e){}
@@ -514,6 +518,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     var txtOriginal = btn.textContent;
     btn.textContent = 'Gerando PDF…';
     btn.disabled = true;
+    montarLogoPdf();
     document.body.classList.add('pdf-mode');
     var opt = {
       margin:       10,
