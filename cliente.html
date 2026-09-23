@@ -132,6 +132,10 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 .foot b{color:var(--body); font-weight:600}
 
 @media print{
+  /* forca a impressao das cores de fundo (a caixa verde de economia e as
+     barras) — sem isso o navegador imprime os fundos em branco e o texto
+     branco some */
+  *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
   /* margem 0 na pagina faz o navegador nao imprimir os cabecalhos/rodapes
      dele (data, titulo, URL, numero da pagina); o espacamento volta pelo
      padding do .wrap */
