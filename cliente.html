@@ -132,10 +132,19 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 .foot b{color:var(--body); font-weight:600}
 
 @media print{
-  @page{margin:12mm}
-  body{background:#fff}
+  /* margem 0 na pagina faz o navegador nao imprimir os cabecalhos/rodapes
+     dele (data, titulo, URL, numero da pagina); o espacamento volta pelo
+     padding do .wrap */
+  @page{margin:0}
+  body{
+    background:#fff;
+    --bg:#F7F3E7; --card:#FFFFFF; --card2:#EFEBDB; --panel:#E4EFE0;
+    --accent:#00A95B; --accent2:#0B7A45; --head:#11201A; --text:#2E3B33;
+    --body:#5E6B62; --dim:#94A096; --border:#E3DDCC; --warn:#C4685F;
+    --word:#0B4F2E; --mark:#00A95B; --onaccent:#FFFFFF;
+  }
   .no-print{display:none !important}
-  .wrap{max-width:none; padding:0}
+  .wrap{max-width:none; padding:13mm}
   .grid{display:block}
   .card{border:none; box-shadow:none; padding:0}
   .tier.exa{margin:0; border:1px solid var(--border)}
