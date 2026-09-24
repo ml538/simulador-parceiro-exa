@@ -73,9 +73,15 @@ input[type=range]::-moz-range-progress{height:8px; border-radius:99px; backgroun
 input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 .sep{height:1px; background:var(--border); margin:18px 0}
 
-.uc{display:grid; grid-template-columns:1fr 104px 30px; gap:7px; margin-bottom:7px; align-items:center}
+.uc{margin-bottom:9px}
+.uc-main{display:grid; grid-template-columns:1fr 104px 30px; gap:7px; align-items:center}
 .uc .del{background:none; border:none; color:var(--dim); font-size:17px; cursor:pointer; padding:0; line-height:1}
 .uc .del:hover{color:var(--warn)}
+.uc-cemig{display:none; grid-template-columns:1fr 1fr; gap:7px; margin-top:6px}
+body.cemig-on .uc-cemig{display:grid}
+.uc-cemig select{background:var(--bg); color:var(--head); border:1px solid var(--border); border-radius:9px; padding:9px 10px; font:inherit; font-weight:600; font-size:14px}
+.uc-cemig .cip{display:flex; align-items:center; gap:7px}
+.uc-cemig .cip .pre{font-size:12px; color:var(--dim); white-space:nowrap}
 .addbtn{width:100%; background:var(--bg); border:1px dashed var(--border); color:var(--body); border-radius:9px; padding:9px; font:inherit; font-size:12.5px; cursor:pointer; margin-top:3px}
 .addbtn:hover{color:var(--accent2); border-color:var(--accent)}
 
@@ -118,6 +124,9 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 .tier.exa .nm, .tier.exa .pv{color:var(--accent2)}
 .tier.exa .track{background:var(--card)}
 .tier.exa .note b{color:var(--head)}
+.tier.total .top{border-top:2px solid var(--border); padding-top:12px; margin-top:2px}
+.tier.total .nm{font-weight:700; color:var(--head)}
+.tier.total .pv{color:var(--head)}
 
 .final{background:var(--accent); color:var(--onaccent); border-radius:13px; padding:18px 20px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-top:4px}
 .final .n{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:clamp(28px,4.6vw,40px); line-height:1; letter-spacing:-.02em}
@@ -217,6 +226,12 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       <div id="ucs"></div>
       <button class="addbtn" id="add" type="button">+ adicionar unidade</button>
 
+      <div class="switch" id="sw-cemig" role="button" tabindex="0" style="margin-top:12px">
+        <span>Mostrar a conta da CEMIG (taxa mínima + CIP)?</span>
+        <div class="knob"></div>
+      </div>
+      <p class="hint" id="cemig-ajuda" style="display:none; margin-top:7px">Preencha a fase e o CIP em cada unidade acima. A taxa mínima é 30/50/100 kWh (mono/bi/tri) × a tarifa.</p>
+
       <div class="sep"></div>
       <p class="label lbl-ac">A oferta</p>
 
@@ -280,6 +295,16 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
         <div class="note right" id="t3-ano">—</div>
         <div class="track"><div class="paga" id="t3-paga">paga</div><div class="eco" id="t3-eco"></div></div>
         <div class="note" id="t3-n"></div>
+      </div>
+
+      <div class="tier" id="t-cemig" style="display:none">
+        <div class="top"><span class="nm">Conta da CEMIG <span class="tag">taxa mínima + CIP</span></span><span class="pv" id="tc-v">—</span></div>
+        <div class="note" id="tc-n"></div>
+      </div>
+
+      <div class="tier total" id="t-total" style="display:none">
+        <div class="top"><span class="nm">Total que você paga com a exa</span><span class="pv" id="tt-v">—</span></div>
+        <div class="note right" id="tt-ano">—</div>
       </div>
 
       <div class="final">
@@ -363,19 +388,32 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   function ini(k, d){ if (QS[k] === undefined) return d; var n = parseFloat(String(QS[k]).replace(',','.')); return isFinite(n) ? n : d; }
 
   var temAtual = false;
+  var temCemig = false;
+  var MINKWH = { mono: 30, bi: 50, tri: 100 };
 
   function linhaUC(nome, kwh){
     var d = document.createElement('div');
     d.className = 'uc';
-    d.innerHTML = '<input type="text" class="u-n" placeholder="identificação da unidade">' +
-                  '<input type="number" class="u-k" min="0" step="10" placeholder="kWh/mês">' +
-                  '<button class="del" type="button" title="remover">×</button>';
+    d.innerHTML =
+      '<div class="uc-main">' +
+        '<input type="text" class="u-n" placeholder="identificação da unidade">' +
+        '<input type="number" class="u-k" min="0" step="10" placeholder="kWh/mês">' +
+        '<button class="del" type="button" title="remover">×</button>' +
+      '</div>' +
+      '<div class="uc-cemig">' +
+        '<select class="u-fase" title="tipo de ligação">' +
+          '<option value="mono">Monofásico · 30 kWh</option>' +
+          '<option value="bi">Bifásico · 50 kWh</option>' +
+          '<option value="tri">Trifásico · 100 kWh</option>' +
+        '</select>' +
+        '<div class="cip"><span class="pre">CIP R$</span><input type="number" class="u-cip" min="0" step="0.01" placeholder="0,00"></div>' +
+      '</div>';
     d.querySelector('.u-n').value = nome || '';
     d.querySelector('.u-k').value = (kwh === undefined ? '' : kwh);
     d.querySelector('.del').addEventListener('click', function(){
       if ($('ucs').children.length > 1){ d.remove(); calc(); }
     });
-    d.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', calc); });
+    d.querySelectorAll('input, select').forEach(function(i){ i.addEventListener('input', calc); i.addEventListener('change', calc); });
     return d;
   }
 
@@ -396,12 +434,22 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     var datual = parseFloat($('datual').value) || 0;
 
     // unidades
-    var unidades = [], total = 0;
+    var unidades = [], total = 0, taxaMinTotal = 0, cipTotal = 0;
     Array.prototype.forEach.call($('ucs').children, function(row){
       var n = row.querySelector('.u-n').value.trim();
       var k = parseFloat(row.querySelector('.u-k').value) || 0;
-      if (k > 0){ unidades.push({ n: n || 'Unidade', k: k }); total += k; }
+      var faseEl = row.querySelector('.u-fase');
+      var cipEl  = row.querySelector('.u-cip');
+      var fase = faseEl ? faseEl.value : 'mono';
+      var cip  = cipEl ? (parseFloat(cipEl.value) || 0) : 0;
+      if (k > 0){
+        unidades.push({ n: n || 'Unidade', k: k });
+        total += k;
+        taxaMinTotal += (MINKWH[fase] || 0) * tarifa;
+        cipTotal += cip;
+      }
     });
+    var cemigTotal = taxaMinTotal + cipTotal;
 
     var alvo = $('d-ucs'); alvo.innerHTML = '';
     unidades.forEach(function(u){
@@ -449,6 +497,21 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     $('t3-eco').style.width  = dexa + '%';
     $('t3-eco').textContent  = '+ ' + brl0.format(ecoE);
     $('t3-n').innerHTML      = 'economia de <b>' + brl.format(ecoE) + '</b> por mês · <b>' + brl.format(ecoE * 12) + '</b> por ano*';
+
+    // conta da CEMIG (taxa minima + CIP) · somada por cima, sem desconto
+    if (temCemig){
+      $('t-cemig').style.display = '';
+      $('t-total').style.display = '';
+      $('tc-v').textContent = brl.format(cemigTotal);
+      $('tc-n').textContent = 'taxa mínima ' + brl.format(taxaMinTotal) + ' + CIP ' + brl.format(cipTotal)
+                            + ' · continua sendo pago à CEMIG';
+      var totalExa = comExa + cemigTotal;
+      $('tt-v').textContent   = brl.format(totalExa);
+      $('tt-ano').textContent = brl.format(totalExa * 12) + ' por ano';
+    } else {
+      $('t-cemig').style.display = 'none';
+      $('t-total').style.display = 'none';
+    }
 
     $('f-n').textContent = brl0.format(Math.max(0, ganho) * 12) + '*';
     $('f-t').innerHTML = temAtual
@@ -525,6 +588,16 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   }
   $('sw').addEventListener('click', toggle);
   $('sw').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); } });
+
+  function toggleCemig(){
+    temCemig = !temCemig;
+    $('sw-cemig').classList.toggle('on', temCemig);
+    document.body.classList.toggle('cemig-on', temCemig);
+    $('cemig-ajuda').style.display = temCemig ? '' : 'none';
+    calc();
+  }
+  $('sw-cemig').addEventListener('click', toggleCemig);
+  $('sw-cemig').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleCemig(); } });
 
   $('add').addEventListener('click', function(){ $('ucs').appendChild(linhaUC('', '')); calc(); });
   ['cliente','tarifa'].forEach(function(id){ $(id).addEventListener('input', calc); });
