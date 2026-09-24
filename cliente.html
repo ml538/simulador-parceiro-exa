@@ -74,14 +74,15 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 .sep{height:1px; background:var(--border); margin:18px 0}
 
 .uc{margin-bottom:9px}
-.uc-main{display:grid; grid-template-columns:1fr 104px 30px; gap:7px; align-items:center}
+.uc-main{display:grid; grid-template-columns:minmax(0,1fr) 118px 26px; gap:7px; align-items:center}
 .uc .del{background:none; border:none; color:var(--dim); font-size:17px; cursor:pointer; padding:0; line-height:1}
 .uc .del:hover{color:var(--warn)}
-.uc-cemig{display:none; grid-template-columns:1fr 1fr; gap:7px; margin-top:6px}
+.uc-cemig{display:none; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:7px; margin-top:6px}
 body.cemig-on .uc-cemig{display:grid}
-.uc-cemig select{background:var(--bg); color:var(--head); border:1px solid var(--border); border-radius:9px; padding:9px 10px; font:inherit; font-weight:600; font-size:14px}
-.uc-cemig .cip{display:flex; align-items:center; gap:7px}
+.uc-cemig select{width:100%; min-width:0; background:var(--bg); color:var(--head); border:1px solid var(--border); border-radius:9px; padding:9px 10px; font:inherit; font-weight:600; font-size:14px}
+.uc-cemig .cip{display:flex; align-items:center; gap:6px; min-width:0}
 .uc-cemig .cip .pre{font-size:12px; color:var(--dim); white-space:nowrap}
+.uc-cemig .cip input{min-width:0}
 .addbtn{width:100%; background:var(--bg); border:1px dashed var(--border); color:var(--body); border-radius:9px; padding:9px; font:inherit; font-size:12.5px; cursor:pointer; margin-top:3px}
 .addbtn:hover{color:var(--accent2); border-color:var(--accent)}
 
