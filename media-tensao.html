@@ -41,6 +41,17 @@ header{display:flex; align-items:center; justify-content:space-between; gap:16px
 .btn{background:var(--card); color:var(--body); border:1px solid var(--border); border-radius:999px; padding:8px 15px; font:inherit; font-size:12px; cursor:pointer}
 .btn:hover{color:var(--head)}
 .backbtn{text-decoration:none; display:inline-flex; align-items:center; gap:5px}
+.btn.solid{background:var(--accent); color:var(--card); border-color:transparent; font-weight:700; font-size:13px; padding:10px 18px}
+.btn.solid:hover{color:var(--card); filter:brightness(1.05)}
+.btn:disabled{opacity:.6; cursor:progress}
+
+/* ---- leitura da fatura em PDF ---- */
+.drop{display:flex; align-items:center; gap:14px; flex-wrap:wrap; border:1px dashed var(--border); border-radius:12px; padding:14px 16px; background:var(--bg); transition:border-color .15s, background .15s}
+.drop.over{border-color:var(--accent); background:var(--panel)}
+.drop .hint{flex:1; min-width:180px}
+#pdf-status:not(:empty){margin-top:12px}
+#pdf-status ul{margin:4px 0 0; padding-left:16px}
+#pdf-status li{margin:1px 0}
 
 .kicker{font-size:10px; font-weight:700; letter-spacing:.19em; text-transform:uppercase; color:var(--accent2); margin:0 0 6px}
 h1{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:clamp(23px,3.3vw,32px); line-height:1.12; color:var(--head); margin:0 0 6px; letter-spacing:-.01em; text-wrap:balance}
@@ -161,6 +172,16 @@ footer b{color:var(--body)}
     <div class="col">
 
       <section class="card">
+        <p class="label">Fatura em PDF</p>
+        <div class="drop" id="drop">
+          <input type="file" id="arq" accept="application/pdf,.pdf" hidden>
+          <button class="btn solid" id="arq-btn" type="button">Ler a fatura da CEMIG</button>
+          <span class="hint">ou arraste o PDF aqui. A fatura é lida no próprio aparelho e não é enviada para lugar nenhum.</span>
+        </div>
+        <div id="pdf-status" aria-live="polite"></div>
+      </section>
+
+      <section class="card">
         <p class="label">Cliente e distribuidora</p>
         <div class="two">
           <div class="field">
@@ -222,12 +243,16 @@ footer b{color:var(--body)}
         <p class="label">Energia reativa excedente · último mês</p>
         <div class="two">
           <div class="field">
-            <label for="rhfp">Fora ponta (HFP)</label>
+            <label for="rhfp">Energia reativa fora ponta</label>
             <div class="ig w-m"><span class="pre">R$</span><input id="rhfp" inputmode="decimal" placeholder="0,00"></div>
           </div>
           <div class="field">
-            <label for="rhp">Ponta (HP)</label>
+            <label for="rhp">Energia reativa ponta</label>
             <div class="ig w-m"><span class="pre">R$</span><input id="rhp" inputmode="decimal" placeholder="0,00"></div>
+          </div>
+          <div class="field">
+            <label for="rdem">Demanda reativa</label>
+            <div class="ig w-m"><span class="pre">R$</span><input id="rdem" inputmode="decimal" placeholder="0,00"></div>
           </div>
         </div>
         <p class="fonte">O valor cobrado na última fatura. Deixe em branco se o cliente não tem reativo.</p>
@@ -320,8 +345,9 @@ footer b{color:var(--body)}
 
         <div class="balao" id="o-reat">
           <p class="tt">Energia reativa excedente</p>
-          <div class="row"><span class="k">Fora ponta · último mês</span><span class="v big" id="o-r-hfp">—</span></div>
-          <div class="row"><span class="k">Ponta · último mês</span><span class="v big" id="o-r-hp">—</span></div>
+          <div class="row" id="rw-r-hfp"><span class="k">Energia reativa fora ponta · último mês</span><span class="v big" id="o-r-hfp">—</span></div>
+          <div class="row" id="rw-r-hp"><span class="k">Energia reativa ponta · último mês</span><span class="v big" id="o-r-hp">—</span></div>
+          <div class="row" id="rw-r-dem"><span class="k">Demanda reativa · último mês</span><span class="v big" id="o-r-dem">—</span></div>
           <div class="row tot"><span class="k">Total no último mês <small id="o-r-ano"></small></span><span class="v big" id="o-r-tot">—</span></div>
           <p class="explica">Dá para eliminar esse custo com um banco de capacitores. O investimento precisa ser orçado caso a caso.</p>
         </div>
@@ -525,12 +551,13 @@ footer b{color:var(--body)}
     var dist = distAtual(), fator = fatorDe(dist), icms = dist.icms;
 
     var pD = val('pd'), pHFP = val('phfp'), pHP = val('php'), dc = val('dc');
-    var cip = val('cip'), rHFP = val('rhfp'), rHP = val('rhp');
+    var cip = val('cip'), rHFP = val('rhfp'), rHP = val('rhp'), rDem = val('rdem');
     var tb = val('tb'), db = val('db');
     if (!isFinite(cip))  cip = 0;
     if (!isFinite(rHFP)) rHFP = 0;
     if (!isFinite(rHP))  rHP = 0;
-    var reat = rHFP + rHP;
+    if (!isFinite(rDem)) rDem = 0;
+    var reat = rHFP + rHP + rDem;
 
     /* demanda: independente da energia */
     var temDem = dems.length > 0 && pos(pD) && pos(dc);
@@ -584,8 +611,9 @@ footer b{color:var(--body)}
 
     mostrar('o-reat', reat > 0);
     if (reat > 0){
-      $('o-r-hfp').textContent = fBRL.format(rHFP);
-      $('o-r-hp').textContent  = fBRL.format(rHP);
+      mostrar('rw-r-hfp', rHFP > 0); $('o-r-hfp').textContent = fBRL.format(rHFP);
+      mostrar('rw-r-hp', rHP > 0);   $('o-r-hp').textContent  = fBRL.format(rHP);
+      mostrar('rw-r-dem', rDem > 0); $('o-r-dem').textContent = fBRL.format(rDem);
       $('o-r-tot').textContent = fBRL.format(reat);
       $('o-r-ano').textContent = 'cerca de ' + fBRL.format(reat * 12) + ' por ano, se o último mês se repetir';
     }
@@ -671,11 +699,258 @@ footer b{color:var(--body)}
   });
   $('dist').addEventListener('change', aplicarDistribuidora);
 
+  /* ---------- leitura da fatura em PDF ----------
+     o pdf.js le o texto do PDF no proprio navegador; a fatura nao sai do
+     aparelho. o layout lido e o da fatura de media tensao da CEMIG. */
+  var PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  var carregandoPdf = null;
+  function carregarPdfJs(){
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if (carregandoPdf) return carregandoPdf;
+    carregandoPdf = new Promise(function(res, rej){
+      var s = document.createElement('script');
+      s.src = PDFJS + 'pdf.min.js';
+      s.onload = function(){ window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js'; res(window.pdfjsLib); };
+      s.onerror = function(){ carregandoPdf = null; rej(new Error('leitor')); };
+      document.head.appendChild(s);
+    });
+    return carregandoPdf;
+  }
+  function lerArquivo(file){
+    return new Promise(function(res, rej){
+      var fr = new FileReader();
+      fr.onload = function(){ res(fr.result); };
+      fr.onerror = function(){ rej(fr.error); };
+      fr.readAsArrayBuffer(file);
+    });
+  }
+
+  // junta os pedacos de texto em linhas, pela altura na pagina
+  function linhasDaPagina(itens){
+    var grupos = [];
+    itens.forEach(function(i){
+      var g = null;
+      for (var k = 0; k < grupos.length; k++) if (Math.abs(grupos[k].y - i.y) <= 2){ g = grupos[k]; break; }
+      if (!g){ g = { y: i.y, it: [] }; grupos.push(g); }
+      g.it.push(i);
+    });
+    grupos.forEach(function(g){
+      g.it.sort(function(a, b){ return a.x - b.x; });
+      g.txt = g.it.map(function(i){ return i.s; }).join(' ');
+    });
+    return grupos.sort(function(a, b){ return b.y - a.y; });
+  }
+  async function paginasDoPdf(buf){
+    var lib = await carregarPdfJs();
+    var doc = await lib.getDocument({ data: new Uint8Array(buf) }).promise;
+    var paginas = [];
+    for (var p = 1; p <= doc.numPages; p++){
+      var pg = await doc.getPage(p);
+      var tc = await pg.getTextContent();
+      var itens = tc.items.filter(function(i){ return i.str && i.str.trim(); })
+        .map(function(i){ return { s: i.str.trim(), x: i.transform[4], y: i.transform[5] }; });
+      paginas.push(linhasDaPagina(itens));
+    }
+    return paginas;
+  }
+
+  var MESES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  var MES_RE = /^(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/(\d{2})$/i;
+  var UNID_RE = /^(kW|kWh|kVAr|kVArh)$/i;
+
+  function categoria(rot){
+    var s = rot.toLowerCase();
+    if (/reativ/.test(s)){
+      if (/^demanda/.test(s)) return 'rdem';
+      if (/hfp|fora/.test(s)) return 'rhfp';
+      if (/\bhp\b|ponta/.test(s)) return 'rhp';
+      return 'rhfp';
+    }
+    if (/ultrapass/.test(s)) return 'ult';
+    if (/^demanda/.test(s)) return /(s\/|sem)\s*icms|n[ãa]o\s*utiliz|isent/.test(s) ? 'demsem' : 'dem';
+    if (/^energia/.test(s)){
+      if (/hfp|fora/.test(s)) return 'ehfp';
+      if (/\bhp\b|ponta/.test(s)) return 'ehp';
+      return null;
+    }
+    if (/ilum|\bcip\b|cosip/.test(s)) return 'cip';
+    return null;
+  }
+  // varias linhas do mesmo item: componentes (mesma quantidade) ou periodos
+  // de tarifa diferentes (quantidades que somam)
+  function somar(lista){
+    if (!lista || !lista.length) return null;
+    var v = 0; lista.forEach(function(x){ v += x.v; });
+    var qs = lista.map(function(x){ return x.q; }).filter(function(q){ return isFinite(q); });
+    var mesmaQ = qs.length === lista.length && qs.every(function(q){ return Math.abs(q - qs[0]) < 1e-6; });
+    var q = !qs.length ? NaN : (lista.length > 1 && mesmaQ ? qs[0] : qs.reduce(function(a, b){ return a + b; }, 0));
+    var p = lista.length === 1 && isFinite(lista[0].p) ? lista[0].p : (q > 0 ? v / q : NaN);
+    return { q: q, p: p, v: v };
+  }
+
+  function extrairFatura(paginas){
+    var r = { itens: {}, hist: [] };
+    var linhas = [];
+    paginas.forEach(function(ls){ linhas = linhas.concat(ls); });
+    var tudo = linhas.map(function(l){ return l.txt; }).join('\n');
+
+    r.cemig = /CEMIG\s+DISTRIBUI/i.test(tudo);
+    var mod = tudo.match(/\b(Verde|Azul|Convencional)\s+(A\d[a-z]?)\b/i);
+    if (mod){ r.modalidade = mod[1]; r.subgrupo = mod[2].toUpperCase(); }
+    var ref = tudo.match(/\b(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/\d{4}\b/i);
+    if (ref) r.referencia = ref[0].toUpperCase();
+    linhas.some(function(l){
+      for (var k = 0; k < l.it.length - 1; k++) if (/^Cliente:?$/i.test(l.it[k].s)){ r.cliente = l.it[k + 1].s; return true; }
+      return false;
+    });
+
+    // itens da fatura: da linha "Itens da Fatura" ate "TOTAL"
+    var dentro = false;
+    linhas.forEach(function(l){
+      if (/Itens da Fatura/i.test(l.txt)){ dentro = true; return; }
+      if (!dentro) return;
+      var rot = l.it[0].s;
+      if (/^TOTAL$/i.test(rot)){
+        dentro = false;
+        var t = l.it.slice(1).map(function(i){ return lerNum(i.s); }).filter(function(n){ return isFinite(n); });
+        if (t.length) r.total = t[0];
+        return;
+      }
+      var cat = categoria(rot);
+      if (!cat) return;
+      var resto = l.it.slice(1).map(function(i){ return i.s; });
+      var q = NaN, p = NaN, v = NaN;
+      if (resto.length >= 4 && UNID_RE.test(resto[0])){ q = lerNum(resto[1]); p = lerNum(resto[2]); v = lerNum(resto[3]); }
+      else { var nums = resto.map(lerNum).filter(function(n){ return isFinite(n); }); v = nums[0]; }
+      if (!isFinite(v)) return;
+      (r.itens[cat] = r.itens[cat] || []).push({ q: q, p: p, v: v });
+    });
+    Object.keys(r.itens).forEach(function(k){ r.itens[k] = somar(r.itens[k]); });
+
+    // demanda contratada: bloco "Grandezas Contratadas"
+    for (var i = 0; i < linhas.length; i++){
+      if (!/Grandezas Contratadas/i.test(linhas[i].txt)) continue;
+      var cand = [];
+      for (var k = i + 1; k < Math.min(linhas.length, i + 6); k++){
+        if (!/demanda/i.test(linhas[k].txt)) continue;
+        var ns = linhas[k].it.map(function(x){ return lerNum(x.s); }).filter(function(n){ return isFinite(n); });
+        if (ns.length) cand.push({ fora: /fora|[úu]nica/i.test(linhas[k].txt), v: ns[ns.length - 1] });
+      }
+      var esc = cand.filter(function(c){ return c.fora; })[0] || cand[0];
+      if (esc) r.contratada = esc.v;
+      break;
+    }
+
+    // historico: linhas "AGO/26 dem HP, dem HFP, energia HP, energia HFP, HR"
+    var cab = null;
+    for (var j = 0; j < linhas.length; j++){
+      var hs = linhas[j].it.filter(function(x){ return /^(HP|HFP|HR)$/i.test(x.s); });
+      if (hs.length >= 4){ cab = hs; break; }
+    }
+    var limite = cab ? cab[cab.length - 1].x + 30 : 240;
+    linhas.forEach(function(l){
+      var m = MES_RE.exec(l.it[0].s);
+      if (!m || l.it[0].x > limite) return;
+      var ns = l.it.slice(1).filter(function(x){ return x.x < limite && isFinite(lerNum(x.s)); }).map(function(x){ return lerNum(x.s); });
+      if (ns.length < 4) return;
+      r.hist.push({ mes: l.it[0].s.toUpperCase(), ord: (2000 + +m[2]) * 12 + MESES.indexOf(m[1].toUpperCase()),
+                    demHP: ns[0], demHFP: ns[1], enHP: ns[2], enHFP: ns[3] });
+    });
+    r.hist.sort(function(a, b){ return b.ord - a.ord; });
+    return r;
+  }
+
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+  function pdfStatus(html, alerta){
+    $('pdf-status').innerHTML = '<div class="note' + (alerta ? ' alert' : '') + '" style="margin-top:0"><span class="dot"></span><div>' + html + '</div></div>';
+  }
+
+  function aplicarFatura(r){
+    ['nome','dc','pd','phfp','php','cip','rhfp','rhp','rdem'].forEach(function(id){ $(id).value = ''; });
+    var it = r.itens, lidos = [], faltou = [], avisos = [];
+    if (r.cemig) $('dist').value = 'cemig-d';
+    else avisos.push('Esta fatura não parece ser da CEMIG. O fator e o ICMS usados são os da distribuidora selecionada.');
+    if (r.modalidade && !/verde/i.test(r.modalidade)) avisos.push('A fatura é da modalidade ' + esc(r.modalidade) + '. O simulador foi feito para a modalidade Verde.');
+    if (r.cliente) $('nome').value = r.cliente;
+
+    montarHistorico();
+    var hist = r.hist.slice(0, 12), rows = $('hist').rows;
+    hist.forEach(function(h, i){
+      if (i > 0) novaLinha();
+      var ins = rows[i].querySelectorAll('input');
+      ins[0].value = h.mes;
+      ins[1].value = fN0.format(h.enHFP);
+      ins[2].value = fN0.format(h.enHP);
+      ins[3].value = fN1.format(Math.max(h.demHP, h.demHFP));
+    });
+    if (hist.length) lidos.push(hist.length + ' meses de histórico (' + esc(hist[hist.length - 1].mes) + ' a ' + esc(hist[0].mes) + '), com a demanda de cada mês pela maior entre ponta e fora ponta');
+    else faltou.push('o histórico de consumo');
+
+    if (isFinite(r.contratada)){ $('dc').value = brNum(r.contratada, 2); lidos.push('demanda contratada de ' + fN1.format(r.contratada) + ' kW'); }
+    else faltou.push('a demanda contratada');
+
+    var precos = [];
+    if (it.dem && isFinite(it.dem.p)){ $('pd').value = brNum(it.dem.p, 8); precos.push('demanda'); } else faltou.push('o preço da demanda');
+    if (it.ehfp && isFinite(it.ehfp.p)){ $('phfp').value = brNum(it.ehfp.p, 8); precos.push('energia fora ponta'); } else faltou.push('o preço da energia fora ponta');
+    if (it.ehp && isFinite(it.ehp.p)){ $('php').value = brNum(it.ehp.p, 8); precos.push('energia ponta'); } else faltou.push('o preço da energia ponta');
+    if (precos.length) lidos.push('preços com impostos de ' + precos.join(', ').replace(/, ([^,]*)$/, ' e $1'));
+
+    if (it.cip){ $('cip').value = brNum(it.cip.v, 2); lidos.push('iluminação pública de ' + fBRL.format(it.cip.v)); }
+    var reat = 0;
+    if (it.rhfp){ $('rhfp').value = brNum(it.rhfp.v, 2); reat += it.rhfp.v; }
+    if (it.rhp){ $('rhp').value = brNum(it.rhp.v, 2); reat += it.rhp.v; }
+    if (it.rdem){ $('rdem').value = brNum(it.rdem.v, 2); reat += it.rdem.v; }
+    lidos.push(reat > 0 ? 'reativo excedente do último mês: ' + fBRL.format(reat) : 'sem reativo excedente no último mês');
+
+    aplicarDistribuidora();
+
+    var titulo = 'Fatura ' + (r.referencia ? 'de ' + esc(r.referencia) + ' ' : '') + 'lida'
+      + (r.modalidade ? ' · ' + esc(r.modalidade) + ' ' + esc(r.subgrupo || '') : '')
+      + (isFinite(r.total) ? ' · total de ' + fBRL.format(r.total) : '') + '.';
+    var html = '<b>' + titulo + '</b> Confira os campos abaixo.<ul>'
+      + lidos.map(function(s){ return '<li>' + s + '</li>'; }).join('') + '</ul>';
+    if (faltou.length) html += 'Não encontrei ' + faltou.join(', ').replace(/, ([^,]*)$/, ' e $1') + '; preencha à mão.';
+    if (avisos.length) html += '<br>' + avisos.join('<br>');
+    pdfStatus(html, faltou.length > 0 || avisos.length > 0);
+  }
+
+  async function importar(file){
+    var btn = $('arq-btn');
+    btn.disabled = true; btn.textContent = 'Lendo a fatura…';
+    pdfStatus('Lendo a fatura…');
+    try {
+      var buf = await lerArquivo(file);
+      var pags;
+      try { pags = await paginasDoPdf(buf); }
+      catch (e){
+        if (e && e.message === 'leitor') throw new Error('Não consegui carregar o leitor de PDF. Confira a internet e tente de novo, ou preencha à mão.');
+        throw new Error('Não consegui abrir este arquivo como PDF.');
+      }
+      var nTexto = pags.reduce(function(n, p){ return n + p.length; }, 0);
+      if (!nTexto) throw new Error('Este PDF parece ser uma imagem escaneada, sem texto para ler. Baixe a 2ª via em PDF no site da CEMIG ou preencha à mão.');
+      var r = extrairFatura(pags);
+      if (!r.hist.length && !r.itens.ehfp && !r.itens.dem) throw new Error('Não reconheci o layout desta fatura. Preencha à mão.');
+      aplicarFatura(r);
+    } catch (e){
+      pdfStatus('<b>' + esc(e.message || 'Não consegui ler a fatura.') + '</b>', true);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Ler a fatura da CEMIG';
+    }
+  }
+
+  $('arq-btn').addEventListener('click', function(){ $('arq').click(); });
+  $('arq').addEventListener('change', function(){ if (this.files && this.files[0]) importar(this.files[0]); this.value = ''; });
+  var drop = $('drop');
+  ['dragenter','dragover'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('over'); }); });
+  ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
+  drop.addEventListener('drop', function(e){ var f = e.dataTransfer && e.dataTransfer.files[0]; if (f) importar(f); });
+
   /* ---------- botoes ---------- */
-  var CAMPOS = ['nome','dc','pd','phfp','php','cip','rhfp','rhp','tb','db'];
+  var CAMPOS = ['nome','dc','pd','phfp','php','cip','rhfp','rhp','rdem','tb','db'];
 
   function limparTudo(){
     CAMPOS.forEach(function(id){ $(id).value = ''; });
+    $('pdf-status').innerHTML = '';
     montarHistorico();
     aplicarDistribuidora();
   }
