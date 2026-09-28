@@ -756,7 +756,11 @@ footer b{color:var(--body)}
 
   var MESES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
   var MES_RE = /^(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/(\d{2})$/i;
-  var UNID_RE = /^(kW|kWh|kVAr|kVArh)$/i;
+  // a linha e lida como texto corrido, porque o pdf.js as vezes junta duas
+  // colunas vizinhas num pedaco so ("0,635 29.174,88")
+  var NUM = '(-?\\d[\\d.]*(?:,\\d+)?)';
+  var ITEM_RE = new RegExp('^(.+?)\\s+(kWh|kW|kVArh|kVAr)\\s+' + NUM + '\\s+' + NUM + '\\s+' + NUM, 'i');
+  var ITEM_SO_VALOR_RE = /^(.*?[A-Za-zÀ-ÿ.)])\s+(-?\d[\d.]*,\d{2})(?:\s|$)/;
 
   function categoria(rot){
     var s = rot.toLowerCase();
@@ -800,7 +804,8 @@ footer b{color:var(--body)}
     var ref = tudo.match(/\b(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/\d{4}\b/i);
     if (ref) r.referencia = ref[0].toUpperCase();
     linhas.some(function(l){
-      for (var k = 0; k < l.it.length - 1; k++) if (/^Cliente:?$/i.test(l.it[k].s)){ r.cliente = l.it[k + 1].s; return true; }
+      var m = /Cliente:\s*(.+?)(?:\s+Unidade:|$)/i.exec(l.txt);
+      if (m && m[1].trim()){ r.cliente = m[1].trim(); return true; }
       return false;
     });
 
@@ -809,20 +814,18 @@ footer b{color:var(--body)}
     linhas.forEach(function(l){
       if (/Itens da Fatura/i.test(l.txt)){ dentro = true; return; }
       if (!dentro) return;
-      var rot = l.it[0].s;
-      if (/^TOTAL$/i.test(rot)){
-        dentro = false;
-        var t = l.it.slice(1).map(function(i){ return lerNum(i.s); }).filter(function(n){ return isFinite(n); });
-        if (t.length) r.total = t[0];
-        return;
+      var t = /^TOTAL\b\s*(-?\d[\d.]*,\d{2})?/i.exec(l.txt);
+      if (t){ dentro = false; if (t[1]) r.total = lerNum(t[1]); return; }
+      var rot, q = NaN, p = NaN, v = NaN;
+      var m = ITEM_RE.exec(l.txt);
+      if (m){ rot = m[1]; q = lerNum(m[3]); p = lerNum(m[4]); v = lerNum(m[5]); }
+      else {
+        var m2 = ITEM_SO_VALOR_RE.exec(l.txt);
+        if (!m2) return;
+        rot = m2[1]; v = lerNum(m2[2]);
       }
       var cat = categoria(rot);
-      if (!cat) return;
-      var resto = l.it.slice(1).map(function(i){ return i.s; });
-      var q = NaN, p = NaN, v = NaN;
-      if (resto.length >= 4 && UNID_RE.test(resto[0])){ q = lerNum(resto[1]); p = lerNum(resto[2]); v = lerNum(resto[3]); }
-      else { var nums = resto.map(lerNum).filter(function(n){ return isFinite(n); }); v = nums[0]; }
-      if (!isFinite(v)) return;
+      if (!cat || !isFinite(v)) return;
       (r.itens[cat] = r.itens[cat] || []).push({ q: q, p: p, v: v });
     });
     Object.keys(r.itens).forEach(function(k){ r.itens[k] = somar(r.itens[k]); });
@@ -832,16 +835,16 @@ footer b{color:var(--body)}
       if (!/Grandezas Contratadas/i.test(linhas[i].txt)) continue;
       var cand = [];
       for (var k = i + 1; k < Math.min(linhas.length, i + 6); k++){
-        if (!/demanda/i.test(linhas[k].txt)) continue;
-        var ns = linhas[k].it.map(function(x){ return lerNum(x.s); }).filter(function(n){ return isFinite(n); });
-        if (ns.length) cand.push({ fora: /fora|[úu]nica/i.test(linhas[k].txt), v: ns[ns.length - 1] });
+        var mm = /Demanda([^\d]*?)(\d[\d.,]*)/i.exec(linhas[k].txt);
+        if (mm) cand.push({ fora: /fora|[úu]nica/i.test(mm[1]), v: lerNum(mm[2]) });
       }
-      var esc = cand.filter(function(c){ return c.fora; })[0] || cand[0];
-      if (esc) r.contratada = esc.v;
+      var escolhida = cand.filter(function(c){ return c.fora && isFinite(c.v); })[0] || cand.filter(function(c){ return isFinite(c.v); })[0];
+      if (escolhida) r.contratada = escolhida.v;
       break;
     }
 
-    // historico: linhas "AGO/26 dem HP, dem HFP, energia HP, energia HFP, HR"
+    // historico: linhas "AGO/26 dem HP, dem HFP, energia HP, energia HFP, HR".
+    // so conta o que esta na coluna da tabela (a direita ha outros quadros)
     var cab = null;
     for (var j = 0; j < linhas.length; j++){
       var hs = linhas[j].it.filter(function(x){ return /^(HP|HFP|HR)$/i.test(x.s); });
@@ -849,11 +852,14 @@ footer b{color:var(--body)}
     }
     var limite = cab ? cab[cab.length - 1].x + 30 : 240;
     linhas.forEach(function(l){
-      var m = MES_RE.exec(l.it[0].s);
-      if (!m || l.it[0].x > limite) return;
-      var ns = l.it.slice(1).filter(function(x){ return x.x < limite && isFinite(lerNum(x.s)); }).map(function(x){ return lerNum(x.s); });
+      if (l.it[0].x > limite) return;
+      var toks = [];
+      l.it.forEach(function(x){ if (x.x < limite) x.s.split(/\s+/).forEach(function(tk){ if (tk) toks.push(tk); }); });
+      var m = MES_RE.exec(toks[0] || '');
+      if (!m) return;
+      var ns = toks.slice(1).map(lerNum).filter(function(n){ return isFinite(n); });
       if (ns.length < 4) return;
-      r.hist.push({ mes: l.it[0].s.toUpperCase(), ord: (2000 + +m[2]) * 12 + MESES.indexOf(m[1].toUpperCase()),
+      r.hist.push({ mes: toks[0].toUpperCase(), ord: (2000 + +m[2]) * 12 + MESES.indexOf(m[1].toUpperCase()),
                     demHP: ns[0], demHFP: ns[1], enHP: ns[2], enHFP: ns[3] });
     });
     r.hist.sort(function(a, b){ return b.ord - a.ord; });
