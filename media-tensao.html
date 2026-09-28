@@ -86,6 +86,16 @@ table.hist input.h-mes{font-weight:500; color:var(--body)}
 table.hist tfoot th, table.hist tfoot td{padding-top:9px; border-top:1px solid var(--border)}
 table.hist tfoot td{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:14px; color:var(--head); padding-left:11px; font-variant-numeric:tabular-nums}
 .tabacts{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap}
+table.hist .del{width:26px; height:36px; background:none; border:none; color:var(--dim); font-size:17px; line-height:1; cursor:pointer; padding:0}
+table.hist .del:hover{color:var(--warn)}
+.addbtn{width:100%; background:var(--bg); border:1px dashed var(--border); color:var(--body); border-radius:9px; padding:9px; font:inherit; font-size:12.5px; cursor:pointer; margin-top:6px}
+.addbtn:hover{color:var(--accent2); border-color:var(--accent)}
+
+/* ---- parametros que vem da distribuidora: so leitura ---- */
+.params{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 14px; margin-bottom:8px}
+@media (max-width:540px){.params{grid-template-columns:1fr 1fr}}
+.param .pl{display:block; font-size:13px; color:var(--body); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.param .pv{display:block; font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:18px; color:var(--head); font-variant-numeric:tabular-nums}
 
 /* ---- resultado ---- */
 .big{font-family:Oxanium,Inter,sans-serif; font-weight:700; color:var(--head); letter-spacing:-.01em; font-variant-numeric:tabular-nums}
@@ -167,30 +177,27 @@ footer b{color:var(--body)}
             <label for="dist">Distribuidora</label>
             <select class="sel" id="dist"></select>
           </div>
-          <div class="field">
-            <label for="fator">Fator TE ponta ÷ fora ponta</label>
-            <div class="ig w-s"><input id="fator" inputmode="decimal"><span class="unit">×</span></div>
-          </div>
-          <div class="field">
-            <label for="icms">ICMS</label>
-            <div class="ig w-s"><input id="icms" inputmode="decimal"><span class="unit">%</span></div>
-          </div>
         </div>
-        <p class="fonte"><span id="fonte-fator"></span> <button class="linkbtn" id="usar-aneel" type="button">usar este valor</button></p>
+        <div class="params">
+          <div class="param"><span class="pl">Fator TE ponta ÷ fora ponta</span><span class="pv" id="dp-fator">—</span></div>
+          <div class="param"><span class="pl">ICMS</span><span class="pv" id="dp-icms">—</span></div>
+        </div>
+        <p class="fonte" id="fonte-fator"></p>
       </section>
 
       <section class="card">
-        <p class="label">Histórico · últimos 12 meses</p>
+        <p class="label">Histórico mês a mês</p>
         <div class="tablewrap">
           <table class="hist">
-            <colgroup><col style="width:22%"><col><col><col></colgroup>
-            <thead><tr><th>Mês</th><th>HFP · kWh</th><th>HP · kWh</th><th>Demanda · kW</th></tr></thead>
+            <colgroup><col style="width:22%"><col><col><col><col style="width:30px"></colgroup>
+            <thead><tr><th>Mês</th><th>HFP · kWh</th><th>HP · kWh</th><th>Demanda · kW</th><th></th></tr></thead>
             <tbody id="hist"></tbody>
-            <tfoot><tr><th>Média</th><td id="m-hfp">—</td><td id="m-hp">—</td><td id="m-dem">—</td></tr></tfoot>
+            <tfoot><tr><th id="m-n">Média</th><td id="m-hfp">—</td><td id="m-hp">—</td><td id="m-dem">—</td><td></td></tr></tfoot>
           </table>
         </div>
+        <button class="addbtn" id="add-mes" type="button">+ adicionar mês</button>
         <div class="tabacts">
-          <span class="hint">Dica: copie as colunas da planilha ou do histórico da fatura e cole na primeira célula.</span>
+          <span class="hint">Dica: copie as colunas da planilha ou do histórico da fatura e cole na primeira célula. As linhas se criam sozinhas.</span>
           <button class="linkbtn" id="limpar-hist" type="button">limpar histórico</button>
         </div>
       </section>
@@ -347,7 +354,7 @@ footer b{color:var(--body)}
   var CONFIG = {
     tolerancia:    5,      // % · ultrapassagem so e cobrada acima disso
     demandaMinima: 30,     // kW · minimo contratavel no Grupo A
-    meses:         12
+    maxMeses:      24      // limite de linhas no historico
   };
 
   // uma entrada por distribuidora. o fator ponta/fora ponta sai da divisao
@@ -394,21 +401,52 @@ footer b{color:var(--body)}
   function meses(n, total){ return n + ' de ' + total; }
   function mostrar(id, sim){ $(id).hidden = !sim; }
 
-  /* ---------- historico ---------- */
-  function montarHistorico(){
-    var tb = $('hist'); tb.innerHTML = '';
-    for (var i = 0; i < CONFIG.meses; i++){
-      var tr = document.createElement('tr');
-      tr.setAttribute('data-r', i);
-      var n = i + 1;
-      tr.innerHTML =
-          '<td><input class="h-mes" data-c="0" placeholder="mês ' + n + '" aria-label="mês ' + n + '"></td>'
-        + '<td><input class="h-hfp" data-c="1" inputmode="decimal" aria-label="HFP em kWh, mês ' + n + '"></td>'
-        + '<td><input class="h-hp" data-c="2" inputmode="decimal" aria-label="HP em kWh, mês ' + n + '"></td>'
-        + '<td><input class="h-dem" data-c="3" inputmode="decimal" aria-label="demanda medida em kW, mês ' + n + '"></td>';
-      tb.appendChild(tr);
-    }
+  /* ---------- historico mes a mes ---------- */
+  function novaLinha(){
+    var tb = $('hist');
+    if (tb.rows.length >= CONFIG.maxMeses) return null;
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+        '<td><input class="h-mes" data-c="0"></td>'
+      + '<td><input class="h-hfp" data-c="1" inputmode="decimal"></td>'
+      + '<td><input class="h-hp" data-c="2" inputmode="decimal"></td>'
+      + '<td><input class="h-dem" data-c="3" inputmode="decimal"></td>'
+      + '<td><button class="del" type="button">×</button></td>';
+    tb.appendChild(tr);
+    renumerar();
+    return tr;
   }
+  function renumerar(){
+    var rows = $('hist').rows;
+    Array.prototype.forEach.call(rows, function(tr, i){
+      var n = i + 1, ins = tr.querySelectorAll('input');
+      tr.setAttribute('data-r', i);
+      ins[0].placeholder = 'mês ' + n;
+      ins[0].setAttribute('aria-label', 'mês ' + n);
+      ins[1].setAttribute('aria-label', 'HFP em kWh, mês ' + n);
+      ins[2].setAttribute('aria-label', 'HP em kWh, mês ' + n);
+      ins[3].setAttribute('aria-label', 'demanda medida em kW, mês ' + n);
+      var b = tr.querySelector('.del');
+      b.title = 'remover mês ' + n; b.setAttribute('aria-label', 'remover mês ' + n);
+    });
+    $('add-mes').hidden = rows.length >= CONFIG.maxMeses;
+  }
+  function montarHistorico(){ $('hist').innerHTML = ''; novaLinha(); }
+
+  $('add-mes').addEventListener('click', function(){
+    var tr = novaLinha();
+    if (tr) tr.querySelector('.h-hfp').focus();
+    calc();
+  });
+  $('hist').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('.del') : null;
+    if (!b) return;
+    var tr = b.closest('tr');
+    if ($('hist').rows.length > 1) tr.remove();
+    else tr.querySelectorAll('input').forEach(function(i){ i.value = ''; });
+    renumerar();
+    calc();
+  });
 
   function historico(){
     var out = [];
@@ -433,7 +471,9 @@ footer b{color:var(--body)}
     var rows = $('hist').rows;
     var r0 = +alvo.closest('tr').getAttribute('data-r'), c0 = +alvo.getAttribute('data-c');
     linhas.forEach(function(l, i){
-      var r = r0 + i; if (r >= rows.length) return;
+      var r = r0 + i;
+      while (rows.length <= r && novaLinha()) {}
+      if (r >= rows.length) return;
       var ins = rows[r].querySelectorAll('input');
       l.split(/\t|;/).forEach(function(v, j){
         var c = c0 + j; if (c > 3) return;
@@ -490,14 +530,17 @@ footer b{color:var(--body)}
     $('m-hfp').textContent = isFinite(mHFP) ? fN0.format(mHFP) : '—';
     $('m-hp').textContent  = isFinite(mHP)  ? fN0.format(mHP)  : '—';
     $('m-dem').textContent = isFinite(mDem) ? fN1.format(mDem) : '—';
+    $('m-n').textContent = nMeses > 1 ? 'Média · ' + nMeses : 'Média';
+
+    // fator e ICMS vem da distribuidora escolhida
+    var dist = distAtual(), fator = fatorDe(dist), icms = dist.icms;
 
     var pD = val('pd'), pHFP = val('phfp'), pHP = val('php'), dc = val('dc');
-    var cip = val('cip'), rHFP = val('rhfp'), rHP = val('rhp'), icms = val('icms'), fator = val('fator');
+    var cip = val('cip'), rHFP = val('rhfp'), rHP = val('rhp');
     var tb = val('tb'), db = val('db');
     if (!isFinite(cip))  cip = 0;
     if (!isFinite(rHFP)) rHFP = 0;
     if (!isFinite(rHP))  rHP = 0;
-    if (!isFinite(icms)) icms = 0;
     var reat = rHFP + rHP;
 
     /* demanda: independente da energia */
@@ -510,8 +553,7 @@ footer b{color:var(--body)}
     if (!isFinite(mHFP) || !isFinite(mHP)) falta.push('o histórico de HFP e HP');
     if (!pos(pHFP)) falta.push('o preço da energia fora ponta');
     if (!pos(pHP))  falta.push('o preço da energia ponta');
-    if (!pos(fator)) falta.push('o fator TE ponta ÷ fora ponta');
-    var kwhEqPrev = (isFinite(mHFP) ? mHFP : 0) + (isFinite(mHP) && pos(fator) ? mHP * fator : 0);
+    var kwhEqPrev = (isFinite(mHFP) ? mHFP : 0) + (isFinite(mHP) ? mHP * fator : 0);
     if (!falta.length && kwhEqPrev <= 0) falta.push('um consumo maior que zero no histórico');
     var temEnergia = falta.length === 0;
 
@@ -624,12 +666,12 @@ footer b{color:var(--body)}
   function fatorDe(d){ return d.tePonta / d.teForaPonta; }
   function aplicarDistribuidora(){
     var d = distAtual();
-    $('fator').value = brNum(fatorDe(d), 4);
-    $('icms').value  = brNum(d.icms, 2);
+    $('dp-fator').textContent = brNum(fatorDe(d), 4) + ' ×';
+    $('dp-icms').textContent  = brNum(d.icms, 2) + '% · ' + d.uf;
     $('tb-l').textContent = 'Tarifa atual da ' + d.nome;
-    $('fonte-fator').textContent = 'ANEEL · ' + d.nome + ' ' + d.subgrupo + ' ' + d.modalidade + ', vigência ' + d.vigencia
-      + ': TE ponta R$ ' + brNum(d.tePonta, 2) + '/MWh ÷ TE fora ponta R$ ' + brNum(d.teForaPonta, 2) + '/MWh = '
-      + brNum(fatorDe(d), 4) + '. ICMS de ' + d.uf + ', que não incide na demanda contratada e não usada. Muda no reajuste de ' + d.reajuste + '.';
+    $('fonte-fator').textContent = 'Vêm da distribuidora. Fator: ANEEL, ' + d.nome + ' ' + d.subgrupo + ' ' + d.modalidade + ', vigência ' + d.vigencia
+      + ', TE ponta R$ ' + brNum(d.tePonta, 2) + '/MWh ÷ TE fora ponta R$ ' + brNum(d.teForaPonta, 2) + '/MWh. '
+      + 'ICMS de ' + d.uf + ', que não incide na demanda contratada e não usada. Mudam no reajuste de ' + d.reajuste + '.';
     calc();
   }
   DISTRIBUIDORAS.forEach(function(d){
@@ -640,7 +682,7 @@ footer b{color:var(--body)}
   $('dist').addEventListener('change', aplicarDistribuidora);
 
   /* ---------- botoes ---------- */
-  var CAMPOS = ['nome','dc','pd','phfp','php','cip','rhfp','rhp','icms','fator','tb','db'];
+  var CAMPOS = ['nome','dc','pd','phfp','php','cip','rhfp','rhp','tb','db'];
 
   function limparTudo(){
     CAMPOS.forEach(function(id){ $(id).value = ''; });
@@ -653,7 +695,7 @@ footer b{color:var(--body)}
     nome: 'Exemplo · planilha de referência',
     hist: [['conta', '12601', '3198', '131']],
     dc: '90', pd: '30,22711666', phfp: '0,63534169', php: '3,05962766',
-    cip: '0', icms: '18', fator: '1,6', tb: '1,15', db: '30'
+    cip: '0', tb: '1,15', db: '30'
   };
   $('ex').addEventListener('click', function(){
     limparTudo();
@@ -667,7 +709,6 @@ footer b{color:var(--body)}
   });
   $('limpar').addEventListener('click', limparTudo);
   $('limpar-hist').addEventListener('click', function(){ montarHistorico(); calc(); });
-  $('usar-aneel').addEventListener('click', function(){ $('fator').value = brNum(fatorDe(distAtual()), 4); calc(); });
 
   $('tg').addEventListener('click', function(){
     var cur = document.documentElement.getAttribute('data-theme');
