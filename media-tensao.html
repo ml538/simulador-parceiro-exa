@@ -3,81 +3,679 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Simuladores · exa energia</title>
+<title>Simulador de média tensão · exa energia</title>
 <script>try{var t=localStorage.getItem('exa-tema');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#F7F3E7;--card:#FFFFFF;--panel:#E4EFE0;--accent:#00A95B;--accent2:#0B7A45;
---head:#11201A;--body:#5E6B62;--dim:#94A096;--border:#E3DDCC;--word:#0B4F2E;--mark:#00A95B}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#001409;--card:#031812;--panel:#14382A;
---accent:#ADF98E;--accent2:#00C86B;--head:#FFFFFF;--body:#8FA79A;--dim:#5E6F65;--border:#1D3A2C;--word:#CDEAC2;--mark:#00C86B}}
-:root[data-theme="dark"]{--bg:#001409;--card:#031812;--panel:#14382A;
---accent:#ADF98E;--accent2:#00C86B;--head:#FFFFFF;--body:#8FA79A;--dim:#5E6F65;--border:#1D3A2C;--word:#CDEAC2;--mark:#00C86B}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--body);
-font-family:Inter,-apple-system,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
-.wrap{max-width:980px;margin:0 auto;padding:64px 20px}
-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:34px}
-.logo{width:150px;height:auto;display:block}
-.themebtn{background:var(--card);color:var(--body);border:1px solid var(--border);border-radius:999px;padding:8px 15px;font:inherit;font-size:12px;cursor:pointer}
-.themebtn:hover{color:var(--head)}
-h1{font-family:Oxanium,Inter,sans-serif;font-weight:700;font-size:clamp(26px,4vw,36px);
-color:var(--head);margin:0 0 8px;letter-spacing:-.01em}
-h1 em{font-style:normal;color:var(--accent2)}
-p.sub{margin:0 0 34px;max-width:56ch}
-.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-@media(max-width:860px){.cards{grid-template-columns:1fr 1fr}}
-@media(max-width:560px){.cards{grid-template-columns:1fr}}
-a.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:14px;
-padding:24px;text-decoration:none;transition:border-color .15s}
-a.card:hover{border-color:var(--accent)}
-a.card h2{font-family:Oxanium,Inter,sans-serif;font-size:19px;color:var(--head);margin:0 0 6px}
-a.card p{margin:0;font-size:13.5px;color:var(--body)}
-a.card .go{display:inline-block;margin-top:auto;padding-top:14px;font-size:12px;font-weight:700;color:var(--accent2)}
-footer{margin-top:44px;font-size:11.5px;color:var(--dim)}
+:root{
+  --bg:#F7F3E7; --card:#FFFFFF; --card2:#EFEBDB; --panel:#E4EFE0;
+  --accent:#00A95B; --accent2:#0B7A45; --head:#11201A; --text:#2E3B33;
+  --body:#5E6B62; --dim:#94A096; --border:#E3DDCC; --warn:#C4685F;
+  --word:#0B4F2E; --mark:#00A95B; --shadow:0 1px 2px rgba(17,32,26,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#001409; --card:#031812; --card2:#0C2820; --panel:#14382A;
+    --accent:#ADF98E; --accent2:#00C86B; --head:#FFFFFF; --text:#CDEAC2;
+    --body:#8FA79A; --dim:#5E6F65; --border:#1D3A2C; --warn:#E08C84;
+    --word:#CDEAC2; --mark:#00C86B; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#001409; --card:#031812; --card2:#0C2820; --panel:#14382A;
+  --accent:#ADF98E; --accent2:#00C86B; --head:#FFFFFF; --text:#CDEAC2;
+  --body:#8FA79A; --dim:#5E6F65; --border:#1D3A2C; --warn:#E08C84;
+  --word:#CDEAC2; --mark:#00C86B; --shadow:none;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;padding:0}
+body{background:var(--bg); color:var(--text); font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased}
+.wrap{max-width:1220px; margin:0 auto; padding:26px 20px 56px}
+header{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px}
+.brand{display:flex; align-items:center; gap:14px}
+.brand .logo{width:128px; height:auto; display:block}
+.acts{display:flex; gap:8px; flex-wrap:wrap}
+.btn{background:var(--card); color:var(--body); border:1px solid var(--border); border-radius:999px; padding:8px 15px; font:inherit; font-size:12px; cursor:pointer}
+.btn:hover{color:var(--head)}
+.backbtn{text-decoration:none; display:inline-flex; align-items:center; gap:5px}
+
+.kicker{font-size:10px; font-weight:700; letter-spacing:.19em; text-transform:uppercase; color:var(--accent2); margin:0 0 6px}
+h1{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:clamp(23px,3.3vw,32px); line-height:1.12; color:var(--head); margin:0 0 6px; letter-spacing:-.01em; text-wrap:balance}
+h1 em{font-style:normal; color:var(--accent2)}
+.sub{color:var(--body); font-size:14px; margin:0; max-width:70ch}
+
+.grid{display:grid; grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr); gap:18px; align-items:start; margin-top:22px}
+@media (max-width:980px){.grid{grid-template-columns:1fr}}
+.col{display:flex; flex-direction:column; gap:18px; min-width:0}
+.card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:22px; box-shadow:var(--shadow)}
+.card.green{background:var(--panel); border-color:transparent}
+.label{font-size:10px; font-weight:700; letter-spacing:.17em; text-transform:uppercase; color:var(--body); margin:0 0 14px}
+.card.green .label{color:var(--accent2)}
+
+.field{margin-bottom:14px; min-width:0}
+.field label{display:flex; justify-content:space-between; align-items:baseline; gap:10px; font-size:13px; color:var(--body); margin-bottom:6px}
+.hint{font-size:11px; color:var(--dim)}
+.inputrow{display:flex; align-items:center; gap:8px}
+.pre, .unit{font-size:13px; color:var(--dim); white-space:nowrap}
+input.num, input.txt{flex:1; min-width:0; background:var(--bg); color:var(--head); border:1px solid var(--border); border-radius:9px; padding:9px 11px; font:inherit; font-weight:600; font-size:15px; font-variant-numeric:tabular-nums}
+input.txt{font-weight:500}
+select.sel{flex:1; min-width:0; width:100%; background:var(--bg); color:var(--head); border:1px solid var(--border); border-radius:9px; padding:9px 10px; font:inherit; font-weight:600; font-size:15px}
+input:focus, select:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:transparent}
+.two{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 14px}
+@media (max-width:540px){.two{grid-template-columns:1fr}}
+
+.tablewrap{overflow-x:auto; margin:0 -4px; padding:0 4px}
+table.hist{width:100%; min-width:420px; border-collapse:separate; border-spacing:0 5px; table-layout:fixed}
+table.hist th{font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--body); text-align:left; padding:0 4px 1px}
+table.hist td{padding:0 3px}
+table.hist input{width:100%; min-width:0; background:var(--bg); color:var(--head); border:1px solid var(--border); border-radius:8px; padding:7px 8px; font:inherit; font-size:13.5px; font-weight:600; font-variant-numeric:tabular-nums}
+table.hist input.h-mes{font-weight:500; color:var(--body)}
+table.hist tfoot th, table.hist tfoot td{padding-top:9px; border-top:1px solid var(--border)}
+table.hist tfoot td{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:14px; color:var(--head); padding-left:11px; font-variant-numeric:tabular-nums}
+.tabacts{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap}
+.linkbtn{background:none; border:none; color:var(--accent2); font:inherit; font-size:12px; font-weight:600; cursor:pointer; padding:0}
+.linkbtn:hover{text-decoration:underline}
+.fonte{font-size:11px; color:var(--dim); margin:4px 0 0; line-height:1.5}
+
+.big{font-family:Oxanium,Inter,sans-serif; font-weight:700; color:var(--head); letter-spacing:-.01em; font-variant-numeric:tabular-nums}
+.sec + .sec{margin-top:22px; padding-top:18px; border-top:1px solid var(--border)}
+.row{display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:8px 0; border-bottom:1px solid var(--border)}
+.row .k{font-size:13px; color:var(--body)}
+.row .k small{display:block; font-size:11px; color:var(--dim); margin-top:1px}
+.row .v{font-size:15px; white-space:nowrap}
+.row.tot{border-bottom:none}
+.row.tot .k{color:var(--head); font-weight:700}
+.row.tot .v{font-size:19px}
+.hero{background:var(--card); border-radius:12px; padding:15px 17px; margin-top:12px}
+.hero .t{font-size:10px; font-weight:700; letter-spacing:.17em; text-transform:uppercase; color:var(--accent2); margin:0 0 3px}
+.hero .n{font-size:clamp(28px,4.6vw,38px); color:var(--accent2); line-height:1.08}
+.hero .s{font-size:12.5px; color:var(--body); margin-top:4px}
+.duo{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
+.duo > div{background:var(--card); border-radius:10px; padding:12px 14px}
+.duo .n{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:19px; color:var(--head); font-variant-numeric:tabular-nums}
+.duo .l{font-size:11px; color:var(--body); margin-top:2px}
+.chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+.chip{font-size:11px; font-weight:700; border-radius:99px; padding:3px 10px; background:var(--card); color:var(--body)}
+.chip.warn{background:transparent; border:1px solid var(--warn); color:var(--warn)}
+.chip.ok{color:var(--accent2)}
+
+.note{display:flex; gap:10px; align-items:flex-start; background:var(--card); border-radius:10px; padding:12px 14px; margin-top:12px; font-size:12.5px; color:var(--body); line-height:1.5}
+.note b{color:var(--head)}
+.note.alert{background:transparent; border:1px solid var(--warn); color:var(--warn)}
+.note.alert b{color:var(--warn)}
+.dot{width:7px; height:7px; border-radius:99px; background:var(--accent); margin-top:6px; flex:none}
+.note.alert .dot{background:var(--warn)}
+
+footer{margin-top:30px; font-size:11.5px; color:var(--dim); line-height:1.6}
+footer b{color:var(--body)}
 </style>
 </head>
 <body>
 <div class="wrap">
+
   <header>
-    <svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg>
-    <button class="themebtn" id="tg" type="button">Alternar tema</button>
+    <div class="brand">
+      <a class="btn backbtn" href="index.html" title="Voltar para a capa">← Voltar</a>
+      <svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg>
+    </div>
+    <div class="acts">
+      <button class="btn" id="ex" type="button">Carregar exemplo</button>
+      <button class="btn" id="limpar" type="button">Limpar</button>
+      <button class="btn" id="tg" type="button">Tema</button>
+    </div>
   </header>
-  <h1>Simuladores <em>exa energia</em>.</h1>
-  <p class="sub">Calculadoras para usar em reunião. Os números são preenchidos na hora, com o cliente ou o parceiro na sua frente.</p>
-  <div class="cards">
-    <a class="card" href="cliente.html">
-      <h2>Economia do cliente</h2>
-      <p>Quanto ele paga hoje na distribuidora, quanto passa a pagar com a exa e quanto sobra por mês e por ano.</p>
-      <span class="go">abrir &rarr;</span>
-    </a>
-    <a class="card" href="parceiro.html">
-      <h2>Ganho do parceiro</h2>
-      <p>Quanto a rede dele pode render, com o spread entre o deságio de aquisição e o que ele oferece.</p>
-      <span class="go">abrir &rarr;</span>
-    </a>
-    <a class="card" href="media-tensao.html">
-      <h2>Média tensão · Grupo A</h2>
-      <p>Tarifa média ponderada entre ponta e fora ponta, desconto equivalente ao Grupo B e otimização da demanda contratada.</p>
-      <span class="go">abrir &rarr;</span>
-    </a>
+
+  <p class="kicker">Simulador de média tensão · Grupo A</p>
+  <h1>Quanto vale o kWh <em>deste cliente</em>.</h1>
+  <p class="sub">Entre com o histórico e os preços da fatura. O simulador calcula a tarifa média ponderada entre ponta e fora ponta, converte o desconto do Grupo B para esta conta e aponta o que dá para otimizar na demanda contratada e no reativo.</p>
+
+  <div class="grid">
+
+    <!-- ============ ENTRADAS ============ -->
+    <div class="col">
+
+      <section class="card">
+        <p class="label">Cliente</p>
+        <div class="two">
+          <div class="field">
+            <label for="nome">Nome do cliente</label>
+            <div class="inputrow"><input class="txt" id="nome" placeholder="Nome do cliente" autocomplete="off"></div>
+          </div>
+          <div class="field">
+            <label for="dist">Distribuidora</label>
+            <div class="inputrow"><select class="sel" id="dist"></select></div>
+          </div>
+        </div>
+        <p class="hint" id="dist-info" style="margin:0"></p>
+      </section>
+
+      <section class="card">
+        <p class="label">Histórico · últimos 12 meses</p>
+        <div class="tablewrap">
+          <table class="hist">
+            <colgroup><col style="width:22%"><col><col><col></colgroup>
+            <thead><tr><th>Mês</th><th>HFP · kWh</th><th>HP · kWh</th><th>Demanda · kW</th></tr></thead>
+            <tbody id="hist"></tbody>
+            <tfoot><tr><th>Média</th><td id="m-hfp">—</td><td id="m-hp">—</td><td id="m-dem">—</td></tr></tfoot>
+          </table>
+        </div>
+        <div class="tabacts">
+          <span class="hint">Dica: copie as colunas da planilha ou do histórico da fatura e cole na primeira célula.</span>
+          <button class="linkbtn" id="limpar-hist" type="button">limpar histórico</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <p class="label">Fatura atual · preços com impostos</p>
+        <div class="two">
+          <div class="field">
+            <label for="dc">Demanda contratada</label>
+            <div class="inputrow"><input class="num" id="dc" inputmode="decimal" placeholder="0"><span class="unit">kW</span></div>
+          </div>
+          <div class="field">
+            <label for="pd">Preço da demanda</label>
+            <div class="inputrow"><span class="pre">R$</span><input class="num" id="pd" inputmode="decimal" placeholder="0,00"><span class="unit">/kW</span></div>
+          </div>
+          <div class="field">
+            <label for="phfp">Energia fora ponta (HFP)</label>
+            <div class="inputrow"><span class="pre">R$</span><input class="num" id="phfp" inputmode="decimal" placeholder="0,00"><span class="unit">/kWh</span></div>
+          </div>
+          <div class="field">
+            <label for="php">Energia ponta (HP)</label>
+            <div class="inputrow"><span class="pre">R$</span><input class="num" id="php" inputmode="decimal" placeholder="0,00"><span class="unit">/kWh</span></div>
+          </div>
+          <div class="field">
+            <label for="cip">Iluminação pública (CIP)</label>
+            <div class="inputrow"><span class="pre">R$</span><input class="num" id="cip" inputmode="decimal" placeholder="0,00"><span class="unit">/mês</span></div>
+          </div>
+          <div class="field">
+            <label for="reat">Energia reativa excedente</label>
+            <div class="inputrow"><span class="pre">R$</span><input class="num" id="reat" inputmode="decimal" placeholder="0,00"><span class="unit">/mês</span></div>
+          </div>
+          <div class="field">
+            <label for="icms">ICMS <span class="hint">sai da demanda não usada</span></label>
+            <div class="inputrow"><input class="num" id="icms" inputmode="decimal"><span class="unit">%</span></div>
+          </div>
+          <div class="field">
+            <label for="fator">Fator TE ponta ÷ fora ponta</label>
+            <div class="inputrow"><input class="num" id="fator" inputmode="decimal"><span class="unit">×</span></div>
+          </div>
+        </div>
+        <p class="fonte"><span id="fonte-fator"></span> <button class="linkbtn" id="usar-aneel" type="button">usar este valor</button></p>
+      </section>
+
+      <section class="card">
+        <p class="label">Referência do Grupo B</p>
+        <div class="two">
+          <div class="field">
+            <label for="tb"><span id="tb-l">Tarifa atual da distribuidora</span> <span class="hint">B convencional, com impostos</span></label>
+            <div class="inputrow"><span class="pre">R$</span><input class="num" id="tb" inputmode="decimal" placeholder="0,00"><span class="unit">/kWh</span></div>
+          </div>
+          <div class="field">
+            <label for="db">Desconto que você aplicaria <span class="hint">no Grupo B</span></label>
+            <div class="inputrow"><input class="num" id="db" inputmode="decimal" placeholder="0"><span class="unit">%</span></div>
+          </div>
+        </div>
+        <p class="fonte">O simulador converte esse desconto na proporção equivalente para a tarifa ponderada deste cliente de média tensão.</p>
+      </section>
+
+      <section class="card">
+        <p class="label">Demais otimizações · demanda</p>
+        <div class="field">
+          <label for="ds">Demanda para simular <span class="hint">vazio = usa a ideal</span></label>
+          <div class="inputrow"><input class="num" id="ds" inputmode="decimal" placeholder="ideal"><span class="unit">kW</span></div>
+        </div>
+        <p class="fonte">A ultrapassagem só é cobrada quando a medida passa 5% da contratada, e aí sobre todo o excedente, a 2× a tarifa de demanda (REN ANEEL 1.000/2021). Demanda contratada mínima no Grupo A: 30 kW.</p>
+      </section>
+    </div>
+
+    <!-- ============ RESULTADO ============ -->
+    <div class="col">
+      <section class="card green" aria-live="polite">
+        <p class="label">Resultado</p>
+
+        <div class="note" id="vazio"><span class="dot"></span><div id="vazio-t">Preencha o histórico e os preços da fatura para ver a análise.</div></div>
+
+        <div id="corpo" hidden>
+
+          <div class="sec">
+            <p class="label">Conta média atual</p>
+            <div class="row" id="rw-dem"><span class="k">Demanda faturada <small id="r-dem-d"></small></span><span class="v big" id="r-dem">—</span></div>
+            <div class="row" id="rw-ult"><span class="k">Ultrapassagem de demanda <small id="r-ult-d"></small></span><span class="v big" id="r-ult">—</span></div>
+            <div class="row" id="rw-oci"><span class="k">Demanda não utilizada <small id="r-oci-d"></small></span><span class="v big" id="r-oci">—</span></div>
+            <div class="row"><span class="k">Energia fora ponta <small id="r-hfp-d"></small></span><span class="v big" id="r-hfp">—</span></div>
+            <div class="row"><span class="k">Energia ponta <small id="r-hp-d"></small></span><span class="v big" id="r-hp">—</span></div>
+            <div class="row" id="rw-cip"><span class="k">Iluminação pública</span><span class="v big" id="r-cip">—</span></div>
+            <div class="row" id="rw-rea"><span class="k">Energia reativa excedente</span><span class="v big" id="r-rea">—</span></div>
+            <div class="row tot"><span class="k">Total por mês <small id="r-tot-d"></small></span><span class="v big" id="r-tot">—</span></div>
+          </div>
+
+          <div class="sec">
+            <p class="label">Tarifa média ponderada</p>
+            <div class="row"><span class="k">Fora ponta <small id="p-hfp-d"></small></span><span class="v big" id="p-hfp">—</span></div>
+            <div class="row"><span class="k">Ponta, ajustada pelo fator <small id="p-hp-d"></small></span><span class="v big" id="p-hp">—</span></div>
+            <div class="hero">
+              <p class="t">Tarifa ponderada da energia</p>
+              <div class="n big" id="p-tar">—</div>
+              <div class="s" id="p-tar-s"></div>
+            </div>
+          </div>
+
+          <div class="sec">
+            <p class="label">Comparação com o Grupo B</p>
+            <div id="b-falta" class="note"><span class="dot"></span><div>Informe a tarifa e o desconto do Grupo B para ver o desconto equivalente.</div></div>
+            <div id="b-corpo">
+              <div class="row"><span class="k">kWh no Grupo B com desconto <small id="b-d"></small></span><span class="v big" id="b-preco">—</span></div>
+              <div class="hero">
+                <p class="t">Desconto equivalente neste cliente</p>
+                <div class="n big" id="b-desc">—</div>
+                <div class="s" id="b-desc-s"></div>
+              </div>
+              <div id="b-aviso"></div>
+            </div>
+          </div>
+
+          <div class="sec">
+            <p class="label">Demais otimizações</p>
+            <div id="d-falta" class="note"><span class="dot"></span><div>Informe a demanda contratada, o preço da demanda e a demanda medida no histórico para avaliar a otimização.</div></div>
+            <div id="d-corpo">
+              <div class="row"><span class="k">Demanda contratada hoje</span><span class="v big" id="d-atual">—</span></div>
+              <div class="row"><span class="k">Demanda ideal pelo histórico <small>menor custo nos meses informados</small></span><span class="v big" id="d-ideal">—</span></div>
+              <div class="row" id="rw-dsim"><span class="k">Demanda simulada</span><span class="v big" id="d-sim">—</span></div>
+              <div class="chips" id="d-chips"></div>
+              <div class="duo">
+                <div><div class="n" id="d-eco">—</div><div class="l">economia na demanda por mês</div></div>
+                <div><div class="n" id="d-rep">—</div><div class="l">representa por kWh</div></div>
+              </div>
+              <div class="row"><span class="k">Tarifa ponderada com demais reduções</span><span class="v big" id="d-tar">—</span></div>
+              <div class="hero" id="hero-tot">
+                <p class="t">Desconto equivalente com demais reduções</p>
+                <div class="n big" id="d-desc">—</div>
+                <div class="s" id="d-desc-s"></div>
+              </div>
+            </div>
+            <div id="reat-box"></div>
+          </div>
+
+          <div class="sec">
+            <p class="label">Economia estimada</p>
+            <div class="duo">
+              <div><div class="n" id="e-mes">—</div><div class="l" id="e-mes-l">por mês</div></div>
+              <div><div class="n" id="e-ano">—</div><div class="l">em 12 meses</div></div>
+            </div>
+            <div class="row tot" id="rw-exa"><span class="k">Conta estimada com a exa <small>demanda simulada + energia no preço do crédito + CIP e reativo</small></span><span class="v big" id="e-conta">—</span></div>
+            <p class="fonte">Estimativa sobre a média do histórico e os preços da fatura informada. Não inclui a parcela não compensável do SCEE (Lei 14.300) nem variações de bandeira tarifária.</p>
+          </div>
+
+        </div>
+      </section>
+    </div>
   </div>
-  <footer>exa energia &middot; exaenergia.com</footer>
+
+  <footer>
+    <b>Análise interna.</b> O fator ponta ÷ fora ponta vem da relação entre as componentes TE homologadas pela ANEEL, que é a regra de compensação de créditos entre postos tarifários no SCEE. A troca da demanda contratada segue as regras e prazos da distribuidora.<br>
+    exa energia · exaenergia.com
+  </footer>
 </div>
+
 <script>
 (function(){
-  var btn = document.getElementById('tg');
-  if (!btn) return;
-  btn.addEventListener('click', function(){
-    var cur  = document.documentElement.getAttribute('data-theme');
+
+  /* ===========================================================
+     CONFIGURACAO  ·  mude so aqui
+     =========================================================== */
+  var CONFIG = {
+    tolerancia:    5,      // % · ultrapassagem so e cobrada acima disso
+    demandaMinima: 30,     // kW · minimo contratavel no Grupo A
+    meses:         12
+  };
+
+  // uma entrada por distribuidora. o fator ponta/fora ponta sai da divisao
+  // entre as TE homologadas (dataset "Tarifas de aplicacao das distribuidoras"
+  // da ANEEL, Tarifa de Aplicacao, DscDetalhe "Nao se aplica"). para incluir
+  // outra, copie o bloco e troque os valores. atualize a cada reajuste.
+  var DISTRIBUIDORAS = [
+    {
+      id:          'cemig-d',
+      nome:        'CEMIG-D',
+      uf:          'MG',
+      icms:        18,          // % · ICMS do estado sobre energia
+      subgrupo:    'A4',
+      modalidade:  'Verde',
+      tePonta:     474.22,      // R$/MWh
+      teForaPonta: 294.98,      // R$/MWh
+      vigencia:    '28/05/2026 a 27/05/2027',
+      reajuste:    '28 de maio'
+    }
+  ];
+  /* =========================================================== */
+
+  var $ = function(id){ return document.getElementById(id); };
+  var fBRL  = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2});
+  var fBRL4 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:4,maximumFractionDigits:4});
+  var fN0   = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
+  var fN1   = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
+  var fN4   = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4});
+  var fPct  = new Intl.NumberFormat('pt-BR',{style:'percent',minimumFractionDigits:1,maximumFractionDigits:1});
+
+  // aceita "12.601", "12601", "0,635", "3,05962766", "R$ 30,22"
+  function lerNum(s){
+    if (s === null || s === undefined) return NaN;
+    s = String(s).trim().replace(/R\$|kWh|kW|%|\s/gi, '');
+    if (s === '' || s === '-') return NaN;
+    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+    var n = parseFloat(s);
+    return isFinite(n) ? n : NaN;
+  }
+  function val(id){ return lerNum($(id).value); }
+  function media(a){ return a.length ? a.reduce(function(x, y){ return x + y; }, 0) / a.length : NaN; }
+  function brNum(n, casas){ return String(+n.toFixed(casas)).replace('.', ','); }
+
+  /* ---------- historico ---------- */
+  function montarHistorico(){
+    var tb = $('hist'); tb.innerHTML = '';
+    for (var i = 0; i < CONFIG.meses; i++){
+      var tr = document.createElement('tr');
+      tr.setAttribute('data-r', i);
+      var n = i + 1;
+      tr.innerHTML =
+          '<td><input class="h-mes" data-c="0" placeholder="mês ' + n + '" aria-label="mês ' + n + '"></td>'
+        + '<td><input class="h-hfp" data-c="1" inputmode="decimal" aria-label="HFP em kWh, mês ' + n + '"></td>'
+        + '<td><input class="h-hp" data-c="2" inputmode="decimal" aria-label="HP em kWh, mês ' + n + '"></td>'
+        + '<td><input class="h-dem" data-c="3" inputmode="decimal" aria-label="demanda medida em kW, mês ' + n + '"></td>';
+      tb.appendChild(tr);
+    }
+  }
+
+  function historico(){
+    var out = [];
+    Array.prototype.forEach.call($('hist').rows, function(tr){
+      var ins = tr.querySelectorAll('input');
+      out.push({ hfp: lerNum(ins[1].value), hp: lerNum(ins[2].value), dem: lerNum(ins[3].value) });
+    });
+    return out;
+  }
+
+  // colar varias linhas/colunas de uma vez, como numa planilha
+  $('hist').addEventListener('paste', function(e){
+    var alvo = e.target;
+    if (!alvo || alvo.tagName !== 'INPUT') return;
+    var txt = (e.clipboardData || window.clipboardData).getData('text');
+    if (!txt || !/[\t\n;]/.test(txt.trim())) return;
+    e.preventDefault();
+    var linhas = txt.replace(/\r/g, '').split('\n').filter(function(l){
+      if (!l.trim()) return false;
+      return l.split(/\t|;/).some(function(v){ return isFinite(lerNum(v)); });
+    });
+    var rows = $('hist').rows;
+    var r0 = +alvo.closest('tr').getAttribute('data-r'), c0 = +alvo.getAttribute('data-c');
+    linhas.forEach(function(l, i){
+      var r = r0 + i; if (r >= rows.length) return;
+      var ins = rows[r].querySelectorAll('input');
+      l.split(/\t|;/).forEach(function(v, j){
+        var c = c0 + j; if (c > 3) return;
+        ins[c].value = String(v).trim();
+      });
+    });
+    calc();
+  });
+
+  /* ---------- demanda ---------- */
+  // custo de um mes com demanda medida m e contratada D
+  function custoDemanda(m, D, P, icms){
+    var tol = 1 + CONFIG.tolerancia / 100;
+    if (m > D * tol) return { fat: m * P, ult: (m - D) * 2 * P, oci: 0 };
+    if (m >= D)      return { fat: m * P, ult: 0, oci: 0 };
+    return { fat: m * P, ult: 0, oci: (D - m) * P * (1 - icms / 100) };
+  }
+  function custoMedio(dems, D, P, icms){
+    var s = { fat: 0, ult: 0, oci: 0 };
+    dems.forEach(function(m){
+      var c = custoDemanda(m, D, P, icms);
+      s.fat += c.fat; s.ult += c.ult; s.oci += c.oci;
+    });
+    var n = dems.length;
+    return { fat: s.fat / n, ult: s.ult / n, oci: s.oci / n, tot: (s.fat + s.ult + s.oci) / n };
+  }
+  // varre as demandas inteiras possiveis; no empate fica com a maior, que da
+  // mais folga sem custar mais
+  function demandaIdeal(dems, P, icms){
+    var hi = Math.max(CONFIG.demandaMinima, Math.ceil(Math.max.apply(null, dems)));
+    var best = null;
+    for (var D = CONFIG.demandaMinima; D <= hi; D++){
+      var c = custoMedio(dems, D, P, icms).tot;
+      if (!best || c < best.c - 0.005 || (Math.abs(c - best.c) <= 0.005 && D > best.D)) best = { D: D, c: c };
+    }
+    return best;
+  }
+
+  function mostrar(id, sim){ $(id).hidden = !sim; }
+  function nota(txt, alerta){
+    return '<div class="note' + (alerta ? ' alert' : '') + '"><span class="dot"></span><div>' + txt + '</div></div>';
+  }
+
+  /* ---------- calculo ---------- */
+  function calc(){
+    var h = historico();
+    var ok  = function(v){ return isFinite(v) && v >= 0; };
+    var pos = function(v){ return isFinite(v) && v > 0; };
+    var hfps = h.map(function(x){ return x.hfp; }).filter(ok);
+    var hps  = h.map(function(x){ return x.hp; }).filter(ok);
+    var dems = h.map(function(x){ return x.dem; }).filter(pos);
+    var mHFP = media(hfps), mHP = media(hps), mDem = media(dems);
+    var nMeses = Math.max(hfps.length, hps.length);
+
+    $('m-hfp').textContent = isFinite(mHFP) ? fN0.format(mHFP) : '—';
+    $('m-hp').textContent  = isFinite(mHP)  ? fN0.format(mHP)  : '—';
+    $('m-dem').textContent = isFinite(mDem) ? fN1.format(mDem) : '—';
+
+    var pD = val('pd'), pHFP = val('phfp'), pHP = val('php'), dc = val('dc');
+    var cip = val('cip'), reat = val('reat'), icms = val('icms'), fator = val('fator');
+    var tb = val('tb'), db = val('db'), ds = val('ds');
+    if (!isFinite(cip))  cip = 0;
+    if (!isFinite(reat)) reat = 0;
+    if (!isFinite(icms)) icms = 0;
+
+    // o que falta para calcular a energia
+    var falta = [];
+    if (!isFinite(mHFP) || !isFinite(mHP)) falta.push('o histórico de HFP e HP');
+    if (!pos(pHFP)) falta.push('o preço da energia fora ponta');
+    if (!pos(pHP))  falta.push('o preço da energia ponta');
+    if (!pos(fator)) falta.push('o fator TE ponta ÷ fora ponta');
+    var kwhEqPrev = (isFinite(mHFP) ? mHFP : 0) + (isFinite(mHP) && pos(fator) ? mHP * fator : 0);
+    if (!falta.length && kwhEqPrev <= 0) falta.push('um consumo maior que zero no histórico');
+    mostrar('vazio', falta.length > 0);
+    mostrar('corpo', falta.length === 0);
+    if (falta.length){
+      $('vazio-t').innerHTML = 'Para ver a análise, falta preencher ' + falta.join(', ').replace(/, ([^,]*)$/, ' e $1') + '.';
+      return;
+    }
+
+    /* energia */
+    var cHFP = mHFP * pHFP, cHP = mHP * pHP;
+    var eqHP = mHP * fator, kwhEq = mHFP + eqHP;
+    var tarPond = (cHFP + cHP) / kwhEq;
+
+    /* demanda */
+    var temDem = dems.length > 0 && pos(pD) && pos(dc);
+    var cur = temDem ? custoMedio(dems, dc, pD, icms) : null;
+
+    /* conta media atual */
+    var tol = 1 + CONFIG.tolerancia / 100;
+    mostrar('rw-dem', !!cur); mostrar('rw-ult', !!cur && cur.ult > 0.005); mostrar('rw-oci', !!cur && cur.oci > 0.005);
+    if (cur){
+      $('r-dem').textContent = fBRL.format(cur.fat);
+      $('r-dem-d').textContent = fN1.format(mDem) + ' kW medidos em média × ' + fBRL4.format(pD);
+      $('r-ult').textContent = fBRL.format(cur.ult);
+      var excessos = dems.filter(function(m){ return m > dc * tol; }).map(function(m){ return m - dc; });
+      $('r-ult-d').textContent = excessos.length ? fN1.format(media(excessos)) + ' kW acima da contratada × 2 × tarifa, em ' + excessos.length + ' de ' + dems.length + ' meses' : '';
+      $('r-oci').textContent = fBRL.format(cur.oci);
+      var ociosas = dems.filter(function(m){ return m < dc; }).map(function(m){ return dc - m; });
+      $('r-oci-d').textContent = ociosas.length ? fN1.format(media(ociosas)) + ' kW pagos sem uso, sem ICMS, em ' + ociosas.length + ' de ' + dems.length + ' meses' : '';
+    }
+    $('r-hfp').textContent = fBRL.format(cHFP);
+    $('r-hfp-d').textContent = fN0.format(mHFP) + ' kWh × ' + fBRL4.format(pHFP);
+    $('r-hp').textContent = fBRL.format(cHP);
+    $('r-hp-d').textContent = fN0.format(mHP) + ' kWh × ' + fBRL4.format(pHP);
+    mostrar('rw-cip', cip > 0);  $('r-cip').textContent = fBRL.format(cip);
+    mostrar('rw-rea', reat > 0); $('r-rea').textContent = fBRL.format(reat);
+    var totConta = cHFP + cHP + cip + reat + (cur ? cur.tot : 0);
+    $('r-tot').textContent = fBRL.format(totConta);
+    $('r-tot-d').textContent = (cur ? '' : 'sem a demanda · ') + 'média de ' + nMeses + (nMeses === 1 ? ' mês' : ' meses');
+
+    /* tarifa ponderada */
+    $('p-hfp').textContent = fBRL.format(cHFP);
+    $('p-hfp-d').textContent = fN0.format(mHFP) + ' kWh';
+    $('p-hp').textContent = fBRL.format(cHP);
+    $('p-hp-d').textContent = fN0.format(mHP) + ' kWh × ' + fN4.format(fator) + ' = ' + fN0.format(eqHP) + ' kWh de crédito';
+    $('p-tar').textContent = fBRL4.format(tarPond) + '/kWh';
+    $('p-tar-s').textContent = fBRL.format(cHFP + cHP) + ' ÷ ' + fN0.format(kwhEq) + ' kWh de crédito por mês';
+
+    /* grupo B */
+    var temB = pos(tb) && isFinite(db) && db >= 0 && db < 100;
+    mostrar('b-falta', !temB); mostrar('b-corpo', temB);
+    var preco = temB ? tb * (1 - db / 100) : NaN;
+    var descEq = temB ? 1 - preco / tarPond : NaN;
+    var ecoEnergia = temB ? kwhEq * (tarPond - preco) : NaN;
+    if (temB){
+      $('b-preco').textContent = fBRL4.format(preco) + '/kWh';
+      $('b-d').textContent = fBRL4.format(tb) + ' com ' + fN1.format(db) + '% de desconto';
+      $('b-desc').textContent = fPct.format(descEq);
+      $('b-desc-s').textContent = ecoEnergia >= 0
+        ? 'São ' + fBRL.format(ecoEnergia) + ' por mês a menos na energia deste cliente.'
+        : 'O cliente pagaria ' + fBRL.format(-ecoEnergia) + ' por mês a mais na energia.';
+      $('b-aviso').innerHTML = descEq < 0
+        ? nota('<b>Com esse desconto no Grupo B, o kWh de crédito sai mais caro do que este cliente paga hoje.</b> A tarifa ponderada dele é menor que o preço do crédito.', true)
+        : '';
+    }
+
+    /* demais otimizacoes: demanda */
+    mostrar('d-falta', !temDem); mostrar('d-corpo', temDem);
+    var ecoDem = 0, ideal = null, dSim = NaN;
+    if (temDem){
+      ideal = demandaIdeal(dems, pD, icms);
+      var usaSim = pos(ds);
+      dSim = usaSim ? ds : ideal.D;
+      var sim = custoMedio(dems, dSim, pD, icms);
+      ecoDem = cur.tot - sim.tot;
+
+      $('d-atual').textContent = fN1.format(dc) + ' kW';
+      $('d-ideal').textContent = fN1.format(ideal.D) + ' kW';
+      mostrar('rw-dsim', usaSim);
+      $('d-sim').textContent = fN1.format(dSim) + ' kW';
+
+      var chips = [];
+      var nUlt = dems.filter(function(m){ return m > dc * tol; }).length;
+      var nOci = dems.filter(function(m){ return m < dc; }).length;
+      if (nUlt) chips.push('<span class="chip warn">ultrapassagem em ' + nUlt + ' de ' + dems.length + (dems.length === 1 ? ' mês' : ' meses') + '</span>');
+      if (nOci) chips.push('<span class="chip">demanda ociosa em ' + nOci + ' de ' + dems.length + (dems.length === 1 ? ' mês' : ' meses') + '</span>');
+      if (Math.abs(ideal.D - dc) < 0.5) chips.push('<span class="chip ok">a contratada atual já é a ideal</span>');
+      if (usaSim && ds < CONFIG.demandaMinima) chips.push('<span class="chip warn">abaixo do mínimo de ' + CONFIG.demandaMinima + ' kW</span>');
+      $('d-chips').innerHTML = chips.join('');
+
+      $('d-eco').textContent = fBRL.format(ecoDem);
+      var rep = ecoDem / kwhEq;
+      $('d-rep').textContent = (rep >= 0 ? '+ ' : '− ') + fBRL4.format(Math.abs(rep));
+      var tarTot = tarPond + rep;
+      $('d-tar').textContent = fBRL4.format(tarTot) + '/kWh';
+      mostrar('hero-tot', temB);
+      if (temB){
+        var descTot = 1 - preco / tarTot;
+        $('d-desc').textContent = fPct.format(descTot);
+        $('d-desc-s').textContent = 'Energia mais a otimização da demanda para ' + fN1.format(dSim) + ' kW.';
+      }
+    }
+    $('reat-box').innerHTML = reat > 0
+      ? nota('<b>Energia reativa: ' + fBRL.format(reat) + ' por mês, ' + fBRL.format(reat * 12) + ' por ano.</b> Dá para eliminar com um banco de capacitores. O investimento precisa ser orçado caso a caso, por isso fica fora da economia estimada.')
+      : '';
+
+    /* economia */
+    var ecoTot = (temB ? ecoEnergia : 0) + ecoDem;
+    var temEco = temB || temDem;
+    $('e-mes').textContent = temEco ? fBRL.format(ecoTot) : '—';
+    $('e-ano').textContent = temEco ? fBRL.format(ecoTot * 12) : '—';
+    $('e-mes-l').textContent = temB && temDem ? 'por mês · energia + demanda' : (temB ? 'por mês · só energia' : 'por mês · só demanda');
+    mostrar('rw-exa', temB);
+    $('e-conta').textContent = fBRL.format(totConta - ecoTot);
+  }
+
+  /* ---------- distribuidora ---------- */
+  function distAtual(){
+    var id = $('dist').value;
+    for (var i = 0; i < DISTRIBUIDORAS.length; i++) if (DISTRIBUIDORAS[i].id === id) return DISTRIBUIDORAS[i];
+    return DISTRIBUIDORAS[0];
+  }
+  function fatorDe(d){ return d.tePonta / d.teForaPonta; }
+  function aplicarDistribuidora(){
+    var d = distAtual();
+    $('fator').value = brNum(fatorDe(d), 4);
+    $('icms').value  = brNum(d.icms, 2);
+    $('tb-l').textContent = 'Tarifa atual da ' + d.nome;
+    $('dist-info').textContent = 'Subgrupo ' + d.subgrupo + ' · modalidade tarifária ' + d.modalidade + ' · ICMS ' + brNum(d.icms, 2) + '% (' + d.uf + ')';
+    $('fonte-fator').textContent = 'ANEEL · ' + d.nome + ' ' + d.subgrupo + ' ' + d.modalidade + ', vigência ' + d.vigencia
+      + ': TE ponta R$ ' + brNum(d.tePonta, 2) + '/MWh ÷ TE fora ponta R$ ' + brNum(d.teForaPonta, 2) + '/MWh = '
+      + brNum(fatorDe(d), 4) + '. Muda no reajuste de ' + d.reajuste + '.';
+    calc();
+  }
+  DISTRIBUIDORAS.forEach(function(d){
+    var o = document.createElement('option');
+    o.value = d.id; o.textContent = d.nome + ' · ' + d.uf;
+    $('dist').appendChild(o);
+  });
+  $('dist').addEventListener('change', aplicarDistribuidora);
+
+  /* ---------- botoes ---------- */
+  var CAMPOS = ['nome','dc','pd','phfp','php','cip','reat','icms','fator','tb','db','ds'];
+
+  function limparTudo(){
+    CAMPOS.forEach(function(id){ $(id).value = ''; });
+    montarHistorico();
+    aplicarDistribuidora();
+  }
+
+  // exemplo = a planilha do Lucas (um mes), para conferir as contas
+  var EXEMPLO = {
+    nome: 'Exemplo · planilha de referência',
+    hist: [['conta', '12601', '3198', '131']],
+    dc: '90', pd: '30,22711666', phfp: '0,63534169', php: '3,05962766',
+    cip: '0', reat: '0', icms: '18', fator: '1,6', tb: '1,15', db: '30', ds: ''
+  };
+  $('ex').addEventListener('click', function(){
+    limparTudo();
+    CAMPOS.forEach(function(id){ if (EXEMPLO[id] !== undefined) $(id).value = EXEMPLO[id]; });
+    var rows = $('hist').rows;
+    EXEMPLO.hist.forEach(function(l, i){
+      var ins = rows[i].querySelectorAll('input');
+      l.forEach(function(v, j){ ins[j].value = v; });
+    });
+    calc();
+  });
+  $('limpar').addEventListener('click', limparTudo);
+  $('limpar-hist').addEventListener('click', function(){ montarHistorico(); calc(); });
+  $('usar-aneel').addEventListener('click', function(){ $('fator').value = brNum(fatorDe(distAtual()), 4); calc(); });
+
+  $('tg').addEventListener('click', function(){
+    var cur = document.documentElement.getAttribute('data-theme');
     var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     var next = cur ? (cur === 'dark' ? 'light' : 'dark') : (dark ? 'light' : 'dark');
     document.documentElement.setAttribute('data-theme', next);
     try{ localStorage.setItem('exa-tema', next); }catch(e){}
   });
+
+  document.querySelector('.grid').addEventListener('input', calc);
+
+  /* ---------- estado inicial · tudo vazio, so os parametros regulatorios ---------- */
+  limparTudo();
 })();
 </script>
+
+<!-- ============================================================
+     LOGO EXA EM VETOR · nao precisa mexer aqui
+     ============================================================ -->
 <svg style="display:none" aria-hidden="true"><symbol id="exa-logo" viewBox="0 0 3288.000000 1372.000000"><g transform="translate(0.000000,1372.000000) scale(0.100000,-0.100000)"
 fill="var(--mark)" stroke="none">
 <path d="M6397 13700 c-5 -19 -14 -20 -216 -20 -200 0 -211 -1 -221 -20 -10
