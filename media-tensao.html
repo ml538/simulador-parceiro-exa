@@ -90,12 +90,7 @@ table.hist .del{width:26px; height:36px; background:none; border:none; color:var
 table.hist .del:hover{color:var(--warn)}
 .addbtn{width:100%; background:var(--bg); border:1px dashed var(--border); color:var(--body); border-radius:9px; padding:9px; font:inherit; font-size:12.5px; cursor:pointer; margin-top:6px}
 .addbtn:hover{color:var(--accent2); border-color:var(--accent)}
-
-/* ---- parametros que vem da distribuidora: so leitura ---- */
-.params{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 14px; margin-bottom:8px}
-@media (max-width:540px){.params{grid-template-columns:1fr 1fr}}
-.param .pl{display:block; font-size:13px; color:var(--body); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.param .pv{display:block; font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:18px; color:var(--head); font-variant-numeric:tabular-nums}
+.fonte b{color:var(--body); font-weight:700}
 
 /* ---- resultado ---- */
 .big{font-family:Oxanium,Inter,sans-serif; font-weight:700; color:var(--head); letter-spacing:-.01em; font-variant-numeric:tabular-nums}
@@ -151,7 +146,6 @@ footer b{color:var(--body)}
       <svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg>
     </div>
     <div class="acts">
-      <button class="btn" id="ex" type="button">Carregar exemplo</button>
       <button class="btn" id="limpar" type="button">Limpar</button>
       <button class="btn" id="tg" type="button">Tema</button>
     </div>
@@ -177,10 +171,6 @@ footer b{color:var(--body)}
             <label for="dist">Distribuidora</label>
             <select class="sel" id="dist"></select>
           </div>
-        </div>
-        <div class="params">
-          <div class="param"><span class="pl">Fator TE ponta ÷ fora ponta</span><span class="pv" id="dp-fator">—</span></div>
-          <div class="param"><span class="pl">ICMS</span><span class="pv" id="dp-icms">—</span></div>
         </div>
         <p class="fonte" id="fonte-fator"></p>
       </section>
@@ -382,7 +372,6 @@ footer b{color:var(--body)}
   var fBRL4 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:4,maximumFractionDigits:4});
   var fN0   = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
   var fN1   = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
-  var fN4   = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4});
   var fPct  = new Intl.NumberFormat('pt-BR',{style:'percent',minimumFractionDigits:1,maximumFractionDigits:1});
 
   // aceita "12.601", "12601", "0,635", "3,05962766", "R$ 30,22"
@@ -635,7 +624,7 @@ footer b{color:var(--body)}
     $('p-hfp').textContent = fBRL.format(cHFP);
     $('p-hfp-d').textContent = fN0.format(mHFP) + ' kWh';
     $('p-hp').textContent = fBRL.format(cHP);
-    $('p-hp-d').textContent = fN0.format(mHP) + ' kWh × ' + fN4.format(fator) + ' = ' + fN0.format(eqHP) + ' kWh de crédito';
+    $('p-hp-d').textContent = fN0.format(mHP) + ' kWh + ' + pctFator(dist) + ' = ' + fN0.format(eqHP) + ' kWh de crédito';
     $('p-tar').textContent = fBRL4.format(tarPond) + '/kWh';
     $('p-tar-d').textContent = fBRL.format(cHFP + cHP) + ' ÷ ' + fN0.format(kwhEq) + ' kWh de crédito';
 
@@ -664,14 +653,15 @@ footer b{color:var(--body)}
     return DISTRIBUIDORAS[0];
   }
   function fatorDe(d){ return d.tePonta / d.teForaPonta; }
+  // 1,6076 -> "60,76%": quanto o kWh de ponta pede a mais de credito
+  function pctFator(d){ return brNum((fatorDe(d) - 1) * 100, 2) + '%'; }
   function aplicarDistribuidora(){
     var d = distAtual();
-    $('dp-fator').textContent = brNum(fatorDe(d), 4) + ' ×';
-    $('dp-icms').textContent  = brNum(d.icms, 2) + '% · ' + d.uf;
     $('tb-l').textContent = 'Tarifa atual da ' + d.nome;
-    $('fonte-fator').textContent = 'Vêm da distribuidora. Fator: ANEEL, ' + d.nome + ' ' + d.subgrupo + ' ' + d.modalidade + ', vigência ' + d.vigencia
+    $('fonte-fator').innerHTML = '<b>Fator TE ponta sobre fora ponta: ' + pctFator(d) + '</b> · <b>ICMS: ' + brNum(d.icms, 2) + '% (' + d.uf + ')</b>. '
+      + 'Vêm da distribuidora. Fator: ANEEL, ' + d.nome + ' ' + d.subgrupo + ' ' + d.modalidade + ', vigência ' + d.vigencia
       + ', TE ponta R$ ' + brNum(d.tePonta, 2) + '/MWh ÷ TE fora ponta R$ ' + brNum(d.teForaPonta, 2) + '/MWh. '
-      + 'ICMS de ' + d.uf + ', que não incide na demanda contratada e não usada. Mudam no reajuste de ' + d.reajuste + '.';
+      + 'O ICMS não incide na demanda contratada e não usada. Mudam no reajuste de ' + d.reajuste + '.';
     calc();
   }
   DISTRIBUIDORAS.forEach(function(d){
@@ -690,23 +680,6 @@ footer b{color:var(--body)}
     aplicarDistribuidora();
   }
 
-  // exemplo = a planilha de referencia (um mes), para conferir as contas
-  var EXEMPLO = {
-    nome: 'Exemplo · planilha de referência',
-    hist: [['conta', '12601', '3198', '131']],
-    dc: '90', pd: '30,22711666', phfp: '0,63534169', php: '3,05962766',
-    cip: '0', tb: '1,15', db: '30'
-  };
-  $('ex').addEventListener('click', function(){
-    limparTudo();
-    CAMPOS.forEach(function(id){ if (EXEMPLO[id] !== undefined) $(id).value = EXEMPLO[id]; });
-    var rows = $('hist').rows;
-    EXEMPLO.hist.forEach(function(l, i){
-      var ins = rows[i].querySelectorAll('input');
-      l.forEach(function(v, j){ ins[j].value = v; });
-    });
-    calc();
-  });
   $('limpar').addEventListener('click', limparTudo);
   $('limpar-hist').addEventListener('click', function(){ montarHistorico(); calc(); });
 
