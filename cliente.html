@@ -150,13 +150,9 @@ body.cemig-on .uc-cemig{display:grid}
      dele (data, titulo, URL, numero da pagina); o espacamento volta pelo
      padding do .wrap */
   @page{margin:0}
-  body{
-    background:#fff;
-    --bg:#F7F3E7; --card:#FFFFFF; --card2:#EFEBDB; --panel:#E4EFE0;
-    --accent:#00A95B; --accent2:#0B7A45; --head:#11201A; --text:#2E3B33;
-    --body:#5E6B62; --dim:#94A096; --border:#E3DDCC; --warn:#C4685F;
-    --word:#0B4F2E; --mark:#00A95B; --onaccent:#FFFFFF;
-  }
+  /* a impressao segue o tema da tela: fundo da pagina na cor do cartao
+     (branco no claro, verde-escuro no escuro) */
+  body{background:var(--card)}
   .no-print{display:none !important}
   .wrap{max-width:none; padding:13mm}
   .grid{display:block}
@@ -165,17 +161,11 @@ body.cemig-on .uc-cemig{display:grid}
 }
 
 /* modo PDF · usado ao gerar o arquivo pelo botao (funciona no iPad, onde a
-   impressao nativa do Safari as vezes nao abre). forca sempre o tema claro
-   e o layout de documento, independente do tema em que o consultor esta */
-body.pdf-mode{
-  --bg:#F7F3E7; --card:#FFFFFF; --card2:#EFEBDB; --panel:#E4EFE0;
-  --accent:#00A95B; --accent2:#0B7A45; --head:#11201A; --text:#2E3B33;
-  --body:#5E6B62; --dim:#94A096; --border:#E3DDCC; --warn:#C4685F;
-  --word:#0B4F2E; --mark:#00A95B; --onaccent:#FFFFFF;
-  background:#fff;
-}
+   impressao nativa do Safari as vezes nao abre). layout de documento no
+   tema em que o consultor esta. a pagina vai sem margem e o .wrap pinta o
+   fundo inteiro, senao sobraria borda branca no tema escuro */
 body.pdf-mode .no-print{display:none !important}
-body.pdf-mode .wrap{max-width:760px; margin:0 auto; padding:0}
+body.pdf-mode .wrap{width:210mm; max-width:none; margin:0; padding:36px; background:var(--card)}
 body.pdf-mode .grid{display:block}
 body.pdf-mode .card{border:none; box-shadow:none; padding:0}
 body.pdf-mode .tier.exa{margin:0; border:1px solid var(--border)}
@@ -356,16 +346,20 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   // demanda porque o simbolo do logo so existe no fim do arquivo.
   // o gerador de PDF (html2canvas) nao rasteriza bem imagens SVG, entao
   // convertemos o logo para PNG em alta resolucao antes de gerar o arquivo.
-  var logoPronto = false;
+  // as cores saem do tema atual, entao o logo e refeito quando o tema muda.
+  var logoPronto = '';
   function montarLogoPdf(){
     return new Promise(function(resolve){
-      if (logoPronto) { resolve(); return; }
+      var cs = getComputedStyle(document.documentElement);
+      var word = cs.getPropertyValue('--word').trim() || '#0B4F2E';
+      var mark = cs.getPropertyValue('--mark').trim() || '#00A95B';
+      if (logoPronto === word + mark) { resolve(); return; }
       try {
         var sym = document.getElementById('exa-logo');
         var alvo = document.getElementById('logo-pdf');
         if (!sym || !alvo) { resolve(); return; }
         var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3288 1372">'
-                + sym.innerHTML.replace(/var\(--mark\)/g, '#00A95B') + '</svg>';
+                + sym.innerHTML.replace(/var\(--mark\)/g, mark).replace(/var\(--word\)/g, word) + '</svg>';
         var fonte = new Image();
         fonte.onload = function(){
           try {
@@ -375,7 +369,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
             ctx.drawImage(fonte, 0, 0, c.width, c.height);
             alvo.src = c.toDataURL('image/png');
           } catch (e) {}
-          logoPronto = true; resolve();
+          logoPronto = word + mark; resolve();
         };
         fonte.onerror = function(){ resolve(); };
         fonte.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
@@ -614,6 +608,21 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   // normal, que deixa escolher imprimir ou salvar como PDF com pre-visualizacao.
   var ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
            || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // quem nunca trocou o tema segue o do sistema. na impressao o navegador
+  // pode avaliar essa preferencia de outro jeito, entao o tema da tela e
+  // fixado enquanto imprime e depois volta a seguir o sistema
+  var temaFixado = false;
+  window.addEventListener('beforeprint', function(){
+    var raiz = document.documentElement;
+    if (raiz.getAttribute('data-theme')) return;
+    var escuro = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    raiz.setAttribute('data-theme', escuro ? 'dark' : 'light');
+    temaFixado = true;
+  });
+  window.addEventListener('afterprint', function(){
+    if (temaFixado) document.documentElement.removeAttribute('data-theme');
+    temaFixado = false;
+  });
   $('pr').addEventListener('click', function(){
     var btn = this;
     if (!ehIOS || typeof html2pdf === 'undefined'){ window.print(); return; }
@@ -623,22 +632,29 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     var txtOriginal = btn.textContent;
     btn.textContent = 'Gerando PDF…';
     btn.disabled = true;
+    var wrap = document.querySelector('.wrap');
+    var fundo = getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || '#ffffff';
     var opt = {
-      margin:       10,
+      margin:       0,
       filename:     'economia-' + nome + '.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+      html2canvas:  { scale: 2, useCORS: true, backgroundColor: fundo },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
       pagebreak:    { mode: ['css', 'legacy'] }
     };
     montarLogoPdf().then(function(){
       document.body.classList.add('pdf-mode');
-      return html2pdf().set(opt).from(document.querySelector('.wrap')).save();
+      // completa a ultima folha com o fundo do tema (A4 = 297mm de altura)
+      var folha = 297 * 96 / 25.4;
+      var n = Math.max(1, Math.ceil((wrap.offsetHeight - 4) / folha));
+      wrap.style.minHeight = (n * folha - 3) + 'px';
+      return html2pdf().set(opt).from(wrap).save();
     })
       .then(function(){ limpar(); })
       .catch(function(){ limpar(); window.print(); });
     function limpar(){
       document.body.classList.remove('pdf-mode');
+      wrap.style.minHeight = '';
       btn.textContent = txtOriginal;
       btn.disabled = false;
     }

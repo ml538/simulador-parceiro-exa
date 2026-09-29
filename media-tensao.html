@@ -149,8 +149,9 @@ table.cmp td.melhor{color:var(--accent2)}
 .vendedor{border:1px solid var(--warn)}
 .regras .rt, .vendedor .rt{font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; margin:0 0 6px; color:var(--accent2)}
 .vendedor .rt{color:var(--warn)}
-.regras ul{margin:0 0 6px; padding-left:16px}
-.regras li{margin:3px 0}
+.regras ul, .vendedor ul{margin:0 0 6px; padding-left:16px}
+.vendedor ul{margin:0}
+.regras li, .vendedor li{margin:3px 0}
 .regras b{color:var(--head)}
 .vendedor p:last-child{margin:0}
 
@@ -375,7 +376,7 @@ footer b{color:var(--body)}
             <p class="rt">Regras da ANEEL para trocar a demanda</p>
             <ul>
               <li><b>Reduzir:</b> pedido por escrito com pelo menos 90 dias de antecedência no A4 (180 dias nos demais subgrupos). Só dá para reduzir uma vez a cada 12 meses.</li>
-              <li><b>Aumentar:</b> a distribuidora responde em até 15 dias, ou em até 30 se precisar de obra na rede, e aí manda o orçamento da obra. A regra não limita os pedidos de aumento, mas cada um passa pela análise dela.</li>
+              <li><b>Aumentar:</b> na prática, conte com uns 45 dias para o retorno da distribuidora. O prazo máximo da regra é de 15 dias sem obra e 30 com obra na rede (45 se a unidade tiver minigeração). Se houver obra, a resposta vem com o orçamento. Não há limite de pedidos de aumento no ano.</li>
               <li><b>Depois de obra:</b> se a distribuidora fez obra para atender o cliente, reduzir a demanda nos primeiros 5 anos pode gerar cobrança do investimento ainda não amortizado.</li>
             </ul>
             <p class="fonte">REN ANEEL 1.000/2021, arts. 64, 147, 154 e 155.</p>
@@ -383,7 +384,11 @@ footer b{color:var(--body)}
 
           <div class="vendedor">
             <p class="rt">Antes de propor ao cliente</p>
-            <p>Confirme com ele se os últimos 12 meses representam o uso normal da unidade e se o consumo vai mudar nos próximos 12. Se a demanda for reduzida e depois ele precisar voltar ao valor de antes, a distribuidora pode não aprovar por falta de capacidade na rede, ou cobrar obra para liberar essa carga. No caminho contrário, um aumento que sobrar só se desfaz com uma nova redução, que é limitada a uma a cada 12 meses.</p>
+            <ul>
+              <li>Confirme se os últimos 12 meses representam o uso normal da unidade e se o consumo vai mudar nos próximos 12.</li>
+              <li>Pergunte se, nos últimos 5 anos, a demanda foi aumentada ou a unidade foi ligada com obra da distribuidora. Se foi, reduzir agora pode gerar cobrança do investimento que ela ainda não recuperou.</li>
+              <li>Lembre dos riscos: se a demanda for reduzida e ele precisar voltar ao valor de antes, a distribuidora pode negar por falta de capacidade na rede ou cobrar obra. E um aumento que sobrar só se desfaz com nova redução, limitada a uma a cada 12 meses.</li>
+            </ul>
           </div>
         </div>
 
