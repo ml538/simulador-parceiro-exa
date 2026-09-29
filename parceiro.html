@@ -134,7 +134,7 @@ footer b{color:var(--body)}
       <a class="themebtn backbtn" href="index.html" title="Voltar para a capa">← Voltar</a>
       <svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg>
     </div>
-    <button class="themebtn" id="tg" type="button">Alternar tema</button>
+    <button class="themebtn" id="tg" type="button">Tema</button>
   </header>
 
   <p class="kicker">Simulador do parceiro</p>
@@ -145,7 +145,7 @@ footer b{color:var(--body)}
 
     <!-- ================= ENTRADAS ================= -->
     <section class="card">
-      <p class="label">Os seus números</p>
+      <p class="label">Seus números</p>
 
       <div class="field">
         <label for="pessoas">Pessoas ou empresas na sua rede <span class="hint" id="h-pessoas"></span></label>
@@ -176,19 +176,19 @@ footer b{color:var(--body)}
       </div>
 
       <div class="field">
-        <label for="daq">Deságio de aquisição <span class="hint">o que a exa te entrega · defina primeiro</span></label>
+        <label for="daq">Deságio de aquisição <span class="hint">o que a exa te entrega</span></label>
         <div class="inputrow"><input type="range" id="daq" value="0" min="0" max="60" step="1"><input type="number" class="pct" id="daq-n" value="0" min="0" max="60" step="1"><span class="unit">%</span></div>
       </div>
 
       <div class="field">
-        <label for="dcli">Deságio ao seu cliente agora <span class="hint">arraste até o de aquisição</span></label>
+        <label for="dcli">Deságio que você oferece <span class="hint">arraste até o de aquisição</span></label>
         <div class="inputrow"><input type="range" id="dcli" value="0" min="0" max="1" step="1"><input type="number" class="pct" id="dcli-n" value="0" min="0" max="99" step="1"><span class="unit">%</span></div>
       </div>
     </section>
 
     <!-- ================= RESULTADO ================= -->
     <section class="card green">
-      <p class="label">O seu resultado</p>
+      <p class="label">Seu resultado</p>
 
       <div class="row"><span class="k">Clientes que viram exa</span><span class="v big" id="o-clientes">—</span></div>
       <div class="row"><span class="k">Carteira sob sua gestão</span><span class="v big" id="o-carteira">—</span></div>
@@ -204,7 +204,7 @@ footer b{color:var(--body)}
 
       <div class="mini">
         <div><div class="n" id="o-ano">—</div><div class="l">em 12 meses</div></div>
-        <div><div class="n" id="o-cli">—</div><div class="l">de spread por cliente / mês</div></div>
+        <div><div class="n" id="o-cli">—</div><div class="l">de spread por cliente, por mês</div></div>
       </div>
 
       <div id="avisos"></div>
@@ -212,7 +212,7 @@ footer b{color:var(--body)}
   </div>
 
   <section class="card" style="margin-top:18px">
-    <p class="label">Onde a sua oferta fica</p>
+    <p class="label">Onde sua oferta fica</p>
     <div class="bars">
       <div class="bar">
         <div class="bl">O mercado oferece ao consumidor final</div>
@@ -241,16 +241,16 @@ footer b{color:var(--body)}
 
   <div class="note">
     <span class="dot"></span>
-    <div><b>Os deságios desta tela são um exemplo.</b> A condição real de aquisição e o volume mínimo de carteira variam conforme as ofertas disponíveis na plataforma e são informados pelo consultor da exa.</div>
+    <div><b>A condição muda com as ofertas da plataforma.</b> O deságio de aquisição e a carteira mínima dependem do que estiver disponível no momento, e o consultor da exa confirma os números com você.</div>
   </div>
 
   <div class="note">
     <span class="dot"></span>
-    <div><b>A carteira não cresce sozinha.</b> Para somar cada bloco novo você entra na plataforma, encontra a oferta com o melhor deságio, adquire o saldo e comercializa abaixo dele. É esse movimento, repetido a cada ciclo, que sustenta o spread.</div>
+    <div><b>A carteira não cresce sozinha.</b> A cada bloco novo, você entra na plataforma, escolhe a oferta com o melhor deságio, adquire o saldo e comercializa abaixo dele. É esse ciclo, repetido, que mantém o spread.</div>
   </div>
 
   <footer>
-    <b>Simulação ilustrativa.</b> Volume mínimo de carteira, deságio de aquisição e prazo são definidos em contrato e dependem das ofertas disponíveis na plataforma no momento da adesão. A conversão em kWh usa a tarifa média informada e serve para dimensionar a carteira.<br>
+    <b>Simulação ilustrativa.</b> Carteira mínima, deságio de aquisição e prazo são definidos em contrato, conforme as ofertas da plataforma na adesão. A tarifa média serve só para converter as contas em kWh e dimensionar a carteira.<br>
     <span id="rodape-contato">exa energia · exaenergia.com</span>
   </footer>
 </div>
@@ -389,7 +389,7 @@ footer b{color:var(--body)}
       aviso('<b>Sem margem.</b> O deságio que você oferece precisa ser menor que o de aquisição, senão não sobra spread.', true);
     }
     if (vmin > 0 && mwh > 0 && mwh < vmin){
-      aviso('<b>Abaixo de ' + num1.format(vmin) + ' MWh.</b> Essa é a carteira que dá acesso à condição de aquisição informada. Faltam ' + num1.format(vmin - mwh) + ' MWh.', true);
+      aviso('<b>Abaixo de ' + num1.format(vmin) + ' MWh.</b> Essa é a carteira mínima para a condição de aquisição informada. Faltam ' + num1.format(vmin - mwh) + ' MWh.', true);
     }
     if (vmin > 0 && mwh >= vmin && dcli < daq){
       aviso('<b>Carteira suficiente.</b> Com ' + num1.format(mwh) + ' MWh você alcança os ' + num1.format(vmin) + ' MWh da condição informada.');

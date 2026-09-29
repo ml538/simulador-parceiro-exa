@@ -228,10 +228,10 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       <button class="addbtn" id="add" type="button">+ adicionar unidade</button>
 
       <div class="switch" id="sw-cemig" role="button" tabindex="0" style="margin-top:12px">
-        <span>Mostrar a conta da CEMIG (taxa mínima + CIP)?</span>
+        <span>Incluir o que continua sendo pago à CEMIG?</span>
         <div class="knob"></div>
       </div>
-      <p class="hint" id="cemig-ajuda" style="display:none; margin-top:7px">Preencha a fase e o CIP em cada unidade acima. A taxa mínima é 30/50/100 kWh (mono/bi/tri) × a tarifa.</p>
+      <p class="hint" id="cemig-ajuda" style="display:none; margin-top:7px">Informe a ligação e o CIP de cada unidade. A taxa mínima é de 30, 50 ou 100 kWh (mono, bi ou trifásico) vezes a tarifa.</p>
 
       <div class="sep"></div>
       <p class="label lbl-ac">A oferta</p>
@@ -340,8 +340,8 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     descontoExa:    0,      // % que o consultor oferece com a exa · comeca zerado de proposito
     descontoAtual:  0,      // % que o cliente ja tem hoje, se tiver · comeca zerado de proposito
     nomeCliente:    "",
-    rodapeExtra:    "Sem obra, sem instalação e sem investimento inicial.",
-    aviso:          "* A economia apresentada é um valor aproximado e precisa ser revista no estudo completo."
+    rodapeExtra:    "",     // frase extra no fim do rodape da peca (opcional)
+    aviso:          "* Valor aproximado, a confirmar no estudo completo."
   };
   /* =========================================================== */
 
@@ -397,7 +397,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     d.className = 'uc';
     d.innerHTML =
       '<div class="uc-main">' +
-        '<input type="text" class="u-n" placeholder="identificação da unidade">' +
+        '<input type="text" class="u-n" placeholder="nome da unidade">' +
         '<input type="number" class="u-k" min="0" step="10" placeholder="kWh/mês">' +
         '<button class="del" type="button" title="remover">×</button>' +
       '</div>' +
@@ -462,7 +462,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       alvo.appendChild(l);
     });
     if (!unidades.length){
-      alvo.innerHTML = '<div class="ucline"><span class="n">Informe ao menos uma unidade</span><span class="v">—</span></div>';
+      alvo.innerHTML = '<div class="ucline"><span class="n">Nenhuma unidade ainda</span><span class="v">—</span></div>';
     }
 
     var cheio  = total * tarifa;
@@ -504,8 +504,8 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       $('t-cemig').style.display = '';
       $('t-total').style.display = '';
       $('tc-v').textContent = brl.format(cemigTotal);
-      $('tc-n').textContent = 'taxa mínima ' + brl.format(taxaMinTotal) + ' + CIP ' + brl.format(cipTotal)
-                            + ' · continua sendo pago à CEMIG';
+      $('tc-n').textContent = 'Taxa mínima de ' + brl.format(taxaMinTotal) + ' e CIP de ' + brl.format(cipTotal)
+                            + ', que continuam com a CEMIG.';
       var totalExa = comExa + cemigTotal;
       $('tt-v').textContent   = brl.format(totalExa);
       $('tt-ano').textContent = brl.format(totalExa * 12) + ' por ano';
@@ -516,13 +516,13 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
 
     $('f-n').textContent = brl0.format(Math.max(0, ganho) * 12) + '*';
     $('f-t').innerHTML = temAtual
-      ? '<b>a mais no bolso por ano</b>, além do que ele já economiza hoje.<br>São ' + brl.format(Math.max(0, ganho)) + ' por mês acima do desconto atual.'
-      : '<b>de economia por ano</b>, nestas unidades.<br>São ' + brl.format(Math.max(0, ganho)) + ' por mês que deixam de sair do caixa.';
+      ? '<b>a mais no bolso por ano</b>, além do que você já economiza hoje.<br>São ' + brl.format(Math.max(0, ganho)) + ' por mês acima do seu desconto atual.'
+      : '<b>de economia por ano</b> nestas unidades.<br>São ' + brl.format(Math.max(0, ganho)) + ' por mês que deixam de sair do caixa.';
 
     $('d-foot').innerHTML = '<b>' + CONFIG.aviso + '</b> '
-      + 'Cálculo sobre o consumo médio informado de cada unidade, à tarifa de R$ '
-      + tarifa.toFixed(2).replace('.', ',') + '/kWh. O desconto incide sobre a tarifa de energia. '
-      + CONFIG.rodapeExtra;
+      + 'Calculado sobre o consumo médio de cada unidade, à tarifa de R$ '
+      + tarifa.toFixed(2).replace('.', ',') + '/kWh. O desconto vale sobre a tarifa de energia.'
+      + (CONFIG.rodapeExtra ? ' ' + CONFIG.rodapeExtra : '');
   }
 
   // "desconto que voce oferece agora" arrasta de 0 ate o maximo definido em

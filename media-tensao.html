@@ -270,7 +270,7 @@ footer b{color:var(--body)}
             <div class="ig w-s"><input id="db" inputmode="decimal" placeholder="0"><span class="unit">%</span></div>
           </div>
         </div>
-        <p class="fonte">Tarifa convencional do Grupo B, com impostos, e o desconto que você daria a um cliente B. O simulador converte esse desconto na proporção equivalente para a tarifa ponderada deste cliente.</p>
+        <p class="fonte">Tarifa convencional do Grupo B, com impostos, e o desconto que você daria a um cliente B. Daqui sai o desconto equivalente para este cliente de MT.</p>
       </section>
     </div>
 
@@ -356,7 +356,7 @@ footer b{color:var(--body)}
   </div>
 
   <footer>
-    <b>Análise interna.</b> O fator ponta ÷ fora ponta vem da relação entre as componentes TE homologadas pela ANEEL, que é a regra de compensação de créditos entre postos tarifários no SCEE. A troca da demanda contratada segue as regras e os prazos da distribuidora.<br>
+    <b>Análise interna.</b> O fator segue a regra de compensação do SCEE: o crédito gerado fora da ponta e usado na ponta vale pela relação entre as TE homologadas pela ANEEL. A troca da demanda contratada segue as regras e os prazos da distribuidora.<br>
     exa energia · exaenergia.com
   </footer>
 </div>
@@ -686,10 +686,10 @@ footer b{color:var(--body)}
   function aplicarDistribuidora(){
     var d = distAtual();
     $('tb-l').textContent = 'Tarifa atual da ' + d.nome;
-    $('fonte-fator').innerHTML = '<b>Fator TE ponta sobre fora ponta: ' + pctFator(d) + '</b> · <b>ICMS: ' + brNum(d.icms, 2) + '% (' + d.uf + ')</b>. '
-      + 'Vêm da distribuidora. Fator: ANEEL, ' + d.nome + ' ' + d.subgrupo + ' ' + d.modalidade + ', vigência ' + d.vigencia
-      + ', TE ponta R$ ' + brNum(d.tePonta, 2) + '/MWh ÷ TE fora ponta R$ ' + brNum(d.teForaPonta, 2) + '/MWh. '
-      + 'O ICMS não incide na demanda contratada e não usada. Mudam no reajuste de ' + d.reajuste + '.';
+    $('fonte-fator').innerHTML = '<b>Fator ponta sobre fora ponta: ' + pctFator(d) + '</b> · <b>ICMS: ' + brNum(d.icms, 2) + '% (' + d.uf + ')</b>. '
+      + 'Os dois vêm da distribuidora. O fator compara a TE de ponta (R$ ' + brNum(d.tePonta, 2) + '/MWh) com a de fora ponta (R$ '
+      + brNum(d.teForaPonta, 2) + '/MWh) homologadas pela ANEEL para a ' + d.nome + ' ' + d.subgrupo + ' ' + d.modalidade
+      + ', vigentes de ' + d.vigencia + '. O ICMS não incide sobre a demanda contratada e não usada.';
     calc();
   }
   DISTRIBUIDORAS.forEach(function(d){
