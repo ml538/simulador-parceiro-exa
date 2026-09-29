@@ -36,7 +36,13 @@ body{background:var(--bg); color:var(--text); font-family:Inter,-apple-system,Bl
 header{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px}
 .brand{display:flex; align-items:center; gap:14px}
 .brand .logo{width:128px; height:auto; display:block}
-.acts{display:flex; gap:8px}
+.acts{display:flex; gap:8px; flex-wrap:wrap}
+
+/* aviso de "campos limpos" com desfazer */
+.toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:50; display:flex; align-items:center; gap:12px; width:max-content; max-width:calc(100% - 32px); background:var(--card); color:var(--head); border:1px solid var(--border); border-radius:999px; padding:9px 10px 9px 18px; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.toast[hidden]{display:none}
+.toast button{background:none; border:none; color:var(--accent2); font:inherit; font-weight:700; cursor:pointer; padding:5px 10px; border-radius:999px; white-space:nowrap}
+.toast button:hover{background:var(--panel)}
 .btn{background:var(--card); color:var(--body); border:1px solid var(--border); border-radius:999px; padding:8px 15px; font:inherit; font-size:12px; cursor:pointer}
 .btn:hover{color:var(--head)}
 .backbtn{text-decoration:none; display:inline-flex; align-items:center; gap:5px}
@@ -185,6 +191,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       <img class="logo-pdf" id="logo-pdf" alt="exa energia">
     </div>
     <div class="acts no-print">
+      <button class="btn" id="limpar" type="button">Limpar</button>
       <button class="btn" id="tg" type="button">Tema</button>
       <button class="btn solid" id="pr" type="button">Imprimir ou salvar PDF</button>
     </div>
@@ -314,6 +321,11 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
 
       <p class="foot" id="d-foot"></p>
     </section>
+  </div>
+
+  <div class="toast no-print" id="toast" role="status" aria-live="polite" hidden>
+    <span id="toast-t">Campos limpos.</span>
+    <button type="button" id="toast-desfazer">Desfazer</button>
   </div>
 </div>
 
@@ -575,22 +587,24 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   $('dexaMax-eye').addEventListener('click', ocultarMax);
   $('dexaMax-show').addEventListener('click', mostrarMax);
 
-  function toggle(){
-    temAtual = !temAtual;
+  function definirAtual(sim){
+    temAtual = !!sim;
     $('sw').classList.toggle('on', temAtual);
     $('box-atual').style.display = temAtual ? '' : 'none';
     calc();
   }
+  function toggle(){ definirAtual(!temAtual); }
   $('sw').addEventListener('click', toggle);
   $('sw').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); } });
 
-  function toggleCemig(){
-    temCemig = !temCemig;
+  function definirCemig(sim){
+    temCemig = !!sim;
     $('sw-cemig').classList.toggle('on', temCemig);
     document.body.classList.toggle('cemig-on', temCemig);
     $('cemig-ajuda').style.display = temCemig ? '' : 'none';
     calc();
   }
+  function toggleCemig(){ definirCemig(!temCemig); }
   $('sw-cemig').addEventListener('click', toggleCemig);
   $('sw-cemig').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleCemig(); } });
 
@@ -661,15 +675,68 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   });
 
   // estado inicial · tudo zerado por padrao, para nunca abrir parecendo
-  // que ja existe uma oferta melhor do que a que sera feita na reuniao
-  $('cliente').value  = QS.cliente || CONFIG.nomeCliente;
-  $('tarifa').value   = ini('tarifa', CONFIG.tarifaPadrao);
-  $('dexaMax').value  = ini('maxexa', CONFIG.descontoMaximo);
-  atualizarTetos();
-  aplicarDexa(ini('dexa', CONFIG.descontoExa));
-  aplicarDatual(ini('atual', CONFIG.descontoAtual));
-  $('ucs').appendChild(linhaUC('', ini('kwh', '') || ''));
-  if (QS.atual !== undefined) toggle();
+  // que ja existe uma oferta melhor do que a que sera feita na reuniao.
+  // o Limpar volta os dados do cliente para ca e mantem o desconto maximo,
+  // que e condicao do consultor (e pode estar escondido na frente do cliente)
+  function estadoInicial(){
+    $('cliente').value = QS.cliente || CONFIG.nomeCliente;
+    $('tarifa').value  = ini('tarifa', CONFIG.tarifaPadrao);
+    $('ucs').innerHTML = '';
+    $('ucs').appendChild(linhaUC('', ini('kwh', '') || ''));
+    definirAtual(QS.atual !== undefined);
+    definirCemig(false);
+    atualizarTetos();
+    aplicarDexa(ini('dexa', CONFIG.descontoExa));
+    aplicarDatual(ini('atual', CONFIG.descontoAtual));
+  }
+  $('dexaMax').value = ini('maxexa', CONFIG.descontoMaximo);
+  estadoInicial();
+
+  /* ---------- limpar, com desfazer ---------- */
+  function capturar(){
+    return {
+      cliente: $('cliente').value, tarifa: $('tarifa').value, dexaMax: $('dexaMax').value,
+      dexa: $('dexa').value, datual: $('datual').value, atual: temAtual, cemig: temCemig,
+      ucs: Array.prototype.map.call($('ucs').children, function(row){
+        return { n: row.querySelector('.u-n').value, k: row.querySelector('.u-k').value,
+                 fase: row.querySelector('.u-fase').value, cip: row.querySelector('.u-cip').value };
+      })
+    };
+  }
+  function restaurar(s){
+    $('cliente').value = s.cliente; $('tarifa').value = s.tarifa; $('dexaMax').value = s.dexaMax;
+    $('ucs').innerHTML = '';
+    s.ucs.forEach(function(u){
+      var d = linhaUC(u.n, u.k);
+      d.querySelector('.u-fase').value = u.fase;
+      d.querySelector('.u-cip').value = u.cip;
+      $('ucs').appendChild(d);
+    });
+    definirAtual(s.atual);
+    definirCemig(s.cemig);
+    atualizarTetos();
+    aplicarDexa(parseFloat(s.dexa));
+    aplicarDatual(parseFloat(s.datual));
+  }
+  // aviso com "desfazer" por alguns segundos, para um toque errado nao
+  // apagar o que foi preenchido na reuniao
+  var desfazerFoto = null, desfazerTimer = null;
+  function fecharDesfazer(){ $('toast').hidden = true; desfazerFoto = null; }
+  $('limpar').addEventListener('click', function(){
+    desfazerFoto = capturar();
+    estadoInicial();
+    // sem citar o desconto maximo: o cliente pode estar vendo a tela
+    $('toast-t').textContent = 'Campos limpos.';
+    $('toast').hidden = false;
+    clearTimeout(desfazerTimer);
+    desfazerTimer = setTimeout(fecharDesfazer, 8000);
+  });
+  $('toast-desfazer').addEventListener('click', function(){
+    if (desfazerFoto) restaurar(desfazerFoto);
+    fecharDesfazer();
+  });
+  // comecou a preencher de novo: o desfazer sai para nao apagar o que e novo
+  document.addEventListener('input', function(){ if (desfazerFoto) fecharDesfazer(); });
 
   var hoje = new Date();
   $('d-data').textContent = hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });

@@ -129,6 +129,12 @@ footer b{color:var(--body)}
 .themebtn.solid:hover{color:var(--card); filter:brightness(1.05)}
 .themebtn:disabled{opacity:.6; cursor:progress}
 .so-print, .logo-pdf{display:none}
+
+/* aviso de "campos limpos" com desfazer */
+.toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:50; display:flex; align-items:center; gap:12px; width:max-content; max-width:calc(100% - 32px); background:var(--card); color:var(--head); border:1px solid var(--border); border-radius:999px; padding:9px 10px 9px 18px; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.toast[hidden]{display:none}
+.toast button{background:none; border:none; color:var(--accent2); font:inherit; font-weight:700; cursor:pointer; padding:5px 10px; border-radius:999px; white-space:nowrap}
+.toast button:hover{background:var(--panel)}
 .label .quando{font-weight:500; letter-spacing:.06em; text-transform:none; color:var(--dim); margin-left:6px}
 
 /* ---- impressao · segue o tema da tela ---- */
@@ -183,6 +189,7 @@ body.pdf-mode footer{margin-top:18px}
       <img class="logo-pdf" id="logo-pdf" alt="exa energia">
     </div>
     <div class="acts no-print">
+      <button class="themebtn" id="limpar" type="button">Limpar</button>
       <button class="themebtn" id="tg" type="button">Tema</button>
       <button class="themebtn solid" id="pr" type="button">Imprimir ou salvar PDF</button>
     </div>
@@ -319,6 +326,11 @@ body.pdf-mode footer{margin-top:18px}
     <b>Simulação ilustrativa.</b> Carteira mínima, deságio de aquisição e prazo são definidos em contrato, conforme as ofertas da plataforma na adesão. A tarifa média serve só para converter as contas em kWh e dimensionar a carteira.<br>
     <span id="rodape-contato">exa energia · exaenergia.com</span>
   </footer>
+
+  <div class="toast no-print" id="toast" role="status" aria-live="polite" hidden>
+    <span id="toast-t">Campos limpos.</span>
+    <button type="button" id="toast-desfazer">Desfazer</button>
+  </div>
 </div>
 
 <!-- ================= CALCULO ================= -->
@@ -490,16 +502,21 @@ body.pdf-mode footer{margin-top:18px}
   liga('dcli-n',  function(){ aplicarDcli(parseFloat($('dcli-n').value)); });
 
   // estado inicial · tudo zerado por padrao, para nunca abrir parecendo que
-  // ja existe uma condicao melhor do que a que sera oferecida na reuniao
-  $('pessoas').value = inicial('pessoas', CONFIG.pessoasPadrao);
-  $('conv').value    = inicial('conv',    CONFIG.conversaoPadrao);
-  $('conta').value   = inicial('conta',   CONFIG.contaPadrao);
-  $('tarifa').value  = inicial('tarifa',  CONFIG.tarifaPadrao);
-  $('vmin').value    = inicial('vmin',    CONFIG.volumeMinimo);
-  $('daq').value     = inicial('daq',     CONFIG.desagioAquisicao);
-  sync.forEach(function(par){ $(par[1]).value = $(par[0]).value; });
-  calc(); // define o teto do dcli a partir do daq antes de aplicar o valor inicial dele
-  aplicarDcli(inicial('dcli', CONFIG.desagioCliente));
+  // ja existe uma condicao melhor do que a que sera oferecida na reuniao.
+  // o Limpar volta os numeros do parceiro para ca e mantem a condicao da
+  // plataforma (carteira minima e desagio de aquisicao)
+  function estadoInicial(){
+    $('pessoas').value = inicial('pessoas', CONFIG.pessoasPadrao);
+    $('conv').value    = inicial('conv',    CONFIG.conversaoPadrao);
+    $('conta').value   = inicial('conta',   CONFIG.contaPadrao);
+    $('tarifa').value  = inicial('tarifa',  CONFIG.tarifaPadrao);
+    sync.forEach(function(par){ $(par[1]).value = $(par[0]).value; });
+    calc(); // define o teto do dcli a partir do daq antes de aplicar o valor inicial dele
+    aplicarDcli(inicial('dcli', CONFIG.desagioCliente));
+  }
+  $('vmin').value = inicial('vmin', CONFIG.volumeMinimo);
+  $('daq').value  = inicial('daq',  CONFIG.desagioAquisicao);
+  estadoInicial();
   var rodape = document.getElementById('rodape-contato');
   if (rodape) rodape.textContent = CONFIG.contato;
 
@@ -524,6 +541,34 @@ body.pdf-mode footer{margin-top:18px}
     document.documentElement.setAttribute('data-theme', next);
     try{ localStorage.setItem('exa-tema', next); }catch(e){}
   });
+
+  /* ---------- limpar, com desfazer ---------- */
+  var CAMPOS = ['pessoas','conv','conta','tarifa','vmin','daq','dcli'];
+  function capturar(){ return CAMPOS.map(function(id){ return $(id).value; }); }
+  function restaurar(v){
+    CAMPOS.forEach(function(id, i){ if (id !== 'dcli') $(id).value = v[i]; });
+    sync.forEach(function(par){ $(par[1]).value = $(par[0]).value; });
+    calc();
+    aplicarDcli(parseFloat(v[CAMPOS.indexOf('dcli')]));
+  }
+  // aviso com "desfazer" por alguns segundos, para um toque errado nao
+  // apagar o que foi preenchido na reuniao
+  var desfazerFoto = null, desfazerTimer = null;
+  function fecharDesfazer(){ $('toast').hidden = true; desfazerFoto = null; }
+  $('limpar').addEventListener('click', function(){
+    desfazerFoto = capturar();
+    estadoInicial();
+    $('toast-t').textContent = 'Campos limpos. A condição da plataforma foi mantida.';
+    $('toast').hidden = false;
+    clearTimeout(desfazerTimer);
+    desfazerTimer = setTimeout(fecharDesfazer, 8000);
+  });
+  $('toast-desfazer').addEventListener('click', function(){
+    if (desfazerFoto) restaurar(desfazerFoto);
+    fecharDesfazer();
+  });
+  // comecou a preencher de novo: o desfazer sai para nao apagar o que e novo
+  document.addEventListener('input', function(){ if (desfazerFoto) fecharDesfazer(); });
 
   /* ---------- impressao e PDF ---------- */
   // no computador abre a janela de impressao, que deixa imprimir ou salvar em

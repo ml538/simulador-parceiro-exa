@@ -167,6 +167,12 @@ footer{margin-top:30px; font-size:11.5px; color:var(--dim); line-height:1.6}
 footer b{color:var(--body)}
 
 header .btn.solid{font-size:12px; padding:8px 15px}
+
+/* aviso de "campos limpos" com desfazer */
+.toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:50; display:flex; align-items:center; gap:12px; width:max-content; max-width:calc(100% - 32px); background:var(--card); color:var(--head); border:1px solid var(--border); border-radius:999px; padding:9px 10px 9px 18px; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.toast[hidden]{display:none}
+.toast button{background:none; border:none; color:var(--accent2); font:inherit; font-weight:700; cursor:pointer; padding:5px 10px; border-radius:999px; white-space:nowrap}
+.toast button:hover{background:var(--panel)}
 .so-print, .logo-pdf{display:none}
 .label .quando{font-weight:500; letter-spacing:.06em; text-transform:none; color:var(--dim); margin-left:6px}
 .rp{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px}
@@ -469,6 +475,11 @@ body.pdf-mode footer{margin-top:18px}
     <b class="no-print">Análise interna.</b><b class="so-print">Simulação ilustrativa.</b> O fator segue a regra de compensação do SCEE: o crédito gerado fora da ponta e usado na ponta vale pela relação entre as TE homologadas pela ANEEL. A troca da demanda contratada segue as regras e os prazos da distribuidora.<br>
     exa energia · exaenergia.com
   </footer>
+
+  <div class="toast no-print" id="toast" role="status" aria-live="polite" hidden>
+    <span id="toast-t">Campos limpos.</span>
+    <button type="button" id="toast-desfazer">Desfazer</button>
+  </div>
 </div>
 
 <script>
@@ -1108,17 +1119,72 @@ body.pdf-mode footer{margin-top:18px}
 
   /* ---------- botoes ---------- */
   var CAMPOS = ['nome','dc','pd','phfp','php','cip','rhfp','rhp','rdem','tb','db'];
+  // a referencia do Grupo B e condicao do vendedor, definida antes da reuniao:
+  // o Limpar apaga os dados do cliente e mantem ela
+  var CONDICAO = ['tb','db'];
 
   function limparTudo(){
-    CAMPOS.forEach(function(id){ $(id).value = ''; });
+    CAMPOS.forEach(function(id){ if (CONDICAO.indexOf(id) < 0) $(id).value = ''; });
     $('pdf-status').innerHTML = '';
     definirRural(false);
     montarHistorico();
     aplicarDistribuidora();
   }
 
-  $('limpar').addEventListener('click', limparTudo);
-  $('limpar-hist').addEventListener('click', function(){ montarHistorico(); calc(); });
+  // foto do que esta na tela, para o "desfazer"
+  function capturar(){
+    return {
+      campos: CAMPOS.map(function(id){ return $(id).value; }),
+      dist: $('dist').value,
+      hist: Array.prototype.map.call($('hist').rows, function(tr){
+        return Array.prototype.map.call(tr.querySelectorAll('input'), function(i){ return i.value; });
+      }),
+      rural: temRural,
+      status: $('pdf-status').innerHTML
+    };
+  }
+  function restaurar(s){
+    CAMPOS.forEach(function(id, i){ $(id).value = s.campos[i]; });
+    $('dist').value = s.dist;
+    montarHistorico();
+    s.hist.forEach(function(vals, i){
+      if (i > 0) novaLinha();
+      var ins = $('hist').rows[i].querySelectorAll('input');
+      vals.forEach(function(v, j){ ins[j].value = v; });
+    });
+    definirRural(s.rural);
+    $('pdf-status').innerHTML = s.status;
+    aplicarDistribuidora();
+  }
+
+  // aviso com "desfazer" por alguns segundos, para um toque errado nao
+  // apagar o que foi preenchido na reuniao
+  var desfazerFoto = null, desfazerTimer = null;
+  function oferecerDesfazer(foto, texto){
+    desfazerFoto = foto;
+    $('toast-t').textContent = texto;
+    $('toast').hidden = false;
+    clearTimeout(desfazerTimer);
+    desfazerTimer = setTimeout(fecharDesfazer, 8000);
+  }
+  function fecharDesfazer(){ $('toast').hidden = true; desfazerFoto = null; }
+  $('toast-desfazer').addEventListener('click', function(){
+    if (desfazerFoto) restaurar(desfazerFoto);
+    fecharDesfazer();
+  });
+  // comecou a preencher de novo: o desfazer sai para nao apagar o que e novo
+  document.querySelector('.grid').addEventListener('input', function(){ if (desfazerFoto) fecharDesfazer(); });
+
+  $('limpar').addEventListener('click', function(){
+    var foto = capturar();
+    limparTudo();
+    oferecerDesfazer(foto, 'Campos limpos. A referência do Grupo B foi mantida.');
+  });
+  $('limpar-hist').addEventListener('click', function(){
+    var foto = capturar();
+    montarHistorico(); calc();
+    oferecerDesfazer(foto, 'Histórico limpo.');
+  });
 
   $('tg').addEventListener('click', function(){
     var cur = document.documentElement.getAttribute('data-theme');
