@@ -136,6 +136,24 @@ table.cmp tr.tot td{font-size:14px}
 table.cmp td.melhor{color:var(--accent2)}
 .chip{display:inline-block; vertical-align:middle; font-family:Inter,sans-serif; font-size:10.5px; font-weight:700; border-radius:99px; padding:2px 9px; background:var(--panel); color:var(--accent2); margin-left:6px}
 
+.switch{display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:11px 13px; cursor:pointer}
+.switch span{font-size:13px; color:var(--head); font-weight:500}
+.switch:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.knob{width:40px; height:22px; border-radius:99px; background:var(--border); position:relative; flex:none; transition:background .15s}
+.knob::after{content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:99px; background:var(--card); transition:left .15s}
+.switch.on .knob{background:var(--accent)}
+.switch.on .knob::after{left:21px}
+
+.regras, .vendedor{margin-top:14px; border-radius:10px; padding:12px 14px; font-size:12.5px; color:var(--body); line-height:1.5}
+.regras{background:var(--bg)}
+.vendedor{border:1px solid var(--warn)}
+.regras .rt, .vendedor .rt{font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; margin:0 0 6px; color:var(--accent2)}
+.vendedor .rt{color:var(--warn)}
+.regras ul{margin:0 0 6px; padding-left:16px}
+.regras li{margin:3px 0}
+.regras b{color:var(--head)}
+.vendedor p:last-child{margin:0}
+
 .note{display:flex; gap:10px; align-items:flex-start; background:var(--card); border-radius:10px; padding:12px 14px; font-size:12.5px; color:var(--body); line-height:1.5}
 .note b{color:var(--head)}
 .note.alert{background:transparent; border:1px solid var(--warn); color:var(--warn); margin-top:12px}
@@ -237,6 +255,11 @@ footer b{color:var(--body)}
             <div class="ig w-m"><span class="pre">R$</span><input id="cip" inputmode="decimal" placeholder="0,00"><span class="unit">/mês</span></div>
           </div>
         </div>
+        <div class="switch" id="sw-rural" role="switch" aria-checked="false" tabindex="0">
+          <span>Unidade rural ou com sazonalidade reconhecida?</span>
+          <div class="knob"></div>
+        </div>
+        <p class="fonte" style="margin-top:7px">Nesses casos a demanda segue outra regra da ANEEL. A leitura da fatura liga essa chave sozinha quando a classe é rural.</p>
       </section>
 
       <section class="card">
@@ -323,6 +346,11 @@ footer b{color:var(--body)}
           <p class="tt">Otimização da demanda contratada</p>
           <div id="o-dem-falta" class="hint">Informe a demanda contratada, o preço da demanda e a demanda medida no histórico.</div>
           <div id="o-dem-corpo">
+           <div id="o-dem-rural" hidden>
+            <p class="manchete">Na unidade rural ou sazonal, a demanda é faturada <em>pelo que foi medido</em></p>
+            <p class="explica" id="o-rural-t"></p>
+           </div>
+           <div id="o-dem-normal">
             <p class="manchete" id="o-manchete">—</p>
             <p class="explica" id="o-explica"></p>
             <table class="cmp">
@@ -340,6 +368,22 @@ footer b{color:var(--body)}
               <div><div class="n" id="o-eco-a">—</div><div class="l">em 12 meses</div></div>
             </div>
             <p class="fonte gap">A multa só vale quando a demanda medida passa 5% da contratada, e aí cobra todo o excedente a 2× a tarifa, além da demanda medida (REN ANEEL 1.000/2021). A demanda contratada e não usada é cobrada sem ICMS. Mínimo contratável no Grupo A: 30 kW.</p>
+           </div>
+          </div>
+
+          <div class="regras">
+            <p class="rt">Regras da ANEEL para trocar a demanda</p>
+            <ul>
+              <li><b>Reduzir:</b> pedido por escrito com pelo menos 90 dias de antecedência no A4 (180 dias nos demais subgrupos). Só dá para reduzir uma vez a cada 12 meses.</li>
+              <li><b>Aumentar:</b> a distribuidora responde em até 15 dias, ou em até 30 se precisar de obra na rede, e aí manda o orçamento da obra. A regra não limita os pedidos de aumento, mas cada um passa pela análise dela.</li>
+              <li><b>Depois de obra:</b> se a distribuidora fez obra para atender o cliente, reduzir a demanda nos primeiros 5 anos pode gerar cobrança do investimento ainda não amortizado.</li>
+            </ul>
+            <p class="fonte">REN ANEEL 1.000/2021, arts. 64, 147, 154 e 155.</p>
+          </div>
+
+          <div class="vendedor">
+            <p class="rt">Antes de propor ao cliente</p>
+            <p>Confirme com ele se os últimos 12 meses representam o uso normal da unidade e se o consumo vai mudar nos próximos 12. Se a demanda for reduzida e depois ele precisar voltar ao valor de antes, a distribuidora pode não aprovar por falta de capacidade na rede, ou cobrar obra para liberar essa carga. No caminho contrário, um aumento que sobrar só se desfaz com uma nova redução, que é limitada a uma a cada 12 meses.</p>
           </div>
         </div>
 
@@ -506,10 +550,14 @@ footer b{color:var(--body)}
     if (m >= D)      return { fat: m * P, ult: 0, oci: 0 };
     return { fat: m * P, ult: 0, oci: (D - m) * P * (1 - icms / 100) };
   }
-  function resumo(dems, D, P, icms){
+  // rural ou sazonal reconhecida: fatura a demanda medida, sem ultrapassagem
+  // e sem cobrar a contratada nao usada (REN 1.000, arts. 294 e 301). o piso
+  // de 10% da maior demanda dos 11 meses anteriores quase nunca pesa.
+  function resumo(dems, D, P, icms, rural){
     var tol = 1 + CONFIG.tolerancia / 100;
     var s = { fat: 0, ult: 0, oci: 0, nUlt: 0, nOci: 0 };
     dems.forEach(function(m){
+      if (rural){ s.fat += m * P; return; }
       var c = custoDemanda(m, D, P, icms);
       s.fat += c.fat; s.ult += c.ult; s.oci += c.oci;
       if (m > D * tol) s.nUlt++;
@@ -561,8 +609,8 @@ footer b{color:var(--body)}
 
     /* demanda: independente da energia */
     var temDem = dems.length > 0 && pos(pD) && pos(dc);
-    var hoje = temDem ? resumo(dems, dc, pD, icms) : null;
-    var ideal = temDem ? demandaIdeal(dems, pD, icms) : null;
+    var hoje = temDem ? resumo(dems, dc, pD, icms, temRural) : null;
+    var ideal = temDem && !temRural ? demandaIdeal(dems, pD, icms) : null;
 
     /* o que falta para calcular a energia */
     var falta = [];
@@ -581,7 +629,24 @@ footer b{color:var(--body)}
 
     /* ---------- demais otimizacoes ---------- */
     mostrar('o-dem-falta', !temDem); mostrar('o-dem-corpo', temDem);
-    if (temDem){
+    mostrar('o-dem-normal', temDem && !temRural); mostrar('o-dem-rural', temDem && temRural);
+    if (temDem && temRural){
+      // precisa de pelo menos 3 meses por ano com demanda faturada >= contratada,
+      // senao paga demanda complementar (art. 300): o limite seguro e a 3a maior
+      var ord = dems.slice().sort(function(a, b){ return b - a; });
+      var terceira = ord.length >= 3 ? ord[2] : null;
+      var t = 'Aqui não há multa de ultrapassagem e a demanda contratada que ele não usa não é cobrada: a distribuidora fatura o que foi medido (REN ANEEL 1.000/2021, arts. 294 e 301). Por isso, trocar a demanda não gera a economia calculada para as demais unidades. '
+            + 'O cuidado é outro: a cada 12 meses, pelo menos 3 precisam ter demanda faturada igual ou acima da contratada, senão a distribuidora cobra demanda complementar (art. 300). ';
+      if (terceira !== null){
+        t += 'No histórico, a 3ª maior demanda foi de ' + fN1.format(terceira) + ' kW' + (dc > terceira + 0.05
+          ? ', abaixo dos ' + fN1.format(dc) + ' kW contratados hoje: vale avaliar a demanda com o cliente para não cair nessa cobrança.'
+          : ', e a contratada de hoje (' + fN1.format(dc) + ' kW) não passa disso.');
+      } else {
+        t += 'Com menos de 3 meses no histórico, ainda não dá para conferir esse ponto.';
+      }
+      $('o-rural-t').textContent = t;
+    }
+    if (temDem && !temRural){
       var igual = Math.abs(ideal.D - dc) < 0.5;
       var verbo = ideal.D > dc ? 'aumentar' : 'reduzir';
       $('o-manchete').innerHTML = igual
@@ -808,6 +873,15 @@ footer b{color:var(--body)}
       if (m && m[1].trim()){ r.cliente = m[1].trim(); return true; }
       return false;
     });
+    // classe: linha de baixo do cabecalho "Classe  Subclasse ..."
+    for (var c = 0; c < linhas.length - 1; c++){
+      if (!/Classe/i.test(linhas[c].txt) || !/Subclasse/i.test(linhas[c].txt)) continue;
+      var cl = /^([A-Za-zÀ-ÿ]+)/.exec(linhas[c + 1].txt);
+      if (cl) r.classe = cl[1];
+      r.rural = /\brural\b/i.test(linhas[c + 1].txt);
+      break;
+    }
+    r.sazonal = /sazonal/i.test(tudo);
 
     // itens da fatura: da linha "Itens da Fatura" ate "TOTAL"
     var dentro = false;
@@ -908,6 +982,11 @@ footer b{color:var(--body)}
     if (it.rdem){ $('rdem').value = brNum(it.rdem.v, 2); reat += it.rdem.v; }
     lidos.push(reat > 0 ? 'reativo excedente do último mês: ' + fBRL.format(reat) : 'sem reativo excedente no último mês');
 
+    var rural = !!(r.rural || r.sazonal);
+    definirRural(rural);
+    if (rural) lidos.push((r.rural ? 'classe rural' : 'unidade com sazonalidade') + ': liguei a chave de unidade rural ou sazonal, porque a demanda segue outra regra');
+    else if (r.classe) lidos.push('classe ' + esc(r.classe.toLowerCase()));
+
     aplicarDistribuidora();
 
     var titulo = 'Fatura ' + (r.referencia ? 'de ' + esc(r.referencia) + ' ' : '') + 'lida'
@@ -951,12 +1030,23 @@ footer b{color:var(--body)}
   ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
   drop.addEventListener('drop', function(e){ var f = e.dataTransfer && e.dataTransfer.files[0]; if (f) importar(f); });
 
+  /* ---------- unidade rural ou com sazonalidade reconhecida ---------- */
+  var temRural = false;
+  function definirRural(sim){
+    temRural = !!sim;
+    $('sw-rural').classList.toggle('on', temRural);
+    $('sw-rural').setAttribute('aria-checked', temRural ? 'true' : 'false');
+  }
+  $('sw-rural').addEventListener('click', function(){ definirRural(!temRural); calc(); });
+  $('sw-rural').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); definirRural(!temRural); calc(); } });
+
   /* ---------- botoes ---------- */
   var CAMPOS = ['nome','dc','pd','phfp','php','cip','rhfp','rhp','rdem','tb','db'];
 
   function limparTudo(){
     CAMPOS.forEach(function(id){ $(id).value = ''; });
     $('pdf-status').innerHTML = '';
+    definirRural(false);
     montarHistorico();
     aplicarDistribuidora();
   }
