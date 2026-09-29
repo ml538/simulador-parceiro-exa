@@ -304,11 +304,19 @@ body.pdf-mode footer{margin-top:18px}
         <div class="two">
           <div class="field">
             <label for="dc">Demanda contratada</label>
-            <div class="ig w-s"><input id="dc" inputmode="decimal" placeholder="0"><span class="unit">kW</span></div>
+            <div class="ig w-m"><input id="dc" inputmode="decimal" placeholder="0"><span class="unit">kW</span></div>
+          </div>
+          <div class="field">
+            <label for="di">Demanda indicada</label>
+            <div class="ig w-m" title="Em branco, vale a sugestão do simulador. Preenchida, a sua indicação passa a valer nas contas."><input id="di" inputmode="decimal" placeholder="automática"><span class="unit">kW</span></div>
           </div>
           <div class="field">
             <label for="pd">Preço da demanda</label>
             <div class="ig w-m"><span class="pre">R$</span><input id="pd" inputmode="decimal" placeholder="0,00"><span class="unit">/kW</span></div>
+          </div>
+          <div class="field">
+            <label for="cip">Iluminação pública (CIP)</label>
+            <div class="ig w-m"><span class="pre">R$</span><input id="cip" inputmode="decimal" placeholder="0,00"><span class="unit">/mês</span></div>
           </div>
           <div class="field">
             <label for="phfp">Energia fora ponta (HFP)</label>
@@ -318,11 +326,8 @@ body.pdf-mode footer{margin-top:18px}
             <label for="php">Energia ponta (HP)</label>
             <div class="ig w-m"><span class="pre">R$</span><input id="php" inputmode="decimal" placeholder="0,00"><span class="unit">/kWh</span></div>
           </div>
-          <div class="field">
-            <label for="cip">Iluminação pública (CIP)</label>
-            <div class="ig w-m"><span class="pre">R$</span><input id="cip" inputmode="decimal" placeholder="0,00"><span class="unit">/mês</span></div>
-          </div>
         </div>
+        <p class="fonte" style="margin:-4px 0 12px">Deixe a demanda indicada em branco para usar a sugestão do simulador. Preenchida, ela passa a valer nas contas da otimização.</p>
         <div class="switch" id="sw-rural" role="switch" aria-checked="false" tabindex="0">
           <span>Unidade rural ou com sazonalidade reconhecida?</span>
           <div class="knob"></div>
@@ -432,8 +437,8 @@ body.pdf-mode footer{margin-top:18px}
               </tbody>
             </table>
             <div class="duo">
-              <div><div class="n" id="o-eco-m">—</div><div class="l">de economia por mês</div></div>
-              <div><div class="n" id="o-eco-a">—</div><div class="l">em 12 meses</div></div>
+              <div><div class="n" id="o-eco-m">—</div><div class="l" id="o-eco-ml">de economia por mês</div></div>
+              <div><div class="n" id="o-eco-a">—</div><div class="l" id="o-eco-al">em 12 meses</div></div>
             </div>
             <p class="fonte gap">A multa só vale quando a demanda medida passa 5% da contratada, e aí cobra todo o excedente a 2× a tarifa, além da demanda medida (REN ANEEL 1.000/2021). A demanda contratada e não usada é cobrada sem ICMS. Mínimo contratável no Grupo A: 30 kW.</p>
            </div>
@@ -689,6 +694,10 @@ body.pdf-mode footer{margin-top:18px}
     var temDem = dems.length > 0 && pos(pD) && pos(dc);
     var hoje = temDem ? resumo(dems, dc, pD, icms, temRural) : null;
     var ideal = temDem && !temRural ? demandaIdeal(dems, pD, icms) : null;
+    // demanda indicada pelo vendedor: preenchida, vale nas contas; em branco,
+    // o campo mostra a sugestao do simulador e as contas usam ela
+    var ind = val('di'), temInd = isFinite(ind) && ind > 0;
+    $('di').placeholder = temRural ? 'opcional' : (ideal ? fN1.format(ideal.D) + ' · sugestão' : 'automática');
 
     /* o que falta para calcular a energia */
     var falta = [];
@@ -715,7 +724,11 @@ body.pdf-mode footer{margin-top:18px}
       var terceira = ord.length >= 3 ? ord[2] : null;
       var t = 'Aqui não há multa de ultrapassagem e a demanda contratada que ele não usa não é cobrada: a distribuidora fatura o que foi medido (REN ANEEL 1.000/2021, arts. 294 e 301). Por isso, trocar a demanda não gera a economia calculada para as demais unidades. '
             + 'O cuidado é outro: a cada 12 meses, pelo menos 3 precisam ter demanda faturada igual ou acima da contratada, senão a distribuidora cobra demanda complementar (art. 300). ';
-      if (terceira !== null){
+      if (terceira !== null && temInd){
+        t += 'No histórico, a 3ª maior demanda foi de ' + fN1.format(terceira) + ' kW' + (ind > terceira + 0.05
+          ? ', abaixo dos ' + fN1.format(ind) + ' kW indicados: com essa demanda, a unidade cairia na demanda complementar.'
+          : ', e a demanda indicada (' + fN1.format(ind) + ' kW) não passa disso.');
+      } else if (terceira !== null){
         t += 'No histórico, a 3ª maior demanda foi de ' + fN1.format(terceira) + ' kW' + (dc > terceira + 0.05
           ? ', abaixo dos ' + fN1.format(dc) + ' kW contratados hoje: vale avaliar a demanda com o cliente para não cair nessa cobrança.'
           : ', e a contratada de hoje (' + fN1.format(dc) + ' kW) não passa disso.');
@@ -725,31 +738,44 @@ body.pdf-mode footer{margin-top:18px}
       $('o-rural-t').textContent = t;
     }
     if (temDem && !temRural){
-      var igual = Math.abs(ideal.D - dc) < 0.5;
-      var verbo = ideal.D > dc ? 'aumentar' : 'reduzir';
+      // proposta: a demanda indicada, se houver; senao, a sugestao do simulador
+      var prop = temInd ? resumo(dems, ind, pD, icms) : ideal;
+      var nMes = prop.n + (prop.n === 1 ? ' mês' : ' meses');
+      var igual = Math.abs(prop.D - dc) < 0.05;
+      var verbo = prop.D > dc ? 'aumentar' : 'reduzir';
       $('o-manchete').innerHTML = igual
-        ? 'A demanda contratada de <em>' + fN1.format(dc) + ' kW</em> já é a ideal'
-        : 'Passar a demanda de ' + fN1.format(dc) + ' kW para <em>' + fN1.format(ideal.D) + ' kW</em><span class="chip">' + verbo + '</span>';
+        ? (temInd ? 'A demanda indicada é a mesma de hoje, <em>' + fN1.format(dc) + ' kW</em>'
+                  : 'A demanda contratada de <em>' + fN1.format(dc) + ' kW</em> já é a ideal')
+        : 'Passar a demanda de ' + fN1.format(dc) + ' kW para <em>' + fN1.format(prop.D) + ' kW</em><span class="chip">' + verbo + '</span>';
       var partes = [];
-      partes.push(ideal.nUlt
-        ? 'em ' + meses(ideal.nUlt, ideal.n) + ' meses ainda haveria uma multa pequena de ultrapassagem'
+      partes.push(prop.nUlt
+        ? 'em ' + meses(prop.nUlt, prop.n) + ' meses ainda haveria multa de ultrapassagem'
         : 'nenhum mês teria multa de ultrapassagem');
-      partes.push(ideal.nOci
-        ? 'em ' + meses(ideal.nOci, ideal.n) + ' meses ele pagaria um pouco de demanda sem usar, só que sem ICMS'
+      partes.push(prop.nOci
+        ? 'em ' + meses(prop.nOci, prop.n) + ' meses ele pagaria um pouco de demanda sem usar, só que sem ICMS'
         : 'não sobraria demanda paga sem uso');
-      $('o-explica').textContent = 'Com ' + fN1.format(ideal.D) + ' kW, ' + partes.join(', e ') + '. Somando as duas coisas, é o ponto de menor custo para os ' + ideal.n + (ideal.n === 1 ? ' mês' : ' meses') + ' do histórico.';
+      var fim;
+      if (!temInd) fim = 'Somando as duas coisas, é o ponto de menor custo para os ' + nMes + ' do histórico.';
+      else if (Math.abs(ideal.D - prop.D) < 0.05) fim = 'É também o ponto de menor custo que o simulador encontrou no histórico.';
+      else fim = 'A sugestão do simulador é ' + fN1.format(ideal.D) + ' kW, o ponto de menor custo no histórico, com '
+        + fBRL.format(hoje.tot - ideal.tot) + ' de economia por mês.';
+      if (temInd && ind < CONFIG.demandaMinima) fim += ' Atenção: o mínimo contratável no Grupo A é ' + CONFIG.demandaMinima + ' kW.';
+      $('o-explica').textContent = 'Com ' + fN1.format(prop.D) + ' kW' + (temInd ? ' (sua indicação)' : '') + ', ' + partes.join(', e ') + '. ' + fim;
 
       $('o-h-hoje').textContent = 'Hoje · ' + fN1.format(dc) + ' kW';
-      $('o-h-ideal').textContent = 'Ideal · ' + fN1.format(ideal.D) + ' kW';
-      $('o-nu-h').textContent = meses(hoje.nUlt, hoje.n);   $('o-nu-i').textContent = meses(ideal.nUlt, ideal.n);
-      $('o-vu-h').textContent = fBRL.format(hoje.ult);       $('o-vu-i').textContent = fBRL.format(ideal.ult);
-      $('o-no-h').textContent = meses(hoje.nOci, hoje.n);   $('o-no-i').textContent = meses(ideal.nOci, ideal.n);
-      $('o-vo-h').textContent = fBRL.format(hoje.oci);       $('o-vo-i').textContent = fBRL.format(ideal.oci);
-      $('o-ct-h').textContent = fBRL.format(hoje.tot);       $('o-ct-i').textContent = fBRL.format(ideal.tot);
-      $('o-ct-i').classList.toggle('melhor', ideal.tot < hoje.tot - 0.005);
-      var ecoDem = hoje.tot - ideal.tot;
-      $('o-eco-m').textContent = fBRL.format(ecoDem);
-      $('o-eco-a').textContent = fBRL.format(ecoDem * 12);
+      $('o-h-ideal').textContent = (temInd ? 'Indicada · ' : 'Ideal · ') + fN1.format(prop.D) + ' kW';
+      $('o-nu-h').textContent = meses(hoje.nUlt, hoje.n);   $('o-nu-i').textContent = meses(prop.nUlt, prop.n);
+      $('o-vu-h').textContent = fBRL.format(hoje.ult);       $('o-vu-i').textContent = fBRL.format(prop.ult);
+      $('o-no-h').textContent = meses(hoje.nOci, hoje.n);   $('o-no-i').textContent = meses(prop.nOci, prop.n);
+      $('o-vo-h').textContent = fBRL.format(hoje.oci);       $('o-vo-i').textContent = fBRL.format(prop.oci);
+      $('o-ct-h').textContent = fBRL.format(hoje.tot);       $('o-ct-i').textContent = fBRL.format(prop.tot);
+      $('o-ct-i').classList.toggle('melhor', prop.tot < hoje.tot - 0.005);
+      // se a indicacao sair mais cara que hoje, mostra quanto custa a mais
+      var ecoDem = hoje.tot - prop.tot, piora = ecoDem < -0.005;
+      $('o-eco-m').textContent = fBRL.format(Math.abs(ecoDem));
+      $('o-eco-a').textContent = fBRL.format(Math.abs(ecoDem) * 12);
+      $('o-eco-ml').textContent = piora ? 'a mais por mês, com a demanda indicada' : 'de economia por mês';
+      $('o-eco-al').textContent = piora ? 'a mais em 12 meses' : 'em 12 meses';
     }
 
     mostrar('o-reat', reat > 0);
@@ -1024,7 +1050,7 @@ body.pdf-mode footer{margin-top:18px}
   }
 
   function aplicarFatura(r){
-    ['nome','dc','pd','phfp','php','cip','rhfp','rhp','rdem'].forEach(function(id){ $(id).value = ''; });
+    ['nome','dc','di','pd','phfp','php','cip','rhfp','rhp','rdem'].forEach(function(id){ $(id).value = ''; });
     var it = r.itens, lidos = [], faltou = [], avisos = [];
     if (r.cemig) $('dist').value = 'cemig-d';
     else avisos.push('Esta fatura não parece ser da CEMIG. O fator e o ICMS usados são os da distribuidora selecionada.');
@@ -1119,7 +1145,7 @@ body.pdf-mode footer{margin-top:18px}
   $('sw-rural').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); definirRural(!temRural); calc(); } });
 
   /* ---------- botoes ---------- */
-  var CAMPOS = ['nome','dc','pd','phfp','php','cip','rhfp','rhp','rdem','tb','db'];
+  var CAMPOS = ['nome','dc','di','pd','phfp','php','cip','rhfp','rhp','rdem','tb','db'];
   // a referencia do Grupo B e condicao do vendedor, definida antes da reuniao:
   // o Limpar apaga os dados do cliente e mantem ela
   var CONDICAO = ['tb','db'];
