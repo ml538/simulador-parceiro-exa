@@ -165,6 +165,54 @@ table.cmp td.melhor{color:var(--accent2)}
 
 footer{margin-top:30px; font-size:11.5px; color:var(--dim); line-height:1.6}
 footer b{color:var(--body)}
+
+header .btn.solid{font-size:12px; padding:8px 15px}
+.so-print, .logo-pdf{display:none}
+.label .quando{font-weight:500; letter-spacing:.06em; text-transform:none; color:var(--dim); margin-left:6px}
+.rp{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px}
+.rp .k{display:block; font-size:11px; color:var(--body)}
+.rp .v{display:block; font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:15px; color:var(--head); line-height:1.3; overflow-wrap:anywhere}
+
+/* ---- impressao · so o resultado, no tema da tela ---- */
+@media print{
+  /* sem isso o navegador imprime os fundos em branco */
+  *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important}
+  /* margem 0 tira o cabecalho e o rodape do navegador (data, URL, pagina) */
+  @page{margin:0}
+  body{background:var(--bg)}
+  .no-print{display:none !important}
+  .so-print{display:revert}
+  .wrap{max-width:none; padding:12mm}
+  header{margin-bottom:16px}
+  /* folha 1: conta atual e economia lado a lado · depois as otimizacoes */
+  .grid{display:block; margin-top:14px}
+  .grid > .col:last-child{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; align-items:start}
+  #c-vazio, #c-otim{grid-column:1 / -1}
+  #c-energia .duo > div{padding:10px 12px}
+  #c-energia .duo .n{font-size:16px; white-space:nowrap}
+  .card{box-shadow:none; padding:16px 18px}
+  .card, .balao, .regras, .note, .hero, table.cmp{break-inside:avoid}
+  footer{margin-top:18px}
+}
+/* modo PDF · gerado pelo botao no iPad/iPhone, com o mesmo layout da impressao.
+   a folha vai sem margem e o .wrap pinta o fundo inteiro no tema da tela */
+body.pdf-mode .no-print{display:none !important}
+body.pdf-mode .so-print{display:revert}
+body.pdf-mode .wrap{width:210mm; max-width:none; margin:0; padding:34px; background:var(--bg)}
+body.pdf-mode header{margin-bottom:16px}
+body.pdf-mode .brand .logo{display:none}
+body.pdf-mode .logo-pdf{display:block; width:140px; height:auto}
+body.pdf-mode .grid{display:block; margin-top:14px}
+body.pdf-mode .grid > .col:last-child{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; align-items:start}
+body.pdf-mode #c-vazio, body.pdf-mode #c-otim{grid-column:1 / -1}
+body.pdf-mode #c-energia .duo > div{padding:10px 12px}
+body.pdf-mode #c-energia .duo .n{font-size:16px; white-space:nowrap}
+body.pdf-mode .card{box-shadow:none; padding:16px 18px}
+/* o gerador insere um espacador antes do que nao pode ser cortado. dentro
+   da grade so o #c-otim leva a regra: ele ocupa a linha inteira, entao o
+   espacador vira uma linha vazia e nao empurra os cartoes lado a lado */
+body.pdf-mode #c-otim, body.pdf-mode .balao, body.pdf-mode .regras, body.pdf-mode .note, body.pdf-mode .hero, body.pdf-mode table.cmp{break-inside:avoid}
+body.pdf-mode footer{margin-top:18px}
 </style>
 </head>
 <body>
@@ -172,23 +220,36 @@ footer b{color:var(--body)}
 
   <header>
     <div class="brand">
-      <a class="btn backbtn" href="index.html" title="Voltar para a capa">← Voltar</a>
+      <a class="btn backbtn no-print" href="index.html" title="Voltar para a capa">← Voltar</a>
       <svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg>
+      <img class="logo-pdf" id="logo-pdf" alt="exa energia">
     </div>
-    <div class="acts">
+    <div class="acts no-print">
       <button class="btn" id="limpar" type="button">Limpar</button>
       <button class="btn" id="tg" type="button">Tema</button>
+      <button class="btn solid" id="pr" type="button">Imprimir ou salvar PDF</button>
     </div>
   </header>
 
   <p class="kicker">Simulador de média tensão</p>
   <h1>Quanto dá para <em>economizar</em> nesta conta.</h1>
-  <p class="sub">Envie a fatura ou preencha os dados e veja na hora o desconto ideal para o cliente de MT e onde mais dá para economizar.</p>
+  <p class="sub no-print">Envie a fatura ou preencha os dados e veja na hora o desconto ideal para o cliente de MT e onde mais dá para economizar.</p>
+
+  <!-- ============ DADOS CONSIDERADOS · so no papel ============ -->
+  <section class="card so-print" style="margin-top:18px">
+    <p class="label">Dados considerados<span class="quando" id="rp-data"></span></p>
+    <div class="rp">
+      <div><span class="k">Cliente</span><span class="v" id="rp-nome">—</span></div>
+      <div><span class="k">Distribuidora</span><span class="v" id="rp-dist">—</span></div>
+      <div><span class="k">Demanda contratada</span><span class="v" id="rp-dc">—</span></div>
+      <div><span class="k">Histórico</span><span class="v" id="rp-hist">—</span></div>
+    </div>
+  </section>
 
   <div class="grid">
 
     <!-- ============ ENTRADAS ============ -->
-    <div class="col">
+    <div class="col no-print">
 
       <section class="card">
         <p class="label">Fatura em PDF</p>
@@ -382,7 +443,7 @@ footer b{color:var(--body)}
             <p class="fonte">REN ANEEL 1.000/2021, arts. 64, 147, 154 e 155.</p>
           </div>
 
-          <div class="vendedor">
+          <div class="vendedor no-print">
             <p class="rt">Antes de propor ao cliente</p>
             <ul>
               <li>Confirme se os últimos 12 meses representam o uso normal da unidade e se o consumo vai mudar nos próximos 12.</li>
@@ -405,7 +466,7 @@ footer b{color:var(--body)}
   </div>
 
   <footer>
-    <b>Análise interna.</b> O fator segue a regra de compensação do SCEE: o crédito gerado fora da ponta e usado na ponta vale pela relação entre as TE homologadas pela ANEEL. A troca da demanda contratada segue as regras e os prazos da distribuidora.<br>
+    <b class="no-print">Análise interna.</b><b class="so-print">Simulação ilustrativa.</b> O fator segue a regra de compensação do SCEE: o crédito gerado fora da ponta e usado na ponta vale pela relação entre as TE homologadas pela ANEEL. A troca da demanda contratada segue as regras e os prazos da distribuidora.<br>
     exa energia · exaenergia.com
   </footer>
 </div>
@@ -1068,6 +1129,140 @@ footer b{color:var(--body)}
   });
 
   document.querySelector('.grid').addEventListener('input', calc);
+
+  /* ---------- impressao e PDF ---------- */
+  // no computador abre a janela de impressao, que deixa imprimir ou salvar em
+  // PDF. no iPad/iPhone a impressao do Safari nem sempre abre, entao o PDF e
+  // gerado aqui e baixado. os dois saem no tema da tela e so com o resultado:
+  // as entradas e o aviso ao vendedor ficam de fora.
+  var ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+           || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  // o logo da tela usa <use href="#exa-logo">, que o gerador de PDF nao
+  // desenha. vira um PNG nas cores do tema atual, refeito se o tema mudar.
+  var logoPronto = '';
+  function montarLogoPdf(){
+    return new Promise(function(resolve){
+      var cs = getComputedStyle(document.documentElement);
+      var word = cs.getPropertyValue('--word').trim() || '#0B4F2E';
+      var mark = cs.getPropertyValue('--mark').trim() || '#00A95B';
+      if (logoPronto === word + mark) { resolve(); return; }
+      try {
+        var sym = document.getElementById('exa-logo');
+        var alvo = document.getElementById('logo-pdf');
+        if (!sym || !alvo) { resolve(); return; }
+        var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3288 1372">'
+                + sym.innerHTML.replace(/var\(--mark\)/g, mark).replace(/var\(--word\)/g, word) + '</svg>';
+        var fonte = new Image();
+        fonte.onload = function(){
+          try {
+            var c = document.createElement('canvas');
+            c.width = 900; c.height = Math.round(900 * 1372 / 3288);
+            c.getContext('2d').drawImage(fonte, 0, 0, c.width, c.height);
+            alvo.src = c.toDataURL('image/png');
+          } catch (e) {}
+          logoPronto = word + mark; resolve();
+        };
+        fonte.onerror = function(){ resolve(); };
+        fonte.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        setTimeout(resolve, 1500);
+      } catch (e) { resolve(); }
+    });
+  }
+
+  // o gerador de PDF so carrega quando alguem pede o PDF no iPad/iPhone
+  function carregarHtml2pdf(){
+    if (window.html2pdf) return Promise.resolve();
+    return new Promise(function(ok, falha){
+      var s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      s.onload = function(){ if (window.html2pdf) ok(); else falha(); };
+      s.onerror = falha;
+      document.head.appendChild(s);
+    });
+  }
+
+  // quadro "Dados considerados", que so aparece no papel
+  function prepararImpressao(){
+    calc();
+    var d = distAtual(), dc = val('dc');
+    var mesesLidos = [];
+    Array.prototype.forEach.call($('hist').rows, function(tr){
+      var ins = tr.querySelectorAll('input');
+      if (isFinite(lerNum(ins[1].value)) || isFinite(lerNum(ins[2].value)) || isFinite(lerNum(ins[3].value)))
+        mesesLidos.push(ins[0].value.trim());
+    });
+    // periodo do mais antigo ao mais recente, venha a tabela em que ordem vier
+    var rotulos = mesesLidos.filter(Boolean);
+    var ords = rotulos.map(function(r){
+      var m = MES_RE.exec(r);
+      return m ? (2000 + +m[2]) * 12 + MESES.indexOf(m[1].toUpperCase()) : NaN;
+    });
+    if (rotulos.length > 1 && ords.every(isFinite)){
+      var iMin = ords.indexOf(Math.min.apply(null, ords)), iMax = ords.indexOf(Math.max.apply(null, ords));
+      rotulos = [rotulos[iMax], rotulos[iMin]];
+    }
+    $('rp-data').textContent = '· ' + new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    $('rp-nome').textContent = $('nome').value.trim() || '—';
+    $('rp-dist').textContent = d.nome + ' · ' + d.subgrupo + ' ' + d.modalidade;
+    $('rp-dc').textContent   = isFinite(dc) && dc > 0 ? fN1.format(dc) + ' kW' : '—';
+    $('rp-hist').textContent = !mesesLidos.length ? '—'
+      : (mesesLidos.length === 1 ? '1 mês' : mesesLidos.length + ' meses')
+        + (rotulos.length > 1 ? ', ' + rotulos[rotulos.length - 1] + ' a ' + rotulos[0] : '');
+  }
+
+  // quem nunca trocou o tema segue o do sistema. na impressao o navegador
+  // pode avaliar essa preferencia de outro jeito, entao o tema da tela e
+  // fixado enquanto imprime e depois volta a seguir o sistema
+  var temaFixado = false;
+  window.addEventListener('beforeprint', function(){
+    prepararImpressao();
+    var raiz = document.documentElement;
+    if (raiz.getAttribute('data-theme')) return;
+    var escuro = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    raiz.setAttribute('data-theme', escuro ? 'dark' : 'light');
+    temaFixado = true;
+  });
+  window.addEventListener('afterprint', function(){
+    if (temaFixado) document.documentElement.removeAttribute('data-theme');
+    temaFixado = false;
+  });
+
+  $('pr').addEventListener('click', function(){
+    if (!ehIOS){ window.print(); return; }
+    var btn = this, txt = btn.textContent;
+    var wrap = document.querySelector('.wrap');
+    var nome = ($('nome').value.trim() || 'cliente')
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'cliente';
+    btn.textContent = 'Gerando PDF…';
+    btn.disabled = true;
+    function limpar(){
+      document.body.classList.remove('pdf-mode');
+      btn.textContent = txt;
+      btn.disabled = false;
+    }
+    carregarHtml2pdf().then(montarLogoPdf).then(function(){
+      prepararImpressao();
+      document.body.classList.add('pdf-mode');
+      var fundo = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+      return html2pdf().set({
+        margin:      0,
+        filename:    'analise-mt-' + nome + '.pdf',
+        image:       { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: fundo, scrollX: 0, scrollY: 0 },
+        jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:   { mode: ['css', 'legacy'] }
+      }).from(wrap).toContainer().then(function(){
+        // completa a ultima folha com o fundo do tema, sem sobra branca
+        var copia = this.prop.container.querySelector('.wrap') || this.prop.container.firstElementChild;
+        var tam = this.prop.pageSize;
+        var folha = (tam && tam.inner && tam.inner.px && tam.inner.px.height) || 297 * 96 / 25.4;
+        var n = Math.max(1, Math.ceil((copia.offsetHeight - 4) / folha));
+        copia.style.minHeight = (n * folha - 3) + 'px';
+      }).save();
+    }).then(limpar, function(){ limpar(); window.print(); });
+  });
 
   /* ---------- estado inicial · tudo vazio, so os parametros regulatorios ---------- */
   limparTudo();

@@ -94,8 +94,8 @@ input.pct{flex:none; width:74px; text-align:center; padding:8px 6px; font-size:1
 .hero .n{font-size:clamp(30px,5.4vw,42px); color:var(--accent2); line-height:1.05}
 .hero .s{font-size:13px; color:var(--body); margin-top:4px}
 .mini{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
-.mini div{background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px 14px}
-.card.green .mini div{background:var(--card)}
+.mini > div{background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px 14px}
+.card.green .mini > div{background:var(--card)}
 .mini .n{font-family:Oxanium,Inter,sans-serif; font-weight:700; font-size:19px; color:var(--head)}
 .mini .l{font-size:11px; color:var(--body); margin-top:2px}
 
@@ -123,6 +123,53 @@ input.pct{flex:none; width:74px; text-align:center; padding:8px 6px; font-size:1
 
 footer{margin-top:30px; font-size:11.5px; color:var(--dim); line-height:1.6}
 footer b{color:var(--body)}
+
+.acts{display:flex; gap:8px; flex-wrap:wrap}
+.themebtn.solid{background:var(--accent); color:var(--card); border-color:transparent; font-weight:700}
+.themebtn.solid:hover{color:var(--card); filter:brightness(1.05)}
+.themebtn:disabled{opacity:.6; cursor:progress}
+.so-print, .logo-pdf{display:none}
+.label .quando{font-weight:500; letter-spacing:.06em; text-transform:none; color:var(--dim); margin-left:6px}
+
+/* ---- impressao · segue o tema da tela ---- */
+@media print{
+  /* sem isso o navegador imprime os fundos em branco */
+  *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important}
+  /* margem 0 tira o cabecalho e o rodape do navegador (data, URL, pagina) */
+  @page{margin:0}
+  body{background:var(--bg)}
+  .no-print{display:none !important}
+  .so-print{display:revert}
+  .wrap{max-width:none; padding:12mm}
+  header{margin-bottom:16px}
+  .grid{grid-template-columns:minmax(0,1fr) minmax(0,1.08fr); gap:14px}
+  .pair{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px}
+  .card{box-shadow:none; padding:16px 18px}
+  .row{padding:8px 0}
+  .hero{padding:14px 16px}
+  /* folha 1: premissas e resultado · folha 2: barras, grafico e notas */
+  .grid, .pair, .note{break-inside:avoid}
+  .pair{break-before:page}
+  footer{margin-top:18px}
+}
+/* modo PDF · gerado pelo botao no iPad/iPhone, com o mesmo layout da impressao.
+   a folha vai sem margem e o .wrap pinta o fundo inteiro no tema da tela */
+body.pdf-mode .no-print{display:none !important}
+body.pdf-mode .so-print{display:revert}
+body.pdf-mode .wrap{width:210mm; max-width:none; margin:0; padding:34px; background:var(--bg)}
+body.pdf-mode header{margin-bottom:16px}
+body.pdf-mode .brand .logo{display:none}
+body.pdf-mode .logo-pdf{display:block; width:140px; height:auto}
+body.pdf-mode .grid{grid-template-columns:minmax(0,1fr) minmax(0,1.08fr); gap:14px}
+body.pdf-mode .pair{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px}
+body.pdf-mode .card{box-shadow:none; padding:16px 18px}
+body.pdf-mode .row{padding:8px 0}
+body.pdf-mode .hero{padding:14px 16px}
+/* o gerador insere espacadores antes do que nao pode ser cortado; por isso
+   a regra fica nos blocos de fora, nunca nos itens de dentro das grades */
+body.pdf-mode .grid, body.pdf-mode .pair, body.pdf-mode .note{break-inside:avoid}
+body.pdf-mode .pair{break-before:page}
+body.pdf-mode footer{margin-top:18px}
 </style>
 </head>
 <body>
@@ -131,20 +178,37 @@ footer b{color:var(--body)}
   <!-- ================= CABECALHO ================= -->
   <header>
     <div class="brand">
-      <a class="themebtn backbtn" href="index.html" title="Voltar para a capa">← Voltar</a>
+      <a class="themebtn backbtn no-print" href="index.html" title="Voltar para a capa">← Voltar</a>
       <svg class="logo" viewBox="0 0 3288.000000 1372.000000" role="img" aria-label="exa energia"><use href="#exa-logo"/></svg>
+      <img class="logo-pdf" id="logo-pdf" alt="exa energia">
     </div>
-    <button class="themebtn" id="tg" type="button">Tema</button>
+    <div class="acts no-print">
+      <button class="themebtn" id="tg" type="button">Tema</button>
+      <button class="themebtn solid" id="pr" type="button">Imprimir ou salvar PDF</button>
+    </div>
   </header>
 
   <p class="kicker">Simulador do parceiro</p>
   <h1>Quanto sua carteira pode <em>render por mês</em>.</h1>
-  <p class="sub">Coloque os números da sua carteira e veja o ganho aparecer na hora. Você adquire o saldo de geração com um deságio maior, comercializa com um menor, e a diferença é sua.</p>
+  <p class="sub no-print">Coloque os números da sua carteira e veja o ganho aparecer na hora. Você adquire o saldo de geração com um deságio maior, comercializa com um menor, e a diferença é sua.</p>
+  <p class="sub so-print">Simulação com os números da sua carteira. Você adquire o saldo de geração com um deságio maior, comercializa com um menor, e a diferença é sua.</p>
 
   <div class="grid" style="margin-top:22px">
 
+    <!-- ================= PREMISSAS · so no papel ================= -->
+    <section class="card so-print">
+      <p class="label">Premissas<span class="quando" id="pp-data"></span></p>
+      <div class="row"><span class="k">Pessoas ou empresas na rede</span><span class="v big" id="pp-pessoas">—</span></div>
+      <div class="row"><span class="k">Conversão</span><span class="v big" id="pp-conv">—</span></div>
+      <div class="row"><span class="k">Conta de energia média</span><span class="v big" id="pp-conta">—</span></div>
+      <div class="row"><span class="k">Tarifa média</span><span class="v big" id="pp-tarifa">—</span></div>
+      <div class="row" id="pp-vmin-r"><span class="k">Carteira mínima da condição</span><span class="v big" id="pp-vmin">—</span></div>
+      <div class="row"><span class="k">Deságio de aquisição</span><span class="v big" id="pp-daq">—</span></div>
+      <div class="row"><span class="k">Deságio que você oferece</span><span class="v big" id="pp-dcli">—</span></div>
+    </section>
+
     <!-- ================= ENTRADAS ================= -->
-    <section class="card">
+    <section class="card no-print">
       <p class="label">Seus números</p>
 
       <div class="field">
@@ -211,6 +275,7 @@ footer b{color:var(--body)}
     </section>
   </div>
 
+  <div class="pair">
   <section class="card" style="margin-top:18px">
     <p class="label">Onde sua oferta fica</p>
     <div class="bars">
@@ -238,6 +303,7 @@ footer b{color:var(--body)}
     <div class="chart" id="chart"></div>
     <p class="legend" id="chart-legend" style="margin-top:10px"></p>
   </section>
+  </div>
 
   <div class="note">
     <span class="dot"></span>
@@ -275,6 +341,7 @@ footer b{color:var(--body)}
   /* =========================================================== */
 
   var brl0 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+  var brl2 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2});
   var num  = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
   var num1 = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
   var $ = function(id){ return document.getElementById(id); };
@@ -355,6 +422,16 @@ footer b{color:var(--body)}
     $('s-spread').style.width = (extra / MAXP * 100) + '%';
     $('b-cli').textContent    = num.format(dcli) + '%';
     $('b-aq').textContent     = num.format(daq) + '%';
+
+    // premissas que aparecem so no papel
+    $('pp-pessoas').textContent = num.format(pessoas);
+    $('pp-conv').textContent    = num.format(conv) + '%';
+    $('pp-conta').textContent   = brl0.format(conta);
+    $('pp-tarifa').textContent  = brl2.format(val('tarifa')) + '/kWh';
+    $('pp-vmin-r').style.display = vmin > 0 ? '' : 'none';
+    $('pp-vmin').textContent    = num1.format(vmin) + ' MWh';
+    $('pp-daq').textContent     = num.format(daq) + '%';
+    $('pp-dcli').textContent    = num.format(dcli) + '%';
 
     // acumulado 12 meses
     var chart = $('chart');
@@ -446,6 +523,112 @@ footer b{color:var(--body)}
     var next = cur ? (cur === 'dark' ? 'light' : 'dark') : (dark ? 'light' : 'dark');
     document.documentElement.setAttribute('data-theme', next);
     try{ localStorage.setItem('exa-tema', next); }catch(e){}
+  });
+
+  /* ---------- impressao e PDF ---------- */
+  // no computador abre a janela de impressao, que deixa imprimir ou salvar em
+  // PDF. no iPad/iPhone a impressao do Safari nem sempre abre, entao o PDF e
+  // gerado aqui e baixado. os dois saem no tema da tela.
+  var ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+           || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  // o logo da tela usa <use href="#exa-logo">, que o gerador de PDF nao
+  // desenha. vira um PNG nas cores do tema atual, refeito se o tema mudar.
+  var logoPronto = '';
+  function montarLogoPdf(){
+    return new Promise(function(resolve){
+      var cs = getComputedStyle(document.documentElement);
+      var word = cs.getPropertyValue('--word').trim() || '#0B4F2E';
+      var mark = cs.getPropertyValue('--mark').trim() || '#00A95B';
+      if (logoPronto === word + mark) { resolve(); return; }
+      try {
+        var sym = document.getElementById('exa-logo');
+        var alvo = document.getElementById('logo-pdf');
+        if (!sym || !alvo) { resolve(); return; }
+        var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3288 1372">'
+                + sym.innerHTML.replace(/var\(--mark\)/g, mark).replace(/var\(--word\)/g, word) + '</svg>';
+        var fonte = new Image();
+        fonte.onload = function(){
+          try {
+            var c = document.createElement('canvas');
+            c.width = 900; c.height = Math.round(900 * 1372 / 3288);
+            c.getContext('2d').drawImage(fonte, 0, 0, c.width, c.height);
+            alvo.src = c.toDataURL('image/png');
+          } catch (e) {}
+          logoPronto = word + mark; resolve();
+        };
+        fonte.onerror = function(){ resolve(); };
+        fonte.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        setTimeout(resolve, 1500);
+      } catch (e) { resolve(); }
+    });
+  }
+
+  // o gerador de PDF so carrega quando alguem pede o PDF no iPad/iPhone
+  function carregarHtml2pdf(){
+    if (window.html2pdf) return Promise.resolve();
+    return new Promise(function(ok, falha){
+      var s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      s.onload = function(){ if (window.html2pdf) ok(); else falha(); };
+      s.onerror = falha;
+      document.head.appendChild(s);
+    });
+  }
+
+  function prepararImpressao(){
+    calc();
+    $('pp-data').textContent = '· ' + new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  }
+
+  // quem nunca trocou o tema segue o do sistema. na impressao o navegador
+  // pode avaliar essa preferencia de outro jeito, entao o tema da tela e
+  // fixado enquanto imprime e depois volta a seguir o sistema
+  var temaFixado = false;
+  window.addEventListener('beforeprint', function(){
+    prepararImpressao();
+    var raiz = document.documentElement;
+    if (raiz.getAttribute('data-theme')) return;
+    var escuro = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    raiz.setAttribute('data-theme', escuro ? 'dark' : 'light');
+    temaFixado = true;
+  });
+  window.addEventListener('afterprint', function(){
+    if (temaFixado) document.documentElement.removeAttribute('data-theme');
+    temaFixado = false;
+  });
+
+  $('pr').addEventListener('click', function(){
+    if (!ehIOS){ window.print(); return; }
+    var btn = this, txt = btn.textContent;
+    var wrap = document.querySelector('.wrap');
+    btn.textContent = 'Gerando PDF…';
+    btn.disabled = true;
+    function limpar(){
+      document.body.classList.remove('pdf-mode');
+      btn.textContent = txt;
+      btn.disabled = false;
+    }
+    carregarHtml2pdf().then(montarLogoPdf).then(function(){
+      prepararImpressao();
+      document.body.classList.add('pdf-mode');
+      var fundo = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+      return html2pdf().set({
+        margin:      0,
+        filename:    'simulacao-parceiro-exa.pdf',
+        image:       { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: fundo, scrollX: 0, scrollY: 0 },
+        jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:   { mode: ['css', 'legacy'] }
+      }).from(wrap).toContainer().then(function(){
+        // completa a ultima folha com o fundo do tema, sem sobra branca
+        var copia = this.prop.container.querySelector('.wrap') || this.prop.container.firstElementChild;
+        var tam = this.prop.pageSize;
+        var folha = (tam && tam.inner && tam.inner.px && tam.inner.px.height) || 297 * 96 / 25.4;
+        var n = Math.max(1, Math.ceil((copia.offsetHeight - 4) / folha));
+        copia.style.minHeight = (n * folha - 3) + 'px';
+      }).save();
+    }).then(limpar, function(){ limpar(); window.print(); });
   });
 
   calc();
