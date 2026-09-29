@@ -519,7 +519,8 @@ body.pdf-mode footer{margin-top:18px}
   var fBRL4 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:4,maximumFractionDigits:4});
   var fN0   = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
   var fN1   = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
-  var fPct  = new Intl.NumberFormat('pt-BR',{style:'percent',minimumFractionDigits:1,maximumFractionDigits:1});
+  var fPct  = new Intl.NumberFormat('pt-BR',{style:'percent',minimumFractionDigits:2,maximumFractionDigits:2});
+  var fN2   = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2});
 
   // aceita "12.601", "12601", "0,635", "3,05962766", "R$ 30,22"
   function lerNum(s){
@@ -807,7 +808,7 @@ body.pdf-mode footer{margin-top:18px}
       var descEq = 1 - preco / tarPond;
       var eco = kwhEq * (tarPond - preco);
       $('b-desc').textContent = fPct.format(descEq);
-      $('b-desc-s').textContent = 'O mesmo que dar ' + fN1.format(db) + '% a um cliente B da ' + d.nome + ' a ' + fBRL.format(tb) + '/kWh: o kWh de crédito sai a ' + fBRL4.format(preco) + '.';
+      $('b-desc-s').textContent = 'O mesmo que dar ' + fN2.format(db) + '% a um cliente B da ' + d.nome + ' a ' + fBRL.format(tb) + '/kWh: o kWh de crédito sai a ' + fBRL4.format(preco) + '.';
       $('e-mes').textContent = fBRL.format(eco);
       $('e-ano').textContent = fBRL.format(eco * 12);
       $('b-aviso').innerHTML = descEq < 0

@@ -67,6 +67,7 @@ h1 em{font-style:normal; color:var(--accent2)}
 .pre{font-size:13px; color:var(--dim)}
 input[type=text],input[type=number]{flex:1; min-width:0; background:var(--bg); color:var(--head); border:1px solid var(--border); border-radius:9px; padding:9px 11px; font:inherit; font-weight:600; font-size:15px}
 input[type=text]{font-weight:500}
+input.pct, #dexaMax{font-weight:600}
 input:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:transparent}
 input[type=range]{-webkit-appearance:none; appearance:none; flex:1; height:8px; border-radius:99px; margin:0;
   background:linear-gradient(to right, var(--accent) 0%, var(--card2) 0%); cursor:pointer}
@@ -236,7 +237,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       <div class="field" id="campo-max">
         <label for="dexaMax">Desconto máximo que você pode oferecer <span class="hint">defina antes de começar</span></label>
         <div class="inputrow">
-          <input type="number" id="dexaMax" value="0" min="0" max="99" step="1"><span class="pre">%</span>
+          <input type="text" inputmode="decimal" id="dexaMax" value="0" autocomplete="off"><span class="pre">%</span>
           <button type="button" class="eyebtn" id="dexaMax-eye" title="ocultar da tela na hora de apresentar" aria-label="ocultar da tela"></button>
         </div>
       </div>
@@ -244,7 +245,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
 
       <div class="field">
         <label for="dexa">Desconto que você oferece agora <span class="hint">arraste durante a reunião</span></label>
-        <div class="inputrow"><input type="range" id="dexa" value="0" min="0" max="1" step="1"><input type="number" class="pct" id="dexa-n" value="0" min="0" max="99" step="1"><span class="pre">%</span></div>
+        <div class="inputrow"><input type="range" id="dexa" value="0" min="0" max="1" step="any"><input type="text" inputmode="decimal" class="pct" id="dexa-n" value="0" autocomplete="off"><span class="pre">%</span></div>
       </div>
 
       <div class="switch" id="sw" role="button" tabindex="0">
@@ -254,7 +255,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
 
       <div class="field" id="box-atual" style="display:none; margin-top:14px">
         <label for="datual">Desconto atual dele <span class="hint">com o fornecedor de hoje</span></label>
-        <div class="inputrow"><input type="range" id="datual" value="0" min="0" max="1" step="1"><input type="number" class="pct" id="datual-n" value="0" min="0" max="99" step="1"><span class="pre">%</span></div>
+        <div class="inputrow"><input type="range" id="datual" value="0" min="0" max="1" step="any"><input type="text" inputmode="decimal" class="pct" id="datual-n" value="0" autocomplete="off"><span class="pre">%</span></div>
       </div>
     </section>
 
@@ -350,7 +351,17 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   var brl  = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2});
   var brl0 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
   var num  = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
+  var pct  = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2});
   var $ = function(id){ return document.getElementById(id); };
+
+  // percentuais com ate duas casas: aceita "19,51" ou "19.51"
+  function lerPct(s){
+    s = String(s === undefined || s === null ? '' : s).replace(/[%\s]/g, '').replace(',', '.');
+    if (s === '' || s === '.') return NaN;
+    var n = parseFloat(s);
+    return isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+  }
+  function fmtPct(n){ return String(+(+n || 0).toFixed(2)).replace('.', ','); }
 
   // o logo da tela usa <use href="#exa-logo">, que o gerador de PDF nao
   // consegue desenhar. montamos uma copia do logo como imagem SVG embutida,
@@ -487,7 +498,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     $('t2').style.display = temAtual ? '' : 'none';
     if (temAtual){
       var ecoA = cheio - atual;
-      $('t2-tag').textContent = num.format(datual) + '% off';
+      $('t2-tag').textContent = pct.format(datual) + '% off';
       $('t2-v').textContent   = brl.format(atual);
       $('t2-ano').textContent = brl.format(atual * 12) + ' por ano';
       $('t2-paga').style.width = (100 - datual) + '%';
@@ -497,7 +508,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     }
 
     var ecoE = cheio - comExa;
-    $('t3-tag').textContent = num.format(dexa) + '% off';
+    $('t3-tag').textContent = pct.format(dexa) + '% off';
     $('t3-v').textContent   = brl.format(comExa);
     $('t3-ano').textContent = brl.format(comExa * 12) + ' por ano';
     $('t3-paga').style.width = (100 - dexa) + '%';
@@ -535,44 +546,65 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   // cima, sem recalcular o teto a cada movimento (isso que bugava o arraste).
   // o desconto do concorrente usa o mesmo teto, entao a posicao dele na
   // barra mostra visualmente se esta abaixo ou acima do seu maximo.
-  function tetoAtual(){ return Math.max(0, Math.min(99, parseFloat($('dexaMax').value) || 0)); }
+  function tetoAtual(){ return Math.max(0, Math.min(99, lerPct($('dexaMax').value) || 0)); }
 
   function atualizarTetos(){
     var teto = tetoAtual();
     $('dexa').max = Math.max(teto, 1);
-    if (parseFloat($('dexa').value) > teto){ $('dexa').value = teto; $('dexa-n').value = teto; }
+    if (parseFloat($('dexa').value) > teto){ $('dexa').value = teto; $('dexa-n').value = fmtPct(teto); }
     var datualV = parseFloat($('datual').value) || 0;
     $('datual').max = Math.max(teto, datualV, 1);
     calc();
   }
 
+  // os descontos aceitam ate duas casas (19,51). o arraste anda de 1 em 1 e
+  // encosta no teto quando chega perto, para alcancar um teto como 19,51.
+  // enquanto a pessoa digita, a caixa nao e reescrita (senao a virgula some);
+  // so quando passa do limite ou quando sai do campo.
+  function arrasto(f){
+    var v = parseFloat(f.value) || 0, hi = parseFloat(f.max) || 0;
+    return hi - v < 0.5 ? hi : Math.round(v);
+  }
+
   // dexa: trava dura no maximo (nao deixa arrastar nem digitar acima do teto)
   function ligaFaixa(rangeId, boxId){
     var f = $(rangeId), c = $(boxId);
+    function limite(v){ return Math.max(parseFloat(f.min) || 0, Math.min(parseFloat(f.max) || 99, isFinite(v) ? v : 0)); }
     function aplicar(v){
-      v = Math.max(parseFloat(f.min) || 0, Math.min(parseFloat(f.max) || 99, isFinite(v) ? v : 0));
-      f.value = v; c.value = v;
+      v = limite(v);
+      f.value = v; c.value = fmtPct(v);
       calc();
     }
-    f.addEventListener('input', function(){ aplicar(parseFloat(f.value)); });
-    c.addEventListener('input', function(){ aplicar(parseFloat(c.value)); });
+    f.addEventListener('input', function(){ aplicar(arrasto(f)); });
+    c.addEventListener('input', function(){
+      var bruto = lerPct(c.value), v = limite(bruto);
+      f.value = v;
+      if (isFinite(bruto) && v !== bruto) c.value = fmtPct(v);
+      calc();
+    });
+    c.addEventListener('change', function(){ c.value = fmtPct(limite(lerPct(c.value))); });
     return aplicar;
   }
   var aplicarDexa = ligaFaixa('dexa', 'dexa-n');
 
   // datual: sem trava — a escala so estica para caber o valor do concorrente,
   // nunca corta o numero digitado
-  function aplicarDatual(v){
+  function aplicarDatual(v, digitando){
     v = Math.max(0, Math.min(99, isFinite(v) ? v : 0));
     $('datual').max = Math.max(tetoAtual(), v, 1);
     $('datual').value = v;
-    $('datual-n').value = v;
+    if (!digitando) $('datual-n').value = fmtPct(v);
     calc();
   }
-  $('datual').addEventListener('input', function(){ aplicarDatual(parseFloat($('datual').value)); });
-  $('datual-n').addEventListener('input', function(){ aplicarDatual(parseFloat($('datual-n').value)); });
+  $('datual').addEventListener('input', function(){ aplicarDatual(arrasto($('datual'))); });
+  $('datual-n').addEventListener('input', function(){
+    var bruto = lerPct($('datual-n').value);
+    aplicarDatual(bruto, !(bruto > 99));
+  });
+  $('datual-n').addEventListener('change', function(){ aplicarDatual(lerPct($('datual-n').value)); });
 
   $('dexaMax').addEventListener('input', atualizarTetos);
+  $('dexaMax').addEventListener('change', function(){ $('dexaMax').value = fmtPct(tetoAtual()); });
 
   var ICONE_OLHO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
   var ICONE_OLHO_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
@@ -689,7 +721,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     aplicarDexa(ini('dexa', CONFIG.descontoExa));
     aplicarDatual(ini('atual', CONFIG.descontoAtual));
   }
-  $('dexaMax').value = ini('maxexa', CONFIG.descontoMaximo);
+  $('dexaMax').value = fmtPct(ini('maxexa', CONFIG.descontoMaximo));
   estadoInicial();
 
   /* ---------- limpar, com desfazer ---------- */

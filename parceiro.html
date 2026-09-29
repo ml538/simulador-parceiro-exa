@@ -62,12 +62,12 @@ h1 em{font-style:normal; color:var(--accent2)}
 .field .hint{font-size:11px; color:var(--dim)}
 .inputrow{display:flex; align-items:center; gap:9px}
 .inputrow .pre{font-size:13px; color:var(--dim); min-width:16px}
-input[type=number]{
+input[type=number], input.pct{
   flex:1; min-width:0; background:var(--bg); color:var(--head); border:1px solid var(--border);
   border-radius:9px; padding:10px 12px; font:inherit; font-family:Oxanium,Inter,sans-serif;
   font-weight:700; font-size:16px;
 }
-input[type=number]:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:transparent}
+input[type=number]:focus, input.pct:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:transparent}
 input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:8px; border-radius:99px; margin:0;
   background:linear-gradient(to right, var(--accent) 0%, var(--card2) 0%); cursor:pointer}
 input[type=range]:focus{outline:2px solid var(--accent); outline-offset:3px}
@@ -248,12 +248,12 @@ body.pdf-mode footer{margin-top:18px}
 
       <div class="field">
         <label for="daq">Deságio de aquisição <span class="hint">o que a exa te entrega</span></label>
-        <div class="inputrow"><input type="range" id="daq" value="0" min="0" max="60" step="1"><input type="number" class="pct" id="daq-n" value="0" min="0" max="60" step="1"><span class="unit">%</span></div>
+        <div class="inputrow"><input type="range" id="daq" value="0" min="0" max="60" step="any"><input type="text" inputmode="decimal" class="pct" id="daq-n" value="0" autocomplete="off"><span class="unit">%</span></div>
       </div>
 
       <div class="field">
         <label for="dcli">Deságio que você oferece <span class="hint">arraste até o de aquisição</span></label>
-        <div class="inputrow"><input type="range" id="dcli" value="0" min="0" max="1" step="1"><input type="number" class="pct" id="dcli-n" value="0" min="0" max="99" step="1"><span class="unit">%</span></div>
+        <div class="inputrow"><input type="range" id="dcli" value="0" min="0" max="1" step="any"><input type="text" inputmode="decimal" class="pct" id="dcli-n" value="0" autocomplete="off"><span class="unit">%</span></div>
       </div>
     </section>
 
@@ -356,7 +356,23 @@ body.pdf-mode footer{margin-top:18px}
   var brl2 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2});
   var num  = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
   var num1 = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
+  var pct  = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2});
   var $ = function(id){ return document.getElementById(id); };
+
+  // desagios com ate duas casas: aceita "19,51" ou "19.51"
+  function lerPct(s){
+    s = String(s === undefined || s === null ? '' : s).replace(/[%\s]/g, '').replace(',', '.');
+    if (s === '' || s === '.') return NaN;
+    var n = parseFloat(s);
+    return isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+  }
+  function fmtPct(n){ return String(+(+n || 0).toFixed(2)).replace('.', ','); }
+  // o arraste anda de 1 em 1 e encosta no teto quando chega perto, para
+  // alcancar um teto quebrado como 40,5
+  function arrasto(f){
+    var v = parseFloat(f.value) || 0, hi = parseFloat(f.max) || 0;
+    return hi - v < 0.5 ? hi : Math.round(v);
+  }
 
   // parametros pela URL: ?vmin=50&daq=35&dcli=28&pessoas=300&conv=25&conta=1200&tarifa=1.05
   var QS = {};
@@ -369,8 +385,8 @@ body.pdf-mode footer{margin-top:18px}
   function inicial(chave, padrao){
     return (QS[chave] !== undefined) ? QS[chave] : padrao;
   }
-  var ids  = ['pessoas','conv','conta','tarifa','daq','vmin'];
-  var sync = [['conv','conv-n'], ['daq','daq-n']];
+  var ids  = ['pessoas','conv','conta','tarifa','vmin'];
+  var sync = [['conv','conv-n']];
 
   function val(id){ var v = parseFloat($(id).value); return isFinite(v) ? v : 0; }
 
@@ -390,7 +406,7 @@ body.pdf-mode footer{margin-top:18px}
     // recalcular isso durante o proprio arraste do dcli, so quando o daq muda
     var teto = Math.max(0, Math.min(99, val('daq')));
     $('dcli').max = Math.max(teto, 1);
-    if (val('dcli') > teto){ $('dcli').value = teto; $('dcli-n').value = teto; }
+    if (val('dcli') > teto){ $('dcli').value = teto; $('dcli-n').value = fmtPct(teto); }
 
     ['conv','daq','dcli'].forEach(pintar);
 
@@ -432,8 +448,8 @@ body.pdf-mode footer{margin-top:18px}
     var extra = Math.max(0, daq - dcli);
     $('s-base').style.width   = (base / MAXP * 100) + '%';
     $('s-spread').style.width = (extra / MAXP * 100) + '%';
-    $('b-cli').textContent    = num.format(dcli) + '%';
-    $('b-aq').textContent     = num.format(daq) + '%';
+    $('b-cli').textContent    = pct.format(dcli) + '%';
+    $('b-aq').textContent     = pct.format(daq) + '%';
 
     // premissas que aparecem so no papel
     $('pp-pessoas').textContent = num.format(pessoas);
@@ -442,8 +458,8 @@ body.pdf-mode footer{margin-top:18px}
     $('pp-tarifa').textContent  = brl2.format(val('tarifa')) + '/kWh';
     $('pp-vmin-r').style.display = vmin > 0 ? '' : 'none';
     $('pp-vmin').textContent    = num1.format(vmin) + ' MWh';
-    $('pp-daq').textContent     = num.format(daq) + '%';
-    $('pp-dcli').textContent    = num.format(dcli) + '%';
+    $('pp-daq').textContent     = pct.format(daq) + '%';
+    $('pp-dcli').textContent    = pct.format(dcli) + '%';
 
     // acumulado 12 meses
     var chart = $('chart');
@@ -492,14 +508,30 @@ body.pdf-mode footer{margin-top:18px}
 
   // dcli arrasta dentro do teto que o proprio calc() ja mantem atualizado
   // (o teto muda quando o daq muda, nunca durante o proprio arraste do dcli)
-  function aplicarDcli(v){
-    var f = $('dcli');
+  // enquanto a pessoa digita, a caixa nao e reescrita (senao a virgula some);
+  // so quando passa do limite ou quando sai do campo
+  function aplicarDcli(v, digitando){
+    var f = $('dcli'), bruto = v;
     v = Math.max(parseFloat(f.min) || 0, Math.min(parseFloat(f.max) || 99, isFinite(v) ? v : 0));
-    f.value = v; $('dcli-n').value = v;
+    f.value = v;
+    if (!digitando || (isFinite(bruto) && bruto !== v)) $('dcli-n').value = fmtPct(v);
     calc();
   }
-  liga('dcli',    function(){ aplicarDcli(parseFloat($('dcli').value)); });
-  liga('dcli-n',  function(){ aplicarDcli(parseFloat($('dcli-n').value)); });
+  $('dcli').addEventListener('input', function(){ aplicarDcli(arrasto($('dcli'))); });
+  $('dcli-n').addEventListener('input', function(){ aplicarDcli(lerPct($('dcli-n').value), true); });
+  $('dcli-n').addEventListener('change', function(){ aplicarDcli(lerPct($('dcli-n').value)); });
+
+  // desagio de aquisicao: 0 a 60%, tambem com ate duas casas
+  function aplicarDaq(v, digitando){
+    var f = $('daq'), bruto = v;
+    v = Math.max(0, Math.min(parseFloat(f.max) || 60, isFinite(v) ? v : 0));
+    f.value = v;
+    if (!digitando || (isFinite(bruto) && bruto !== v)) $('daq-n').value = fmtPct(v);
+    calc();
+  }
+  $('daq').addEventListener('input', function(){ aplicarDaq(arrasto($('daq'))); });
+  $('daq-n').addEventListener('input', function(){ aplicarDaq(lerPct($('daq-n').value), true); });
+  $('daq-n').addEventListener('change', function(){ aplicarDaq(lerPct($('daq-n').value)); });
 
   // estado inicial · tudo zerado por padrao, para nunca abrir parecendo que
   // ja existe uma condicao melhor do que a que sera oferecida na reuniao.
@@ -516,6 +548,7 @@ body.pdf-mode footer{margin-top:18px}
   }
   $('vmin').value = inicial('vmin', CONFIG.volumeMinimo);
   $('daq').value  = inicial('daq',  CONFIG.desagioAquisicao);
+  $('daq-n').value = fmtPct(val('daq'));
   estadoInicial();
   var rodape = document.getElementById('rodape-contato');
   if (rodape) rodape.textContent = CONFIG.contato;
@@ -548,6 +581,7 @@ body.pdf-mode footer{margin-top:18px}
   function restaurar(v){
     CAMPOS.forEach(function(id, i){ if (id !== 'dcli') $(id).value = v[i]; });
     sync.forEach(function(par){ $(par[1]).value = $(par[0]).value; });
+    $('daq-n').value = fmtPct(val('daq'));
     calc();
     aplicarDcli(parseFloat(v[CAMPOS.indexOf('dcli')]));
   }
