@@ -355,18 +355,22 @@ body.pdf-mode footer{margin-top:18px}
       </section>
 
       <section class="card">
-        <p class="label">Referência do Grupo B</p>
+        <p class="label">Desconto · equivalência com o Grupo B</p>
+        <div class="field">
+          <label for="tb" id="tb-l">Tarifa atual da distribuidora</label>
+          <div class="ig w-m"><span class="pre">R$</span><input id="tb" inputmode="decimal" placeholder="0,00"><span class="unit">/kWh</span></div>
+        </div>
         <div class="two">
           <div class="field">
-            <label for="tb" id="tb-l">Tarifa atual da distribuidora</label>
-            <div class="ig w-m"><span class="pre">R$</span><input id="tb" inputmode="decimal" placeholder="0,00"><span class="unit">/kWh</span></div>
+            <label for="db">Desconto no Grupo B</label>
+            <div class="ig w-m"><input id="db" inputmode="decimal" placeholder="0"><span class="unit">%</span></div>
           </div>
           <div class="field">
-            <label for="db">Desconto que você aplicaria</label>
-            <div class="ig w-s"><input id="db" inputmode="decimal" placeholder="0"><span class="unit">%</span></div>
+            <label for="dm">Desconto na média tensão</label>
+            <div class="ig w-m"><input id="dm" inputmode="decimal" placeholder="0"><span class="unit">%</span></div>
           </div>
         </div>
-        <p class="fonte">Tarifa convencional do Grupo B, com impostos, e o desconto que você daria a um cliente B. Daqui sai o desconto equivalente para este cliente de MT.</p>
+        <p class="fonte">Tarifa convencional do Grupo B, com impostos. Preencha um dos dois descontos e o outro mostra o equivalente: o do Grupo B diz quanto dar a este cliente de MT, e o da média tensão diz quanto isso seria para um cliente B.</p>
       </section>
     </div>
 
@@ -396,10 +400,10 @@ body.pdf-mode footer{margin-top:18px}
         <div class="row"><span class="k">Ponta, ajustada pelo fator <small id="p-hp-d"></small></span><span class="v big" id="p-hp">—</span></div>
         <div class="row tot"><span class="k">Tarifa média ponderada <small id="p-tar-d"></small></span><span class="v big" id="p-tar">—</span></div>
 
-        <div class="note gap" id="b-falta"><span class="dot"></span><div>Informe a tarifa atual e o desconto do Grupo B para ver o desconto equivalente neste cliente.</div></div>
+        <div class="note gap" id="b-falta"><span class="dot"></span><div>Informe a tarifa do Grupo B e um dos descontos, no Grupo B ou na média tensão, para ver a equivalência.</div></div>
         <div id="b-corpo">
           <div class="hero">
-            <p class="t">Desconto equivalente neste cliente</p>
+            <p class="t" id="b-desc-t">Desconto equivalente neste cliente</p>
             <div class="n big" id="b-desc">—</div>
             <div class="s" id="b-desc-s"></div>
           </div>
@@ -683,7 +687,9 @@ body.pdf-mode footer{margin-top:18px}
 
     var pD = val('pd'), pHFP = val('phfp'), pHP = val('php'), dc = val('dc');
     var cip = val('cip'), rHFP = val('rhfp'), rHP = val('rhp'), rDem = val('rdem');
-    var tb = val('tb'), db = val('db');
+    var tb = val('tb'), db = val('db'), dm = val('dm');
+    // o desconto que nao foi preenchido mostra o equivalente em cinza (mais abaixo)
+    $('db').placeholder = '0'; $('dm').placeholder = '0';
     if (!isFinite(cip))  cip = 0;
     if (!isFinite(rHFP)) rHFP = 0;
     if (!isFinite(rHP))  rHP = 0;
@@ -825,20 +831,32 @@ body.pdf-mode footer{margin-top:18px}
     $('p-tar').textContent = fBRL4.format(tarPond) + '/kWh';
     $('p-tar-d').textContent = fBRL.format(cHFP + cHP) + ' ÷ ' + fN0.format(kwhEq) + ' kWh de crédito';
 
-    /* grupo B */
-    var temB = pos(tb) && isFinite(db) && db >= 0 && db < 100;
+    /* equivalencia com o grupo B, nos dois sentidos. os dois descontos chegam
+       ao mesmo preco do kWh de credito: tarifa B x (1 - desconto B) e tarifa
+       ponderada x (1 - desconto MT). preenchido o do Grupo B, sai o da MT;
+       preenchido o da MT, sai o do Grupo B */
+    var modoMT = !isFinite(db) && isFinite(dm);
+    var temB = pos(tb) && (modoMT ? dm >= 0 && dm < 100 : isFinite(db) && db >= 0 && db < 100);
     mostrar('b-falta', !temB); mostrar('b-corpo', temB);
     if (temB){
-      var d = distAtual();
-      var preco = tb * (1 - db / 100);
-      var descEq = 1 - preco / tarPond;
+      var d = distAtual(), preco, descMT, descB;
+      if (modoMT){ descMT = dm / 100; preco = tarPond * (1 - descMT); descB = 1 - preco / tb; }
+      else       { descB = db / 100;  preco = tb * (1 - descB);       descMT = 1 - preco / tarPond; }
       var eco = kwhEq * (tarPond - preco);
-      $('b-desc').textContent = fPct.format(descEq);
-      $('b-desc-s').textContent = 'O mesmo que dar ' + fN2.format(db) + '% a um cliente B da ' + d.nome + ' a ' + fBRL.format(tb) + '/kWh: o kWh de crédito sai a ' + fBRL4.format(preco) + '.';
+      var refB = 'um cliente B da ' + d.nome + ' a ' + fBRL.format(tb) + '/kWh: o kWh de crédito sai a ' + fBRL4.format(preco) + '.';
+      $('b-desc-t').textContent = modoMT ? 'Equivale a dar no Grupo B' : 'Desconto equivalente neste cliente';
+      $('b-desc').textContent = fPct.format(modoMT ? descB : descMT);
+      $('b-desc-s').textContent = modoMT
+        ? 'Dar ' + fN2.format(dm) + '% neste cliente de MT é o mesmo que dar ' + fPct.format(descB) + ' a ' + refB
+        : 'O mesmo que dar ' + fN2.format(db) + '% a ' + refB;
+      if (modoMT) $('db').placeholder = fN2.format(descB * 100) + ' · equivale';
+      else        $('dm').placeholder = fN2.format(descMT * 100) + ' · equivale';
       $('e-mes').textContent = fBRL.format(eco);
       $('e-ano').textContent = fBRL.format(eco * 12);
-      $('b-aviso').innerHTML = descEq < 0
+      $('b-aviso').innerHTML = descMT < 0
         ? '<div class="note alert"><span class="dot"></span><div><b>Com esse desconto no Grupo B, o kWh de crédito sai mais caro do que este cliente paga hoje.</b> A tarifa ponderada dele é menor que o preço do crédito.</div></div>'
+        : descB < 0
+        ? '<div class="note alert"><span class="dot"></span><div><b>Com esse desconto na média tensão, o kWh de crédito sai acima da tarifa do Grupo B.</b> Para um cliente B, seria um aumento, não um desconto.</div></div>'
         : '';
     }
   }
@@ -1145,10 +1163,14 @@ body.pdf-mode footer{margin-top:18px}
   $('sw-rural').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); definirRural(!temRural); calc(); } });
 
   /* ---------- botoes ---------- */
-  var CAMPOS = ['nome','dc','di','pd','phfp','php','cip','rhfp','rhp','rdem','tb','db'];
+  var CAMPOS = ['nome','dc','di','pd','phfp','php','cip','rhfp','rhp','rdem','tb','db','dm'];
   // a referencia do Grupo B e condicao do vendedor, definida antes da reuniao:
   // o Limpar apaga os dados do cliente e mantem ela
-  var CONDICAO = ['tb','db'];
+  var CONDICAO = ['tb','db','dm'];
+
+  // so um dos dois descontos vale por vez: digitar em um limpa o outro
+  $('db').addEventListener('input', function(){ if ($('db').value.trim()) $('dm').value = ''; });
+  $('dm').addEventListener('input', function(){ if ($('dm').value.trim()) $('db').value = ''; });
 
   function limparTudo(){
     CAMPOS.forEach(function(id){ if (CONDICAO.indexOf(id) < 0) $(id).value = ''; });
@@ -1205,7 +1227,7 @@ body.pdf-mode footer{margin-top:18px}
   $('limpar').addEventListener('click', function(){
     var foto = capturar();
     limparTudo();
-    oferecerDesfazer(foto, 'Campos limpos. A referência do Grupo B foi mantida.');
+    oferecerDesfazer(foto, 'Campos limpos. A tarifa do Grupo B e o desconto foram mantidos.');
   });
   $('limpar-hist').addEventListener('click', function(){
     var foto = capturar();
