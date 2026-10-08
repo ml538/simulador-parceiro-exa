@@ -709,11 +709,15 @@ body.pdf-mode footer{margin-top:18px}
     /* o que falta para calcular a energia */
     var falta = [];
     if (!isFinite(mHFP) || !isFinite(mHP)) falta.push('o histórico de HFP e HP');
-    if (!pos(pHFP)) falta.push('o preço da energia fora ponta');
-    if (!pos(pHP))  falta.push('o preço da energia ponta');
+    // posto com consumo liquido zero (tudo compensado na geracao propria)
+    // nao precisa de preco: a CEMIG nem mostra a linha dele na conta
+    if (!pos(pHFP) && mHFP !== 0) falta.push('o preço da energia fora ponta');
+    if (!pos(pHP)  && mHP  !== 0) falta.push('o preço da energia ponta');
     var kwhEqPrev = (isFinite(mHFP) ? mHFP : 0) + (isFinite(mHP) ? mHP * fator : 0);
     if (!falta.length && kwhEqPrev <= 0) falta.push('um consumo maior que zero no histórico');
     var temEnergia = falta.length === 0;
+    if (!pos(pHFP)) pHFP = 0;
+    if (!pos(pHP))  pHP = 0;
 
     mostrar('c-vazio', !temEnergia);
     mostrar('c-conta', temEnergia);
@@ -962,8 +966,14 @@ body.pdf-mode footer{margin-top:18px}
     if (/^demanda/.test(s)) return /(s\/|sem)\s*icms|n[ãa]o\s*utiliz|isent/.test(s) ? 'demsem' : 'dem';
     if (/^energia/.test(s)){
       // geracao propria: "Energia SCEE HFP/HP ISENTA" e a energia compensada
-      // no mes. ela nao entra no preco e serve para descontar o historico
-      if (/scee/.test(s)) return /\bhp\b|ponta/.test(s) && !/hfp|fora/.test(s) ? 'scee_hp' : 'scee_hfp';
+      // com isencao (a da propria geracao), que se desconta do historico.
+      // "Energia SCEE ... s/ ICMS" e compensacao com saldo de creditos: so
+      // informa. nenhuma das duas entra no preco da energia
+      if (/scee/.test(s)){
+        var hp = /\bhp\b|ponta/.test(s) && !/hfp|fora/.test(s);
+        if (/isent/.test(s)) return hp ? 'scee_hp' : 'scee_hfp';
+        return hp ? 'scee_sem_hp' : 'scee_sem_hfp';
+      }
       if (/compens|injet/.test(s)) return null;
       if (/hfp|fora/.test(s)) return 'ehfp';
       if (/\bhp\b|ponta/.test(s)) return 'ehp';
@@ -1066,9 +1076,10 @@ body.pdf-mode footer{margin-top:18px}
     r.hist.sort(function(a, b){ return b.ord - a.ord; });
 
     // geracao propria: quanto foi compensado no mes desta conta
-    var sH = r.itens.scee_hfp, sP = r.itens.scee_hp;
-    r.gd = !!(sH || sP);
-    r.scee = { hfp: sH && isFinite(sH.q) ? Math.abs(sH.q) : 0, hp: sP && isFinite(sP.q) ? Math.abs(sP.q) : 0 };
+    var qtd = function(x){ return x && isFinite(x.q) ? Math.abs(x.q) : 0; };
+    r.gd = !!(r.itens.scee_hfp || r.itens.scee_hp);
+    r.scee = { hfp: qtd(r.itens.scee_hfp), hp: qtd(r.itens.scee_hp) };
+    r.sceeSem = { hfp: qtd(r.itens.scee_sem_hfp), hp: qtd(r.itens.scee_sem_hp) };
     // mes de consumo da conta: o de referencia, se estiver no proprio
     // historico; senao, o mais recente do historico
     var refCurta = r.referencia ? r.referencia.replace(/\/\d{2}(\d{2})$/, '/$1') : '';
@@ -1117,18 +1128,22 @@ body.pdf-mode footer{margin-top:18px}
     $('hist-gd').hidden = true;
     if (contas.some(function(c){ return c.gd; })){
       var porMes = {};
-      contas.forEach(function(c){ if (c.mesConsumo) porMes[c.mesConsumo] = c.scee; });
-      var ajustados = [], faltam = [];
+      var porConta = {};
+      contas.forEach(function(c){ if (c.mesConsumo) porConta[c.mesConsumo] = c; });
+      var ajustados = [], faltam = [], semHFP = 0, semHP = 0;
       hist.forEach(function(h, i){
-        var s = porMes[h.mes];
-        if (!s){ faltam.push(h.mes); return; }
+        var c = porConta[h.mes];
+        if (!c){ faltam.push(h.mes); return; }
         var ins = rows[i].querySelectorAll('input');
-        ins[1].value = fN0.format(Math.max(0, h.enHFP - s.hfp));
-        ins[2].value = fN0.format(Math.max(0, h.enHP - s.hp));
+        ins[1].value = fN0.format(Math.max(0, h.enHFP - c.scee.hfp));
+        ins[2].value = fN0.format(Math.max(0, h.enHP - c.scee.hp));
+        semHFP += c.sceeSem.hfp; semHP += c.sceeSem.hp;
         ajustados.push(h.mes);
       });
       lidos.push('<b>geração própria</b> (Energia SCEE isenta): HFP e HP descontados da energia compensada em '
         + ajustados.length + ' de ' + hist.length + ' meses');
+      if (semHFP + semHP > 0) lidos.push('compensação com saldo de créditos (Energia SCEE s/ ICMS) de ' + fN0.format(semHFP)
+        + ' kWh fora ponta e ' + fN0.format(semHP) + ' kWh na ponta nesses meses: essa parte ficou no consumo, sem desconto');
       if (faltam.length) avisos.push('<b>O cliente tem geração própria, então o histórico bruto não serve de referência.</b> '
         + 'Faltam as contas de ' + faltam.map(esc).join(', ') + ': nesses meses o consumo ainda está sem o desconto. '
         + 'Envie as 12 contas juntas para descontar mês a mês.');
@@ -1143,10 +1158,26 @@ body.pdf-mode footer{margin-top:18px}
     if (isFinite(r.contratada)){ $('dc').value = brNum(r.contratada, 2); lidos.push('demanda contratada de ' + fN1.format(r.contratada) + ' kW'); }
     else faltou.push('a demanda contratada');
 
+    // quando toda a energia de um posto e compensada, a conta nao traz a
+    // linha (nem o preco) dela. o preco entao vem da conta mais recente que
+    // tiver essa linha
+    function precoDe(cat){
+      for (var k = 0; k < contas.length; k++){
+        var x = contas[k].itens[cat];
+        if (x && isFinite(x.p) && x.p > 0) return { p: x.p, conta: contas[k] };
+      }
+      return null;
+    }
     var precos = [];
-    if (it.dem && isFinite(it.dem.p)){ $('pd').value = brNum(it.dem.p, 8); precos.push('demanda'); } else faltou.push('o preço da demanda');
-    if (it.ehfp && isFinite(it.ehfp.p)){ $('phfp').value = brNum(it.ehfp.p, 8); precos.push('energia fora ponta'); } else faltou.push('o preço da energia fora ponta');
-    if (it.ehp && isFinite(it.ehp.p)){ $('php').value = brNum(it.ehp.p, 8); precos.push('energia ponta'); } else faltou.push('o preço da energia ponta');
+    [['dem', 'pd', 'demanda'], ['ehfp', 'phfp', 'energia fora ponta'], ['ehp', 'php', 'energia ponta']].forEach(function(a){
+      var achou = precoDe(a[0]);
+      if (!achou){
+        faltou.push('o preço da ' + a[2] + (a[0] !== 'dem' && contas.some(function(c){ return c.gd; }) ? ' (a CEMIG não mostra esse preço quando tudo é compensado)' : ''));
+        return;
+      }
+      $(a[1]).value = brNum(achou.p, 8);
+      precos.push(a[2] + (achou.conta !== r && achou.conta.referencia ? ' (da conta de ' + esc(achou.conta.referencia) + ')' : ''));
+    });
     if (precos.length) lidos.push('preços com impostos de ' + precos.join(', ').replace(/, ([^,]*)$/, ' e $1'));
 
     if (it.cip){ $('cip').value = brNum(it.cip.v, 2); lidos.push('iluminação pública de ' + fBRL.format(it.cip.v)); }
