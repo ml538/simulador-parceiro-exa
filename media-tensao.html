@@ -260,9 +260,9 @@ body.pdf-mode footer{margin-top:18px}
       <section class="card">
         <p class="label">Fatura em PDF</p>
         <div class="drop" id="drop">
-          <input type="file" id="arq" accept="application/pdf,.pdf" hidden>
-          <button class="btn solid" id="arq-btn" type="button">Ler a fatura da CEMIG</button>
-          <span class="hint">ou arraste o PDF aqui. A fatura é lida no próprio aparelho e não é enviada para lugar nenhum.</span>
+          <input type="file" id="arq" accept="application/pdf,.pdf" multiple hidden>
+          <button class="btn solid" id="arq-btn" type="button">Ler faturas da CEMIG</button>
+          <span class="hint">ou arraste os PDFs aqui. Dá para enviar até 12 contas juntas: se o cliente tiver geração própria, o consumo é descontado mês a mês. A leitura é feita no próprio aparelho e nada é enviado para lugar nenhum.</span>
         </div>
         <div id="pdf-status" aria-live="polite"></div>
       </section>
@@ -297,6 +297,7 @@ body.pdf-mode footer{margin-top:18px}
           <span class="hint">Dica: copie as colunas da planilha ou do histórico da fatura e cole na primeira célula. As linhas se criam sozinhas.</span>
           <button class="linkbtn" id="limpar-hist" type="button">limpar histórico</button>
         </div>
+        <p class="fonte" id="hist-gd" style="margin-top:10px" hidden></p>
       </section>
 
       <section class="card">
@@ -355,22 +356,22 @@ body.pdf-mode footer{margin-top:18px}
       </section>
 
       <section class="card">
-        <p class="label">Desconto · equivalência com o Grupo B</p>
+        <p class="label">Equivalência de desconto · Grupo B e Grupo A</p>
         <div class="field">
           <label for="tb" id="tb-l">Tarifa atual da distribuidora</label>
           <div class="ig w-m"><span class="pre">R$</span><input id="tb" inputmode="decimal" placeholder="0,00"><span class="unit">/kWh</span></div>
         </div>
         <div class="two">
           <div class="field">
-            <label for="db">Desconto no Grupo B</label>
+            <label for="db">Desconto Grupo B · baixa tensão</label>
             <div class="ig w-m"><input id="db" inputmode="decimal" placeholder="0"><span class="unit">%</span></div>
           </div>
           <div class="field">
-            <label for="dm">Desconto na média tensão</label>
+            <label for="dm">Desconto Grupo A · média tensão</label>
             <div class="ig w-m"><input id="dm" inputmode="decimal" placeholder="0"><span class="unit">%</span></div>
           </div>
         </div>
-        <p class="fonte">Tarifa convencional do Grupo B, com impostos. Preencha um dos dois descontos e o outro mostra o equivalente: o do Grupo B diz quanto dar a este cliente de MT, e o da média tensão diz quanto isso seria para um cliente B.</p>
+        <p class="fonte">Tarifa convencional do Grupo B (baixa tensão), com impostos. Preencha um dos dois descontos e o outro mostra o equivalente: o do Grupo B diz quanto dar a este cliente do Grupo A, e o do Grupo A diz quanto isso seria para um cliente do Grupo B.</p>
       </section>
     </div>
 
@@ -400,10 +401,10 @@ body.pdf-mode footer{margin-top:18px}
         <div class="row"><span class="k">Ponta, ajustada pelo fator <small id="p-hp-d"></small></span><span class="v big" id="p-hp">—</span></div>
         <div class="row tot"><span class="k">Tarifa média ponderada <small id="p-tar-d"></small></span><span class="v big" id="p-tar">—</span></div>
 
-        <div class="note gap" id="b-falta"><span class="dot"></span><div>Informe a tarifa do Grupo B e um dos descontos, no Grupo B ou na média tensão, para ver a equivalência.</div></div>
+        <div class="note gap" id="b-falta"><span class="dot"></span><div>Informe a tarifa do Grupo B e um dos descontos, Grupo B ou Grupo A, para ver a equivalência.</div></div>
         <div id="b-corpo">
           <div class="hero">
-            <p class="t" id="b-desc-t">Desconto equivalente neste cliente</p>
+            <p class="t" id="b-desc-t">Desconto equivalente · Grupo A, média tensão</p>
             <div class="n big" id="b-desc">—</div>
             <div class="s" id="b-desc-s"></div>
           </div>
@@ -843,11 +844,11 @@ body.pdf-mode footer{margin-top:18px}
       if (modoMT){ descMT = dm / 100; preco = tarPond * (1 - descMT); descB = 1 - preco / tb; }
       else       { descB = db / 100;  preco = tb * (1 - descB);       descMT = 1 - preco / tarPond; }
       var eco = kwhEq * (tarPond - preco);
-      var refB = 'um cliente B da ' + d.nome + ' a ' + fBRL.format(tb) + '/kWh: o kWh de crédito sai a ' + fBRL4.format(preco) + '.';
-      $('b-desc-t').textContent = modoMT ? 'Equivale a dar no Grupo B' : 'Desconto equivalente neste cliente';
+      var refB = 'um cliente do Grupo B da ' + d.nome + ' a ' + fBRL.format(tb) + '/kWh: o kWh de crédito sai a ' + fBRL4.format(preco) + '.';
+      $('b-desc-t').textContent = modoMT ? 'Desconto equivalente · Grupo B, baixa tensão' : 'Desconto equivalente · Grupo A, média tensão';
       $('b-desc').textContent = fPct.format(modoMT ? descB : descMT);
       $('b-desc-s').textContent = modoMT
-        ? 'Dar ' + fN2.format(dm) + '% neste cliente de MT é o mesmo que dar ' + fPct.format(descB) + ' a ' + refB
+        ? 'Dar ' + fN2.format(dm) + '% neste cliente do Grupo A é o mesmo que dar ' + fPct.format(descB) + ' a ' + refB
         : 'O mesmo que dar ' + fN2.format(db) + '% a ' + refB;
       if (modoMT) $('db').placeholder = fN2.format(descB * 100) + ' · equivale';
       else        $('dm').placeholder = fN2.format(descMT * 100) + ' · equivale';
@@ -856,7 +857,7 @@ body.pdf-mode footer{margin-top:18px}
       $('b-aviso').innerHTML = descMT < 0
         ? '<div class="note alert"><span class="dot"></span><div><b>Com esse desconto no Grupo B, o kWh de crédito sai mais caro do que este cliente paga hoje.</b> A tarifa ponderada dele é menor que o preço do crédito.</div></div>'
         : descB < 0
-        ? '<div class="note alert"><span class="dot"></span><div><b>Com esse desconto na média tensão, o kWh de crédito sai acima da tarifa do Grupo B.</b> Para um cliente B, seria um aumento, não um desconto.</div></div>'
+        ? '<div class="note alert"><span class="dot"></span><div><b>Com esse desconto no Grupo A, o kWh de crédito sai acima da tarifa do Grupo B.</b> Para um cliente do Grupo B, seria um aumento, não um desconto.</div></div>'
         : '';
     }
   }
@@ -872,7 +873,7 @@ body.pdf-mode footer{margin-top:18px}
   function pctFator(d){ return brNum((fatorDe(d) - 1) * 100, 2) + '%'; }
   function aplicarDistribuidora(){
     var d = distAtual();
-    $('tb-l').textContent = 'Tarifa atual da ' + d.nome;
+    $('tb-l').textContent = 'Tarifa Grupo B · ' + d.nome;
     $('fonte-fator').innerHTML = '<b>Fator ponta sobre fora ponta: ' + pctFator(d) + '</b> · <b>ICMS: ' + brNum(d.icms, 2) + '% (' + d.uf + ')</b>. '
       + 'Os dois vêm da distribuidora. O fator compara a TE de ponta (R$ ' + brNum(d.tePonta, 2) + '/MWh) com a de fora ponta (R$ '
       + brNum(d.teForaPonta, 2) + '/MWh) homologadas pela ANEEL para a ' + d.nome + ' ' + d.subgrupo + ' ' + d.modalidade
@@ -960,6 +961,10 @@ body.pdf-mode footer{margin-top:18px}
     if (/ultrapass/.test(s)) return 'ult';
     if (/^demanda/.test(s)) return /(s\/|sem)\s*icms|n[ãa]o\s*utiliz|isent/.test(s) ? 'demsem' : 'dem';
     if (/^energia/.test(s)){
+      // geracao propria: "Energia SCEE HFP/HP ISENTA" e a energia compensada
+      // no mes. ela nao entra no preco e serve para descontar o historico
+      if (/scee/.test(s)) return /\bhp\b|ponta/.test(s) && !/hfp|fora/.test(s) ? 'scee_hp' : 'scee_hfp';
+      if (/compens|injet/.test(s)) return null;
       if (/hfp|fora/.test(s)) return 'ehfp';
       if (/\bhp\b|ponta/.test(s)) return 'ehp';
       return null;
@@ -1059,7 +1064,22 @@ body.pdf-mode footer{margin-top:18px}
                     demHP: ns[0], demHFP: ns[1], enHP: ns[2], enHFP: ns[3] });
     });
     r.hist.sort(function(a, b){ return b.ord - a.ord; });
+
+    // geracao propria: quanto foi compensado no mes desta conta
+    var sH = r.itens.scee_hfp, sP = r.itens.scee_hp;
+    r.gd = !!(sH || sP);
+    r.scee = { hfp: sH && isFinite(sH.q) ? Math.abs(sH.q) : 0, hp: sP && isFinite(sP.q) ? Math.abs(sP.q) : 0 };
+    // mes de consumo da conta: o de referencia, se estiver no proprio
+    // historico; senao, o mais recente do historico
+    var refCurta = r.referencia ? r.referencia.replace(/\/\d{2}(\d{2})$/, '/$1') : '';
+    var noHist = r.hist.filter(function(h){ return h.mes === refCurta; })[0];
+    r.mesConsumo = noHist ? noHist.mes : (r.hist[0] ? r.hist[0].mes : refCurta);
+    r.ordConsumo = ordMes(r.mesConsumo);
     return r;
+  }
+  function ordMes(rotulo){
+    var m = MES_RE.exec(rotulo || '');
+    return m ? (2000 + +m[2]) * 12 + MESES.indexOf(m[1].toUpperCase()) : -1;
   }
 
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
@@ -1067,7 +1087,10 @@ body.pdf-mode footer{margin-top:18px}
     $('pdf-status').innerHTML = '<div class="note' + (alerta ? ' alert' : '') + '" style="margin-top:0"><span class="dot"></span><div>' + html + '</div></div>';
   }
 
-  function aplicarFatura(r){
+  // r e a conta mais recente (preencheu precos, demanda e historico). contas
+  // traz todas as que foram enviadas juntas, para o desconto da geracao propria
+  function aplicarFatura(r, contas){
+    contas = contas && contas.length ? contas : [r];
     ['nome','dc','di','pd','phfp','php','cip','rhfp','rhp','rdem'].forEach(function(id){ $(id).value = ''; });
     var it = r.itens, lidos = [], faltou = [], avisos = [];
     if (r.cemig) $('dist').value = 'cemig-d';
@@ -1087,6 +1110,35 @@ body.pdf-mode footer{margin-top:18px}
     });
     if (hist.length) lidos.push(hist.length + ' meses de histórico (' + esc(hist[hist.length - 1].mes) + ' a ' + esc(hist[0].mes) + '), com a demanda de cada mês pela maior entre ponta e fora ponta');
     else faltou.push('o histórico de consumo');
+
+    // geracao propria: o historico mostra o consumo bruto. o que o cliente
+    // de fato compra da rede e o historico menos a energia compensada (SCEE
+    // isenta), que so aparece na conta de cada mes
+    $('hist-gd').hidden = true;
+    if (contas.some(function(c){ return c.gd; })){
+      var porMes = {};
+      contas.forEach(function(c){ if (c.mesConsumo) porMes[c.mesConsumo] = c.scee; });
+      var ajustados = [], faltam = [];
+      hist.forEach(function(h, i){
+        var s = porMes[h.mes];
+        if (!s){ faltam.push(h.mes); return; }
+        var ins = rows[i].querySelectorAll('input');
+        ins[1].value = fN0.format(Math.max(0, h.enHFP - s.hfp));
+        ins[2].value = fN0.format(Math.max(0, h.enHP - s.hp));
+        ajustados.push(h.mes);
+      });
+      lidos.push('<b>geração própria</b> (Energia SCEE isenta): HFP e HP descontados da energia compensada em '
+        + ajustados.length + ' de ' + hist.length + ' meses');
+      if (faltam.length) avisos.push('<b>O cliente tem geração própria, então o histórico bruto não serve de referência.</b> '
+        + 'Faltam as contas de ' + faltam.map(esc).join(', ') + ': nesses meses o consumo ainda está sem o desconto. '
+        + 'Envie as 12 contas juntas para descontar mês a mês.');
+      $('hist-gd').hidden = false;
+      $('hist-gd').innerHTML = '<b>Geração própria:</b> HFP e HP já descontados da energia compensada (SCEE isenta) em '
+        + ajustados.length + ' de ' + hist.length + ' meses'
+        + (faltam.length ? '. Ainda sem a conta de ' + faltam.map(esc).join(', ') + '.' : '.');
+    }
+    var nomes = contas.map(function(c){ return (c.cliente || '').toUpperCase(); }).filter(Boolean);
+    if (nomes.some(function(n){ return n !== nomes[0]; })) avisos.push('<b>As contas enviadas parecem ser de clientes diferentes.</b> Confira se são todas da mesma unidade.');
 
     if (isFinite(r.contratada)){ $('dc').value = brNum(r.contratada, 2); lidos.push('demanda contratada de ' + fN1.format(r.contratada) + ' kW'); }
     else faltou.push('a demanda contratada');
@@ -1111,7 +1163,9 @@ body.pdf-mode footer{margin-top:18px}
 
     aplicarDistribuidora();
 
-    var titulo = 'Fatura ' + (r.referencia ? 'de ' + esc(r.referencia) + ' ' : '') + 'lida'
+    var titulo = (contas.length > 1
+        ? contas.length + ' faturas lidas · preços e histórico da mais recente' + (r.referencia ? ', de ' + esc(r.referencia) : '')
+        : 'Fatura ' + (r.referencia ? 'de ' + esc(r.referencia) + ' ' : '') + 'lida')
       + (r.modalidade ? ' · ' + esc(r.modalidade) + ' ' + esc(r.subgrupo || '') : '')
       + (isFinite(r.total) ? ' · total de ' + fBRL.format(r.total) : '') + '.';
     var html = '<b>' + titulo + '</b> Confira os campos abaixo.<ul>'
@@ -1121,36 +1175,68 @@ body.pdf-mode footer{margin-top:18px}
     pdfStatus(html, faltou.length > 0 || avisos.length > 0);
   }
 
-  async function importar(file){
+  async function lerUmaFatura(file){
+    var buf = await lerArquivo(file);
+    var pags;
+    try { pags = await paginasDoPdf(buf); }
+    catch (e){
+      if (e && e.message === 'leitor') throw new Error('Não consegui carregar o leitor de PDF. Confira a internet e tente de novo, ou preencha à mão.');
+      throw new Error('Não consegui abrir este arquivo como PDF.');
+    }
+    var nTexto = pags.reduce(function(n, p){ return n + p.length; }, 0);
+    if (!nTexto) throw new Error('Este PDF parece ser uma imagem escaneada, sem texto para ler. Baixe a 2ª via em PDF no site da CEMIG ou preencha à mão.');
+    var r = extrairFatura(pags);
+    if (!r.hist.length && !r.itens.ehfp && !r.itens.dem) throw new Error('Não reconheci o layout desta fatura. Preencha à mão.');
+    return r;
+  }
+
+  // aceita uma conta ou varias de uma vez (ate 13). com varias, a mais
+  // recente preenche precos, demanda e historico, e as outras servem para
+  // descontar a geracao propria mes a mes
+  var MAX_CONTAS = 13;
+  async function importar(lista){
+    var arquivos = Array.prototype.slice.call(lista || []).filter(function(f){ return /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name); });
+    if (!arquivos.length){ pdfStatus('<b>Envie a fatura em PDF.</b>', true); return; }
+    var sobra = arquivos.length - MAX_CONTAS;
+    arquivos = arquivos.slice(0, MAX_CONTAS);
     var btn = $('arq-btn');
-    btn.disabled = true; btn.textContent = 'Lendo a fatura…';
-    pdfStatus('Lendo a fatura…');
+    btn.disabled = true;
+    var lidas = [], erros = [];
     try {
-      var buf = await lerArquivo(file);
-      var pags;
-      try { pags = await paginasDoPdf(buf); }
-      catch (e){
-        if (e && e.message === 'leitor') throw new Error('Não consegui carregar o leitor de PDF. Confira a internet e tente de novo, ou preencha à mão.');
-        throw new Error('Não consegui abrir este arquivo como PDF.');
+      for (var i = 0; i < arquivos.length; i++){
+        var msg = arquivos.length > 1 ? 'Lendo a fatura ' + (i + 1) + ' de ' + arquivos.length + '…' : 'Lendo a fatura…';
+        btn.textContent = msg; pdfStatus(msg);
+        try { lidas.push(await lerUmaFatura(arquivos[i])); }
+        catch (e){
+          if (e && /leitor de PDF/.test(e.message)) throw e;
+          erros.push({ nome: arquivos[i].name, msg: (e && e.message) || 'Não consegui ler a fatura.' });
+        }
       }
-      var nTexto = pags.reduce(function(n, p){ return n + p.length; }, 0);
-      if (!nTexto) throw new Error('Este PDF parece ser uma imagem escaneada, sem texto para ler. Baixe a 2ª via em PDF no site da CEMIG ou preencha à mão.');
-      var r = extrairFatura(pags);
-      if (!r.hist.length && !r.itens.ehfp && !r.itens.dem) throw new Error('Não reconheci o layout desta fatura. Preencha à mão.');
-      aplicarFatura(r);
+      if (!lidas.length) throw new Error(arquivos.length > 1 ? 'Não consegui ler nenhuma das faturas.' : erros[0].msg);
+      lidas.sort(function(a, b){ return b.ordConsumo - a.ordConsumo; });
+      aplicarFatura(lidas[0], lidas);
+      var extra = [];
+      if (erros.length) extra.push('Não li ' + erros.length + (erros.length === 1 ? ' arquivo' : ' arquivos') + ': '
+        + erros.map(function(x){ return esc(x.nome) + ' (' + esc(x.msg) + ')'; }).join('; ') + '.');
+      if (sobra > 0) extra.push('Enviei só as primeiras ' + MAX_CONTAS + ' contas; as outras ' + sobra + ' ficaram de fora.');
+      if (extra.length){
+        var nota = $('pdf-status').querySelector('.note > div');
+        if (nota) nota.insertAdjacentHTML('beforeend', '<br>' + extra.join('<br>'));
+        $('pdf-status').querySelector('.note').classList.add('alert');
+      }
     } catch (e){
       pdfStatus('<b>' + esc(e.message || 'Não consegui ler a fatura.') + '</b>', true);
     } finally {
-      btn.disabled = false; btn.textContent = 'Ler a fatura da CEMIG';
+      btn.disabled = false; btn.textContent = 'Ler faturas da CEMIG';
     }
   }
 
   $('arq-btn').addEventListener('click', function(){ $('arq').click(); });
-  $('arq').addEventListener('change', function(){ if (this.files && this.files[0]) importar(this.files[0]); this.value = ''; });
+  $('arq').addEventListener('change', function(){ if (this.files && this.files.length) importar(this.files); this.value = ''; });
   var drop = $('drop');
   ['dragenter','dragover'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('over'); }); });
   ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
-  drop.addEventListener('drop', function(e){ var f = e.dataTransfer && e.dataTransfer.files[0]; if (f) importar(f); });
+  drop.addEventListener('drop', function(e){ var fs = e.dataTransfer && e.dataTransfer.files; if (fs && fs.length) importar(fs); });
 
   /* ---------- unidade rural ou com sazonalidade reconhecida ---------- */
   var temRural = false;
@@ -1175,6 +1261,7 @@ body.pdf-mode footer{margin-top:18px}
   function limparTudo(){
     CAMPOS.forEach(function(id){ if (CONDICAO.indexOf(id) < 0) $(id).value = ''; });
     $('pdf-status').innerHTML = '';
+    $('hist-gd').hidden = true;
     definirRural(false);
     montarHistorico();
     aplicarDistribuidora();
@@ -1189,7 +1276,8 @@ body.pdf-mode footer{margin-top:18px}
         return Array.prototype.map.call(tr.querySelectorAll('input'), function(i){ return i.value; });
       }),
       rural: temRural,
-      status: $('pdf-status').innerHTML
+      status: $('pdf-status').innerHTML,
+      gd: $('hist-gd').hidden ? '' : $('hist-gd').innerHTML
     };
   }
   function restaurar(s){
@@ -1203,6 +1291,7 @@ body.pdf-mode footer{margin-top:18px}
     });
     definirRural(s.rural);
     $('pdf-status').innerHTML = s.status;
+    $('hist-gd').innerHTML = s.gd; $('hist-gd').hidden = !s.gd;
     aplicarDistribuidora();
   }
 
@@ -1231,7 +1320,7 @@ body.pdf-mode footer{margin-top:18px}
   });
   $('limpar-hist').addEventListener('click', function(){
     var foto = capturar();
-    montarHistorico(); calc();
+    montarHistorico(); $('hist-gd').hidden = true; calc();
     oferecerDesfazer(foto, 'Histórico limpo.');
   });
 
