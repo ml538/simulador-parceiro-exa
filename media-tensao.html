@@ -967,8 +967,8 @@ body.pdf-mode footer{margin-top:18px}
     if (/^energia/.test(s)){
       // geracao propria: "Energia SCEE HFP/HP ISENTA" e a energia compensada
       // com isencao (a da propria geracao), que se desconta do historico.
-      // "Energia SCEE ... s/ ICMS" e compensacao com saldo de creditos: so
-      // informa. nenhuma das duas entra no preco da energia
+      // "Energia SCEE ... s/ ICMS" e energia de um gerador de fora: continua
+      // no consumo de referencia. nenhuma das duas entra no preco da energia
       if (/scee/.test(s)){
         var hp = /\bhp\b|ponta/.test(s) && !/hfp|fora/.test(s);
         if (/isent/.test(s)) return hp ? 'scee_hp' : 'scee_hfp';
@@ -1142,8 +1142,8 @@ body.pdf-mode footer{margin-top:18px}
       });
       lidos.push('<b>geração própria</b> (Energia SCEE isenta): HFP e HP descontados da energia compensada em '
         + ajustados.length + ' de ' + hist.length + ' meses');
-      if (semHFP + semHP > 0) lidos.push('compensação com saldo de créditos (Energia SCEE s/ ICMS) de ' + fN0.format(semHFP)
-        + ' kWh fora ponta e ' + fN0.format(semHP) + ' kWh na ponta nesses meses: essa parte ficou no consumo, sem desconto');
+      if (semHFP + semHP > 0) lidos.push(fN0.format(semHFP) + ' kWh fora ponta e ' + fN0.format(semHP) + ' kWh na ponta vieram de um gerador de fora (Energia SCEE s/ ICMS) nesses meses: '
+        + 'continuam no consumo de referência, porque não são geração própria');
       if (faltam.length) avisos.push('<b>O cliente tem geração própria, então o histórico bruto não serve de referência.</b> '
         + 'Faltam as contas de ' + faltam.map(esc).join(', ') + ': nesses meses o consumo ainda está sem o desconto. '
         + 'Envie as 12 contas juntas para descontar mês a mês.');
