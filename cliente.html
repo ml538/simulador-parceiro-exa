@@ -49,6 +49,18 @@ header{display:flex; align-items:center; justify-content:space-between; gap:16px
 .toast[hidden]{display:none}
 .toast button{background:none; border:none; color:var(--accent2); font:inherit; font-weight:700; cursor:pointer; padding:5px 10px; border-radius:999px; white-space:nowrap}
 .toast button:hover{background:var(--panel)}
+
+/* ---- leitura da conta em PDF ---- */
+.drop{display:flex; align-items:center; gap:12px; flex-wrap:wrap; border:1px dashed var(--border); border-radius:18px; padding:12px 14px; background:var(--bg); margin-bottom:16px; transition:border-color .15s, background .15s}
+.drop.over{border-color:var(--accent); background:var(--panel)}
+.drop .hint{flex:1; min-width:170px}
+.btn:disabled{opacity:.6; cursor:progress}
+.pdf-note{display:flex; gap:10px; align-items:flex-start; background:var(--panel); border-radius:14px; padding:11px 13px; font-size:12.5px; color:var(--body); line-height:1.5; margin:-6px 0 16px}
+.pdf-note b{color:var(--head)}
+.pdf-note.alerta{background:transparent; border:1px solid var(--warn)}
+.pdf-note ul{margin:4px 0 0; padding-left:16px}
+.pdf-note .dot{width:7px; height:7px; border-radius:99px; background:var(--accent); margin-top:6px; flex:none}
+.pdf-note.alerta .dot{background:var(--warn)}
 .btn{background:var(--card); color:var(--body); border:1px solid var(--border); border-radius:999px; padding:8px 15px; font:inherit; font-size:12px; cursor:pointer}
 .btn:hover{color:var(--head)}
 .backbtn{text-decoration:none; display:inline-flex; align-items:center; gap:5px}
@@ -242,6 +254,13 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     <!-- ============ ENTRADAS ============ -->
     <section class="card no-print">
       <p class="label">Dados do cliente</p>
+
+      <div class="drop" id="drop">
+        <input type="file" id="arq" accept="application/pdf,.pdf" multiple hidden>
+        <button class="btn solid" id="arq-btn" type="button">Ler contas da CEMIG</button>
+        <span class="hint">ou arraste os PDFs aqui. Cada conta vira uma unidade, com a média dos últimos 12 meses. A leitura é feita no próprio aparelho e nada é enviado para lugar nenhum.</span>
+      </div>
+      <div id="pdf-status" aria-live="polite"></div>
 
       <div class="field">
         <label for="cliente">Nome do cliente</label>
@@ -769,6 +788,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   function estadoInicial(){
     $('cliente').value = QS.cliente || CONFIG.nomeCliente;
     $('tarifa').value  = ini('tarifa', CONFIG.tarifaPadrao);
+    $('pdf-status').innerHTML = '';
     $('ucs').innerHTML = '';
     $('ucs').appendChild(linhaUC('', ini('kwh', '') || ''));
     definirAtual(QS.atual !== undefined);
@@ -780,11 +800,245 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   $('dexaMax').value = fmtPct(ini('maxexa', CONFIG.descontoMaximo));
   estadoInicial();
 
+  /* ---------- leitura da conta da CEMIG em PDF ---------- */
+  // cada conta vira uma unidade, com a media dos ultimos 12 meses do
+  // historico, o tipo de ligacao e a CIP. a tarifa com impostos vem da conta
+  // mais recente. tudo e lido no proprio aparelho, nada sai daqui
+  var PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  var carregandoPdf = null;
+  function carregarPdfJs(){
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if (carregandoPdf) return carregandoPdf;
+    carregandoPdf = new Promise(function(res, rej){
+      var s = document.createElement('script');
+      s.src = PDFJS + 'pdf.min.js';
+      s.onload = function(){ window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js'; res(window.pdfjsLib); };
+      s.onerror = function(){ carregandoPdf = null; rej(new Error('leitor')); };
+      document.head.appendChild(s);
+    });
+    return carregandoPdf;
+  }
+  function lerArquivo(file){
+    return new Promise(function(res, rej){
+      var fr = new FileReader();
+      fr.onload = function(){ res(fr.result); };
+      fr.onerror = function(){ rej(fr.error); };
+      fr.readAsArrayBuffer(file);
+    });
+  }
+  // junta os pedacos de texto em linhas, pela altura na pagina
+  function linhasDaPagina(itens){
+    var grupos = [];
+    itens.forEach(function(i){
+      var g = null;
+      for (var k = 0; k < grupos.length; k++) if (Math.abs(grupos[k].y - i.y) <= 2){ g = grupos[k]; break; }
+      if (!g){ g = { y: i.y, it: [] }; grupos.push(g); }
+      g.it.push(i);
+    });
+    grupos.forEach(function(g){
+      g.it.sort(function(a, b){ return a.x - b.x; });
+      g.txt = g.it.map(function(i){ return i.s; }).join(' ');
+    });
+    return grupos.sort(function(a, b){ return b.y - a.y; });
+  }
+  async function paginasDoPdf(buf){
+    var lib = await carregarPdfJs();
+    var doc = await lib.getDocument({ data: new Uint8Array(buf) }).promise;
+    var paginas = [];
+    for (var p = 1; p <= doc.numPages; p++){
+      var tc = await (await doc.getPage(p)).getTextContent();
+      paginas.push(linhasDaPagina(tc.items.filter(function(i){ return i.str && i.str.trim(); })
+        .map(function(i){ return { s: i.str.trim(), x: i.transform[4], y: i.transform[5] }; })));
+    }
+    return paginas;
+  }
+  // aceita "12.601", "12601", "0,635", "R$ 30,22"
+  function lerNum(s){
+    if (s === null || s === undefined) return NaN;
+    s = String(s).trim().replace(/R\$|kWh|kW|%|\s/gi, '');
+    if (s === '' || s === '-') return NaN;
+    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+    var n = parseFloat(s);
+    return isFinite(n) ? n : NaN;
+  }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+  var brl4 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:4,maximumFractionDigits:4});
+  var MESES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  var MES_RE = /^(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/(\d{2})$/i;
+  var NUM = '(-?\\d[\\d.]*(?:,\\d+)?)';
+  var ITEM_RE = new RegExp('^(.+?)\\s+(kWh|kW|kVArh|kVAr)\\s+' + NUM + '\\s+' + NUM + '\\s+' + NUM, 'i');
+  var NOME_FASE = { mono: 'monofásico', bi: 'bifásico', tri: 'trifásico' };
+
+  // varias linhas de energia: componentes (mesma quantidade) ou periodos
+  // de tarifa diferentes (quantidades que somam)
+  function somar(lista){
+    if (!lista.length) return null;
+    var v = 0; lista.forEach(function(x){ v += x.v; });
+    var qs = lista.map(function(x){ return x.q; }).filter(function(q){ return isFinite(q); });
+    var mesmaQ = qs.length === lista.length && qs.every(function(q){ return Math.abs(q - qs[0]) < 1e-6; });
+    var q = !qs.length ? NaN : (lista.length > 1 && mesmaQ ? qs[0] : qs.reduce(function(a, b){ return a + b; }, 0));
+    var p = lista.length === 1 && isFinite(lista[0].p) ? lista[0].p : (q > 0 ? v / q : NaN);
+    return { q: q, p: p, v: v };
+  }
+  function ordRef(rotulo){
+    var m = /^(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/(\d{4})$/i.exec(rotulo || '');
+    return m ? +m[2] * 12 + MESES.indexOf(m[1].toUpperCase()) : -1;
+  }
+
+  function extrairConta(paginas){
+    var linhas = [];
+    paginas.forEach(function(ls){ linhas = linhas.concat(ls); });
+    var tudo = linhas.map(function(l){ return l.txt; }).join('\n');
+    var r = { energia: [], hist: [], cip: 0 };
+    r.grupoA = /Demanda\s+Ativa|Grandezas Contratadas|\b(Verde|Azul)\s+A\d/i.test(tudo);
+    var ref = tudo.match(/\b(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/\d{4}\b/i);
+    if (ref) r.referencia = ref[0].toUpperCase();
+    // nome: o que vem antes de "Referente a" no cabecalho
+    linhas.some(function(l){
+      var m = /^(.+?)\s+Referente a\b/i.exec(l.txt);
+      if (m && m[1].trim().length > 2){ r.cliente = m[1].trim(); return true; }
+      return false;
+    });
+    var lig = /\b(mono|bi|tri)f[áa]sic/i.exec(tudo);
+    if (lig) r.fase = lig[1].toLowerCase();
+    // numero da unidade consumidora: na linha abaixo do titulo do quadro
+    for (var i = 0; i < linhas.length && !r.uc; i++){
+      if (!/Unidade Consumidora/i.test(linhas[i].txt)) continue;
+      for (var k = i + 1; k < Math.min(linhas.length, i + 3); k++){
+        var nums = linhas[k].txt.match(/\b\d{8,12}\b/g);
+        if (nums){ r.uc = nums.length > 1 ? nums[1] : nums[0]; break; }
+      }
+    }
+    // itens da fatura: energia (para a tarifa) e iluminacao publica
+    var dentro = false;
+    linhas.forEach(function(l){
+      if (/Itens da Fatura/i.test(l.txt)){ dentro = true; return; }
+      if (!dentro) return;
+      if (/^TOTAL\b/i.test(l.txt)){ dentro = false; return; }
+      var m = ITEM_RE.exec(l.txt);
+      if (m){
+        var rot = m[1].toLowerCase();
+        if (/^energia/.test(rot) && /scee/.test(rot) && /isent/.test(rot)) r.gd = true;
+        if (/^energia/.test(rot) && !/scee|compens|injet|reativ/.test(rot) && /^kwh$/i.test(m[2]))
+          r.energia.push({ q: lerNum(m[3]), p: lerNum(m[4]), v: lerNum(m[5]) });
+        return;
+      }
+      var c = /^(.*?(?:ilum|\bcip\b|cosip).*?)\s+(-?\d[\d.]*,\d{2})(?:\s|$)/i.exec(l.txt);
+      if (c) r.cip += lerNum(c[2]) || 0;
+    });
+    var e = somar(r.energia);
+    if (e && isFinite(e.p) && e.p > 0) r.tarifa = e.p;
+    // historico: linhas que comecam com o mes ("SET/26 668 ..."); o primeiro
+    // numero e o consumo em kWh
+    var vistos = {};
+    linhas.forEach(function(l){
+      var toks = l.txt.split(/\s+/), m = MES_RE.exec(toks[0] || '');
+      if (!m) return;
+      var ns = toks.slice(1).map(lerNum).filter(function(n){ return isFinite(n); });
+      var mes = toks[0].toUpperCase();
+      if (!ns.length || vistos[mes]) return;
+      vistos[mes] = true;
+      r.hist.push({ mes: mes, ord: (2000 + +m[2]) * 12 + MESES.indexOf(m[1].toUpperCase()), kwh: ns[0] });
+    });
+    r.hist.sort(function(a, b){ return b.ord - a.ord; });
+    var ult = r.hist.slice(0, 12);
+    r.meses = ult.length;
+    r.media = ult.length ? ult.reduce(function(s, h){ return s + h.kwh; }, 0) / ult.length : NaN;
+    r.de = ult.length ? ult[ult.length - 1].mes : '';
+    r.ate = ult.length ? ult[0].mes : '';
+    return r;
+  }
+
+  function pdfStatus(html, alerta){
+    $('pdf-status').innerHTML = '<div class="pdf-note' + (alerta ? ' alerta' : '') + '"><span class="dot"></span><div>' + html + '</div></div>';
+  }
+
+  function aplicarContas(contas, erros){
+    var foto = capturar();
+    var base = contas.slice().sort(function(a, b){ return ordRef(b.referencia) - ordRef(a.referencia); })[0];
+    var itens = [], avisos = [];
+    if (!$('cliente').value.trim() && base.cliente) $('cliente').value = base.cliente;
+    if (isFinite(base.tarifa)) $('tarifa').value = +base.tarifa.toFixed(6);
+    else avisos.push('Não encontrei a tarifa na conta mais recente (acontece quando toda a energia é compensada). Preencha à mão.');
+    $('ucs').innerHTML = '';
+    contas.forEach(function(c, i){
+      var nome = c.uc ? 'UC ' + c.uc : (contas.length > 1 ? 'Unidade ' + (i + 1) : '');
+      var d = linhaUC(nome, Math.round(c.media));
+      if (c.fase) d.querySelector('.u-fase').value = c.fase;
+      if (c.cip > 0) d.querySelector('.u-cip').value = c.cip.toFixed(2);
+      $('ucs').appendChild(d);
+      itens.push('<li>' + esc(nome || 'Unidade') + ': média de <b>' + num.format(Math.round(c.media)) + ' kWh/mês</b> ('
+        + c.meses + (c.meses === 1 ? ' mês' : ' meses') + (c.meses > 1 ? ', ' + esc(c.de) + ' a ' + esc(c.ate) : '') + ')'
+        + (c.fase ? ' · ' + NOME_FASE[c.fase] : '') + (c.cip > 0 ? ' · CIP de ' + brl.format(c.cip) : '') + '</li>');
+      if (c.meses < 12) avisos.push(esc(nome || 'A unidade') + ' tem só ' + c.meses + (c.meses === 1 ? ' mês' : ' meses') + ' de histórico na conta.');
+      if (c.gd) avisos.push(esc(nome || 'A unidade') + ' tem geração própria (Energia SCEE isenta): a média do histórico inclui a energia compensada. Confira o consumo antes de propor.');
+    });
+    atualizarTetos();
+    var tars = contas.map(function(c){ return c.tarifa; }).filter(function(t){ return isFinite(t); });
+    if (tars.some(function(t){ return Math.abs(t - tars[0]) / tars[0] > 0.01; })) avisos.push('As contas têm tarifas diferentes; usei a da mais recente.');
+    if (erros.length) avisos.push('Não li ' + erros.map(function(x){ return esc(x.nome) + ' (' + esc(x.msg) + ')'; }).join('; ') + '.');
+    var html = '<b>' + (contas.length > 1 ? contas.length + ' contas lidas.' : 'Conta' + (base.referencia ? ' de ' + esc(base.referencia) : '') + ' lida.') + '</b> Confira os campos.'
+      + '<ul>' + itens.join('') + '</ul>'
+      + (isFinite(base.tarifa) ? 'Tarifa de <b>' + brl4.format(base.tarifa) + '/kWh</b> com impostos' + (base.referencia ? ', da conta de ' + esc(base.referencia) : '') + '.' : '')
+      + (contas.some(function(c){ return c.fase || c.cip > 0; }) ? ' A ligação e a CIP já estão nas unidades: para somar a taxa mínima e a CIP, ligue “Incluir o que continua sendo pago à CEMIG”.' : '');
+    if (avisos.length) html += '<br>' + avisos.join('<br>');
+    pdfStatus(html, avisos.length > 0);
+    // um toque para voltar ao que estava antes da leitura
+    desfazerFoto = foto;
+    $('toast-t').textContent = 'Unidades preenchidas pelas contas.';
+    $('toast').hidden = false;
+    clearTimeout(desfazerTimer);
+    desfazerTimer = setTimeout(fecharDesfazer, 8000);
+  }
+
+  async function importar(lista){
+    var arquivos = Array.prototype.slice.call(lista || []).filter(function(f){ return /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name); }).slice(0, 20);
+    if (!arquivos.length){ pdfStatus('<b>Envie a conta em PDF.</b>', true); return; }
+    var btn = $('arq-btn'), contas = [], erros = [];
+    btn.disabled = true;
+    try {
+      for (var i = 0; i < arquivos.length; i++){
+        var msg = arquivos.length > 1 ? 'Lendo a conta ' + (i + 1) + ' de ' + arquivos.length + '…' : 'Lendo a conta…';
+        btn.textContent = msg; pdfStatus(msg);
+        try {
+          var pags;
+          try { pags = await paginasDoPdf(await lerArquivo(arquivos[i])); }
+          catch (e){
+            if (e && e.message === 'leitor') throw new Error('Não consegui carregar o leitor de PDF. Confira a internet e tente de novo, ou preencha à mão.');
+            throw new Error('não abriu como PDF');
+          }
+          if (!pags.reduce(function(n, p){ return n + p.length; }, 0)) throw new Error('é uma imagem escaneada, sem texto; baixe a 2ª via em PDF no site da CEMIG');
+          var r = extrairConta(pags);
+          if (r.grupoA) throw new Error('é do Grupo A; use o simulador de média tensão');
+          if (!isFinite(r.media)) throw new Error('não encontrei o histórico de consumo');
+          contas.push(r);
+        } catch (e){
+          if (e && /leitor de PDF/.test(e.message)) throw e;
+          erros.push({ nome: arquivos[i].name, msg: (e && e.message) || 'não consegui ler' });
+        }
+      }
+      if (!contas.length) throw new Error(erros.length === 1 ? 'A conta ' + erros[0].msg + '.' : 'Não consegui ler nenhuma das contas.');
+      aplicarContas(contas, erros);
+    } catch (e){
+      pdfStatus('<b>' + esc(e.message || 'Não consegui ler a conta.') + '</b>', true);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Ler contas da CEMIG';
+    }
+  }
+  $('arq-btn').addEventListener('click', function(){ $('arq').click(); });
+  $('arq').addEventListener('change', function(){ if (this.files && this.files.length) importar(this.files); this.value = ''; });
+  var drop = $('drop');
+  ['dragenter','dragover'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('over'); }); });
+  ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
+  drop.addEventListener('drop', function(e){ var fs = e.dataTransfer && e.dataTransfer.files; if (fs && fs.length) importar(fs); });
+
   /* ---------- limpar, com desfazer ---------- */
   function capturar(){
     return {
       cliente: $('cliente').value, tarifa: $('tarifa').value, dexaMax: $('dexaMax').value,
       dexa: $('dexa').value, datual: $('datual').value, atual: temAtual, cemig: temCemig,
+      status: $('pdf-status').innerHTML,
       ucs: Array.prototype.map.call($('ucs').children, function(row){
         return { n: row.querySelector('.u-n').value, k: row.querySelector('.u-k').value,
                  fase: row.querySelector('.u-fase').value, cip: row.querySelector('.u-cip').value };
@@ -793,6 +1047,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   }
   function restaurar(s){
     $('cliente').value = s.cliente; $('tarifa').value = s.tarifa; $('dexaMax').value = s.dexaMax;
+    $('pdf-status').innerHTML = s.status || '';
     $('ucs').innerHTML = '';
     s.ucs.forEach(function(u){
       var d = linhaUC(u.n, u.k);
