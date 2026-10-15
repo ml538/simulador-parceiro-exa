@@ -102,8 +102,7 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 .uc-main{display:grid; grid-template-columns:minmax(0,1fr) 118px 26px; gap:7px; align-items:center}
 .uc .del{background:none; border:none; color:var(--dim); font-size:17px; cursor:pointer; padding:0; line-height:1}
 .uc .del:hover{color:var(--warn)}
-.uc-cemig{display:none; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:7px; margin-top:6px}
-body.cemig-on .uc-cemig{display:grid}
+.uc-cemig{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:7px; margin-top:6px}
 .uc-cemig select{width:100%; min-width:0; background:var(--bg); color:var(--head); border:1px solid var(--border); border-radius:9px; padding:9px 10px; font:inherit; font-weight:600; font-size:14px}
 .uc-cemig .cip{display:flex; align-items:center; gap:6px; min-width:0}
 .uc-cemig .cip .pre{font-size:12px; color:var(--dim); white-space:nowrap}
@@ -280,11 +279,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       <div id="ucs"></div>
       <button class="addbtn" id="add" type="button">+ adicionar unidade</button>
 
-      <div class="switch" id="sw-cemig" role="button" tabindex="0" style="margin-top:12px">
-        <span>Incluir o que continua sendo pago à CEMIG?</span>
-        <div class="knob"></div>
-      </div>
-      <p class="hint" id="cemig-ajuda" style="display:none; margin-top:7px">Informe a ligação e o CIP de cada unidade. A taxa mínima é de 30, 50 ou 100 kWh (mono, bi ou trifásico) vezes a tarifa.</p>
+      <p class="hint" style="margin-top:9px">Informe a ligação e a CIP de cada unidade. A taxa mínima (30, 50 ou 100 kWh, para mono, bi ou trifásico) continua com a CEMIG, e a exa cobra só o consumo acima dela.</p>
 
       <div class="sep"></div>
       <p class="label lbl-ac">A oferta</p>
@@ -333,9 +328,9 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       <p class="label">Quanto custa por mês</p>
 
       <div class="tier">
-        <div class="top"><span class="nm" id="t1-nm">Tarifa cheia da distribuidora</span><span class="pv" id="t1-v">—</span></div>
+        <div class="top"><span class="nm" id="t1-nm">Só com a distribuidora</span><span class="pv" id="t1-v">—</span></div>
         <div class="note right" id="t1-n">—</div>
-        <div class="note" id="t1-d" style="display:none"></div>
+        <div class="note" id="t1-d"></div>
       </div>
 
       <div class="tier" id="t2" style="display:none">
@@ -350,14 +345,15 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
         <div class="note right" id="t3-ano">—</div>
         <div class="track"><div class="paga" id="t3-paga">paga</div><div class="eco" id="t3-eco"></div></div>
         <div class="note" id="t3-n"></div>
+        <div class="note" id="t3-k"></div>
       </div>
 
-      <div class="tier" id="t-cemig" style="display:none">
+      <div class="tier" id="t-cemig">
         <div class="top"><span class="nm">Conta da CEMIG <span class="tag">taxa mínima + CIP</span></span><span class="pv" id="tc-v">—</span></div>
         <div class="note" id="tc-n"></div>
       </div>
 
-      <div class="tier total" id="t-total" style="display:none">
+      <div class="tier total" id="t-total">
         <div class="top"><span class="nm">Total que você paga com a exa</span><span class="pv" id="tt-v">—</span></div>
         <div class="note right" id="tt-ano">—</div>
       </div>
@@ -462,7 +458,6 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   function ini(k, d){ if (QS[k] === undefined) return d; var n = parseFloat(String(QS[k]).replace(',','.')); return isFinite(n) ? n : d; }
 
   var temAtual = false;
-  var temCemig = false;
   var MINKWH = { mono: 30, bi: 50, tri: 100 };
 
   function linhaUC(nome, kwh){
@@ -541,26 +536,17 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       alvo.innerHTML = '<div class="ucline"><span class="n">Nenhuma unidade ainda</span><span class="v">—</span></div>';
     }
 
-    // sem a CEMIG: compara so a energia, com o desconto sobre o consumo todo.
-    // com a CEMIG: compara a conta inteira dos dois lados. sem a exa, a
-    // distribuidora cobra a energia e a CIP; com a exa, a CEMIG fica com a
-    // taxa minima e a CIP, e a exa cobra so a energia acima da taxa minima.
-    // assim a taxa minima nao e contada duas vezes e a CIP aparece nos dois
-    var cheio, comExa, atual, totalExa, ecoE;
-    if (temCemig){
-      var energiaComp = kwhComp * tarifa;
-      cheio    = kwhFat * tarifa + cipTotal;
-      comExa   = energiaComp * (1 - dexa / 100);
-      atual    = energiaComp * (1 - datual / 100) + cemigTotal;
-      totalExa = comExa + cemigTotal;
-      ecoE     = energiaComp * dexa / 100;
-    } else {
-      cheio    = total * tarifa;
-      comExa   = cheio * (1 - dexa / 100);
-      atual    = cheio * (1 - datual / 100);
-      totalExa = comExa;
-      ecoE     = cheio - comExa;
-    }
+    // compara a conta inteira dos dois lados. sem a exa, a distribuidora
+    // cobra a energia (nunca menos que a taxa minima) e a CIP. com a exa, a
+    // CEMIG fica com a taxa minima da ligacao (30, 50 ou 100 kWh) e a CIP, e
+    // a exa cobra so o consumo acima da taxa minima. assim a taxa minima nao
+    // e contada duas vezes e a CIP aparece nos dois lados
+    var energiaComp = kwhComp * tarifa, kwhMin = kwhFat - kwhComp;
+    var cheio    = kwhFat * tarifa + cipTotal;
+    var comExa   = energiaComp * (1 - dexa / 100);
+    var atual    = energiaComp * (1 - datual / 100) + cemigTotal;
+    var totalExa = comExa + cemigTotal;
+    var ecoE     = energiaComp * dexa / 100;
     var base  = temAtual ? atual : cheio;
     var ganho = base - totalExa;
 
@@ -568,10 +554,8 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     $('d-tot-l').textContent = 'Total · tarifa de R$ ' + tarifa.toFixed(2).replace('.', ',') + '/kWh';
     $('d-tot').textContent   = num.format(total) + ' kWh/mês';
 
-    $('t1-nm').textContent = temCemig ? 'Só com a distribuidora' : 'Tarifa cheia da distribuidora';
     $('t1-v').textContent = brl.format(cheio);
     $('t1-n').textContent = brl.format(cheio * 12) + ' por ano';
-    $('t1-d').style.display = temCemig ? '' : 'none';
     $('t1-d').textContent = 'Energia de ' + brl.format(kwhFat * tarifa) + ' e CIP de ' + brl.format(cipTotal) + ', tudo na conta da CEMIG.';
 
     $('t2').style.display = temAtual ? '' : 'none';
@@ -593,20 +577,16 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     $('t3-eco').style.width  = dexa + '%';
     $('t3-eco').textContent  = '+ ' + brl0.format(ecoE);
     $('t3-n').innerHTML      = 'economia de <b>' + brl.format(ecoE) + '</b> por mês · <b>' + brl.format(ecoE * 12) + '</b> por ano*';
+    $('t3-k').textContent    = total > 0
+      ? 'Sobre ' + num.format(kwhComp) + ' kWh por mês: a média de ' + num.format(total) + ' kWh menos os ' + num.format(kwhMin) + ' kWh da taxa mínima, que ficam com a CEMIG.'
+      : '';
 
     // conta da CEMIG (taxa minima + CIP) · sem desconto, existe com ou sem a exa
-    if (temCemig){
-      $('t-cemig').style.display = '';
-      $('t-total').style.display = '';
-      $('tc-v').textContent = brl.format(cemigTotal);
-      $('tc-n').textContent = 'Taxa mínima de ' + brl.format(taxaMinTotal) + ' e CIP de ' + brl.format(cipTotal)
-                            + '. Elas continuam com a CEMIG, e a exa cobra só a energia acima da taxa mínima.';
-      $('tt-v').textContent   = brl.format(totalExa);
-      $('tt-ano').textContent = brl.format(totalExa * 12) + ' por ano, contra ' + brl.format(cheio * 12) + ' só com a distribuidora';
-    } else {
-      $('t-cemig').style.display = 'none';
-      $('t-total').style.display = 'none';
-    }
+    $('tc-v').textContent = brl.format(cemigTotal);
+    $('tc-n').textContent = 'Taxa mínima de ' + brl.format(taxaMinTotal) + ' (' + num.format(kwhMin) + ' kWh) e CIP de ' + brl.format(cipTotal)
+                          + '. Elas continuam com a CEMIG, e a exa cobra só o consumo acima da taxa mínima.';
+    $('tt-v').textContent   = brl.format(totalExa);
+    $('tt-ano').textContent = brl.format(totalExa * 12) + ' por ano, contra ' + brl.format(cheio * 12) + ' só com a distribuidora';
 
     $('f-n').textContent = brl0.format(Math.max(0, ganho) * 12) + '*';
     $('f-t').innerHTML = temAtual
@@ -616,7 +596,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     $('d-foot').innerHTML = '<b>' + CONFIG.aviso + '</b> '
       + 'Calculado sobre o consumo médio de cada unidade, à tarifa de R$ '
       + tarifa.toFixed(2).replace('.', ',') + '/kWh. O desconto vale sobre a tarifa de energia.'
-      + (temCemig ? ' A taxa mínima e a CIP entram nos dois lados da comparação, porque continuam com a CEMIG com ou sem a exa.' : '')
+      + ' A taxa mínima e a CIP entram nos dois lados da comparação, porque continuam com a CEMIG com ou sem a exa.'
       + (CONFIG.rodapeExtra ? ' ' + CONFIG.rodapeExtra : '');
   }
 
@@ -707,16 +687,6 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   $('sw').addEventListener('click', toggle);
   $('sw').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); } });
 
-  function definirCemig(sim){
-    temCemig = !!sim;
-    $('sw-cemig').classList.toggle('on', temCemig);
-    document.body.classList.toggle('cemig-on', temCemig);
-    $('cemig-ajuda').style.display = temCemig ? '' : 'none';
-    calc();
-  }
-  function toggleCemig(){ definirCemig(!temCemig); }
-  $('sw-cemig').addEventListener('click', toggleCemig);
-  $('sw-cemig').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleCemig(); } });
 
   $('add').addEventListener('click', function(){ $('ucs').appendChild(linhaUC('', '')); calc(); });
   ['cliente','tarifa'].forEach(function(id){ $(id).addEventListener('input', calc); });
@@ -795,7 +765,6 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     $('ucs').innerHTML = '';
     $('ucs').appendChild(linhaUC('', ini('kwh', '') || ''));
     definirAtual(QS.atual !== undefined);
-    definirCemig(false);
     atualizarTetos();
     aplicarDexa(ini('dexa', CONFIG.descontoExa));
     aplicarDatual(ini('atual', CONFIG.descontoAtual));
@@ -984,7 +953,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     var html = '<b>' + (contas.length > 1 ? contas.length + ' contas lidas.' : 'Conta' + (base.referencia ? ' de ' + esc(base.referencia) : '') + ' lida.') + '</b> Confira os campos.'
       + '<ul>' + itens.join('') + '</ul>'
       + (isFinite(base.tarifa) ? 'Tarifa de <b>' + brl4.format(base.tarifa) + '/kWh</b> com impostos' + (base.referencia ? ', da conta de ' + esc(base.referencia) : '') + '.' : '')
-      + (contas.some(function(c){ return c.fase || c.cip > 0; }) ? ' A ligação e a CIP já estão nas unidades: para somar a taxa mínima e a CIP, ligue “Incluir o que continua sendo pago à CEMIG”.' : '');
+      + (contas.some(function(c){ return c.fase || c.cip > 0; }) ? ' A ligação e a CIP já estão nas unidades: a taxa mínima fica com a CEMIG e a exa cobra só o consumo acima dela.' : '');
     if (avisos.length) html += '<br>' + avisos.join('<br>');
     pdfStatus(html, avisos.length > 0);
     // um toque para voltar ao que estava antes da leitura
@@ -1040,7 +1009,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   function capturar(){
     return {
       cliente: $('cliente').value, tarifa: $('tarifa').value, dexaMax: $('dexaMax').value,
-      dexa: $('dexa').value, datual: $('datual').value, atual: temAtual, cemig: temCemig,
+      dexa: $('dexa').value, datual: $('datual').value, atual: temAtual,
       status: $('pdf-status').innerHTML,
       ucs: Array.prototype.map.call($('ucs').children, function(row){
         return { n: row.querySelector('.u-n').value, k: row.querySelector('.u-k').value,
@@ -1059,7 +1028,6 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       $('ucs').appendChild(d);
     });
     definirAtual(s.atual);
-    definirCemig(s.cemig);
     atualizarTetos();
     aplicarDexa(parseFloat(s.dexa));
     aplicarDatual(parseFloat(s.datual));
