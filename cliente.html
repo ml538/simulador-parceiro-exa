@@ -853,6 +853,57 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     var p = lista.length === 1 && isFinite(lista[0].p) ? lista[0].p : (q > 0 ? v / q : NaN);
     return { q: q, p: p, v: v };
   }
+  // numero do quadro do historico: kWh e inteiro, entao "12,740" ou "12.740"
+  // e doze mil setecentos e quarenta; "o" sozinho e zero
+  function numHist(t){
+    if (/^[oO]$/.test(t)) return 0;
+    if (/^\d{1,3}([.,]\d{3})+$/.test(t)) return +t.replace(/[.,]/g, '');
+    return lerNum(t);
+  }
+  // historico lido de imagem: linhas do quadro com numeros, do titulo
+  // "Mes/Ano" ate o fim do quadro. a de cima e o mes da conta e as outras
+  // vem pela distancia entre linhas; o consumo e o primeiro numero da linha.
+  // linha ilegivel vira um mes faltando, sem empurrar os outros
+  function historicoPorPosicao(linhas, referencia){
+    var vazio = { lidos: [], faltando: [] };
+    var mRef = /^(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/(\d{4})$/i.exec(referencia);
+    var iCab = -1;
+    for (var i = 0; i < linhas.length; i++) if (/M[eê]s\s*\/\s*Ano|Hist[oó]rico de Consumo/i.test(linhas[i].txt)){ iCab = i; break; }
+    if (!mRef || iCab < 0) return vazio;
+    var cand = [];
+    for (var k = iCab + 1; k < linhas.length; k++){
+      if (/Fale com|C[oó]digo de D[eé]bito|Reservado/i.test(linhas[k].txt)) break;
+      var toks = [];
+      linhas[k].it.forEach(function(x){
+        if (x.x > 300) return;
+        x.s.split(/\s+/).forEach(function(t){
+          if (x.x > 60 && /^\d+\/\d+$/.test(t)) t = t.replace('/', '7');
+          if (x.x > 60 && /^[oO]$/.test(t)) t = '0';
+          if (x.x > 60 && /^-?\d[\d.,]*$/.test(t)) toks.push(t);
+        });
+      });
+      if (toks.length >= 2) cand.push({ y: linhas[k].y, kwh: numHist(toks[0]) });
+    }
+    if (cand.length < 2) return vazio;
+    var difs = [];
+    for (var d = 1; d < cand.length; d++) if (cand[d - 1].y - cand[d].y > 2) difs.push(cand[d - 1].y - cand[d].y);
+    if (!difs.length) return vazio;
+    var menor = Math.min.apply(null, difs);
+    var passo = difs.filter(function(x){ return x < menor * 1.5; }).sort(function(a, b){ return a - b; });
+    passo = passo[Math.floor(passo.length / 2)];
+    var ord0 = +mRef[2] * 12 + MESES.indexOf(mRef[1].toUpperCase()), porIdx = {};
+    cand.forEach(function(c){
+      var idx = Math.round((cand[0].y - c.y) / passo);
+      if (idx >= 0 && idx < 12 && !porIdx[idx] && isFinite(c.kwh)) porIdx[idx] = c;
+    });
+    var out = { lidos: [], faltando: [] };
+    for (var n = 0; n < 12; n++){
+      var ord = ord0 - n, mes = MESES[ord % 12] + '/' + String(Math.floor(ord / 12)).slice(2);
+      if (porIdx[n]) out.lidos.push({ mes: mes, ord: ord, kwh: porIdx[n].kwh });
+      else out.faltando.push(mes);
+    }
+    return out;
+  }
   function ordRef(rotulo){
     var m = /^(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/(\d{4})$/i.exec(rotulo || '');
     return m ? +m[2] * 12 + MESES.indexOf(m[1].toUpperCase()) : -1;
@@ -915,6 +966,13 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       r.hist.push({ mes: mes, ord: (2000 + +m[2]) * 12 + MESES.indexOf(m[1].toUpperCase()), kwh: ns[0] });
     });
     r.hist.sort(function(a, b){ return b.ord - a.ord; });
+    // lida de imagem: o OCR costuma errar o nome do mes, entao o mes vem da
+    // posicao da linha no quadro (a primeira e o mes da conta)
+    r.faltando = [];
+    if (paginas.ocr && r.referencia){
+      var pos = historicoPorPosicao(linhas, r.referencia);
+      if (pos.lidos.length > r.hist.length){ r.hist = pos.lidos; r.faltando = pos.faltando; }
+    }
     var ult = r.hist.slice(0, 12);
     r.meses = ult.length;
     r.media = ult.length ? ult.reduce(function(s, h){ return s + h.kwh; }, 0) / ult.length : NaN;
@@ -958,6 +1016,20 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       g = Math.max(0, Math.min(255, (g - 128) * 1.35 + 128));
       p[i] = p[i + 1] = p[i + 2] = g;
     }
+    ctx.putImageData(d, 0, 0);
+    return c;
+  }
+  // recorta um trecho, amplia e passa para preto e branco: letra pequena de
+  // tabela fica mais legivel para o OCR
+  function recortar(canvas, x, y, w, h, escala){
+    var c = document.createElement('canvas');
+    c.width = Math.round(w * escala); c.height = Math.round(h * escala);
+    var ctx = c.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(canvas, x, y, w, h, 0, 0, c.width, c.height);
+    var d = ctx.getImageData(0, 0, c.width, c.height), p = d.data;
+    for (var i = 0; i < p.length; i += 4){ var g = p[i] < 150 ? 0 : 255; p[i] = p[i + 1] = p[i + 2] = g; }
     ctx.putImageData(d, 0, 0);
     return c;
   }
@@ -1043,6 +1115,12 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
         for (var i = 0; i < canvases.length; i++) pags.push(await linhasDoOcr(worker, canvases[i]));
         return pags;
       },
+      // le um recorte como um bloco de texto unico (bom para tabelas)
+      lerBloco: async function(canvas){
+        await worker.setParameters({ tessedit_pageseg_mode: '6' });
+        try { return (await worker.recognize(canvas)).data.text; }
+        finally { await worker.setParameters({ tessedit_pageseg_mode: '3' }); }
+      },
       fechar: function(){ if (worker) worker.terminate(); worker = null; }
     };
   }
@@ -1074,6 +1152,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       if (c.foto) avisos.push('<b>' + esc(nome || 'A conta') + ' foi lida de imagem: confira os números com a conta.</b> Meses lidos: '
         + c.ult.map(function(h){ return esc(h.mes) + ' ' + num.format(h.kwh); }).join(' · ')
         + (isFinite(c.tarifa) ? '. Tarifa lida: ' + brl4.format(c.tarifa) + '/kWh' : '') + '. Se algum número estiver errado, corrija a média na unidade.');
+      if (c.faltando && c.faltando.length) avisos.push('Na imagem não deu para ler ' + c.faltando.map(esc).join(', ') + ': a média de ' + esc(nome || 'a unidade') + ' usou os outros ' + c.meses + ' meses.');
     });
     atualizarTetos();
     var tars = contas.map(function(c){ return c.tarifa; }).filter(function(t){ return isFinite(t); });
@@ -1121,6 +1200,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
             // PDF escaneado, sem texto: le as paginas como imagem
             if (!pags.reduce(function(n, p){ return n + p.length; }, 0)){ porImagem = true; pdfStatus(msg.replace('…', ' (PDF escaneado, leva alguns segundos)…')); pags = await ocr.ler(await canvasesDoPdf(buf.slice(0))); }
           }
+          if (porImagem) pags.ocr = true;
           var r = extrairConta(pags);
           r.foto = porImagem;
           if (r.grupoA) throw new Error('é do Grupo A; use o simulador de média tensão');
