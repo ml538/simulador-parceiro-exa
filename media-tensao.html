@@ -1149,15 +1149,19 @@ body.pdf-mode footer{margin-top:18px}
 
     montarHistorico();
     var hist = r.hist.slice(0, 12), rows = $('hist').rows;
+    // na modalidade Verde a demanda e uma so e a faturada e a fora ponta
+    // ("Demanda Ativa HFP"). fora da Verde fica a maior das duas
+    var verde = !r.modalidade || /verde/i.test(r.modalidade);
     hist.forEach(function(h, i){
       if (i > 0) novaLinha();
       var ins = rows[i].querySelectorAll('input');
       ins[0].value = h.mes;
       ins[1].value = fN0.format(h.enHFP);
       ins[2].value = fN0.format(h.enHP);
-      ins[3].value = fN1.format(Math.max(h.demHP, h.demHFP));
+      ins[3].value = fN1.format(verde ? h.demHFP : Math.max(h.demHP, h.demHFP));
     });
-    if (hist.length) lidos.push(hist.length + ' meses de histórico (' + esc(hist[hist.length - 1].mes) + ' a ' + esc(hist[0].mes) + '), com a demanda de cada mês pela maior entre ponta e fora ponta');
+    if (hist.length) lidos.push(hist.length + ' meses de histórico (' + esc(hist[hist.length - 1].mes) + ' a ' + esc(hist[0].mes) + '), com a demanda '
+      + (verde ? 'fora ponta de cada mês, que é a faturada na Verde' : 'de cada mês pela maior entre ponta e fora ponta'));
     else faltou.push('o histórico de consumo');
 
     // geracao propria: o historico mostra o consumo bruto. o que o cliente
