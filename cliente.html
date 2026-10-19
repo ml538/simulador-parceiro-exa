@@ -867,8 +867,17 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
   function historicoPorPosicao(linhas, referencia){
     var vazio = { lidos: [], faltando: [] };
     var mRef = /^(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/(\d{4})$/i.exec(referencia);
-    var iCab = -1;
-    for (var i = 0; i < linhas.length; i++) if (/M[eê]s\s*\/\s*Ano|Hist[oó]rico de Consumo/i.test(linhas[i].txt)){ iCab = i; break; }
+    // a conta pode ter outro "Mes/Ano" antes (o quadro de debitos): vale o que
+    // fala de consumo/energia ou o que vem depois de "Historico de Consumo"
+    var iCab = -1, titulo = -1, primeiro = -1;
+    for (var i = 0; i < linhas.length && iCab < 0; i++){
+      var t = linhas[i].txt;
+      if (/M[eê]s\s*\/\s*Ano/i.test(t) && /Consumo|Energia|kWh/i.test(t)) iCab = i;
+      else if (/Hist[oó]rico de Consumo/i.test(t)) titulo = i;
+      else if (titulo >= 0 && /M[eê]s\s*\/\s*Ano/i.test(t)) iCab = i;
+      if (primeiro < 0 && /M[eê]s\s*\/\s*Ano/i.test(t)) primeiro = i;
+    }
+    if (iCab < 0) iCab = titulo >= 0 ? titulo : primeiro;
     if (!mRef || iCab < 0) return vazio;
     var cand = [];
     for (var k = iCab + 1; k < linhas.length; k++){
@@ -943,8 +952,19 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       if (m){
         var rot = m[1].toLowerCase();
         if (/^energia/.test(rot) && /scee/.test(rot) && /isent/.test(rot)) r.gd = true;
-        if (/^energia/.test(rot) && !/scee|compens|injet|reativ/.test(rot) && /^kwh$/i.test(m[2]))
-          r.energia.push({ q: lerNum(m[3]), p: lerNum(m[4]), v: lerNum(m[5]) });
+        if (/^energia/.test(rot) && !/scee|compens|injet|reativ/.test(rot) && /^kwh$/i.test(m[2])){
+          var q = lerNum(m[3]), p = lerNum(m[4]), v = lerNum(m[5]);
+          // na imagem o OCR as vezes perde o preco unitario e os numeros andam
+          // uma coluna. quantidade x preco tem que dar o valor; se nao der e o
+          // "preco" aparecer de novo mais adiante (a base do ICMS repete o
+          // valor), ele e o valor. sem essa confirmacao, a linha fica de fora
+          if (paginas.ocr && q > 0 && isFinite(p) && isFinite(v) && Math.abs(q * p - v) > Math.max(0.05, v * 0.01)){
+            var resto = (l.txt.slice(m.index + m[0].length).match(/-?\d[\d.]*(?:,\d+)?/g) || []).map(lerNum);
+            if (resto.indexOf(p) >= 0){ v = p; p = v / q; }
+            else return;
+          }
+          r.energia.push({ q: q, p: p, v: v });
+        }
         return;
       }
       // tolera o OCR lendo "Ilum" como "llum" e a virgula como ponto
@@ -969,9 +989,19 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     // lida de imagem: o OCR costuma errar o nome do mes, entao o mes vem da
     // posicao da linha no quadro (a primeira e o mes da conta)
     r.faltando = [];
+    // junta as duas leituras mes a mes: vale o mes lido pelo nome; o que
+    // faltar vem da posicao; o que nenhuma leu fica de fora da media e avisado
     if (paginas.ocr && r.referencia){
-      var pos = historicoPorPosicao(linhas, r.referencia);
-      if (pos.lidos.length > r.hist.length){ r.hist = pos.lidos; r.faltando = pos.faltando; }
+      var pos = historicoPorPosicao(linhas, r.referencia), mRef = /^(\w{3})\/(\d{4})$/.exec(r.referencia);
+      var nome = {}, porPos = {}, juntos = [];
+      r.hist.forEach(function(h){ nome[h.mes] = h; });
+      pos.lidos.forEach(function(h){ porPos[h.mes] = h; });
+      var ord0 = +mRef[2] * 12 + MESES.indexOf(mRef[1].toUpperCase());
+      for (var n = 0; n < 12; n++){
+        var o = ord0 - n, mes = MESES[o % 12] + '/' + String(Math.floor(o / 12)).slice(2), h = nome[mes] || porPos[mes];
+        if (h){ h.ord = o; juntos.push(h); } else r.faltando.push(mes);
+      }
+      if (juntos.length >= r.hist.length) r.hist = juntos; else r.faltando = [];
     }
     var ult = r.hist.slice(0, 12);
     r.meses = ult.length;
@@ -1019,15 +1049,16 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     ctx.putImageData(d, 0, 0);
     return c;
   }
-  // recorta um trecho, amplia e passa para preto e branco: letra pequena de
-  // tabela fica mais legivel para o OCR
-  function recortar(canvas, x, y, w, h, escala){
+  // recorta um trecho, amplia e passa para preto e branco (ou deixa em tons
+  // de cinza): letra pequena de tabela fica mais legivel para o OCR
+  function recortar(canvas, x, y, w, h, escala, cinza){
     var c = document.createElement('canvas');
     c.width = Math.round(w * escala); c.height = Math.round(h * escala);
     var ctx = c.getContext('2d');
     ctx.imageSmoothingQuality = 'high';
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
     ctx.drawImage(canvas, x, y, w, h, 0, 0, c.width, c.height);
+    if (cinza) return c;
     var d = ctx.getImageData(0, 0, c.width, c.height), p = d.data;
     for (var i = 0; i < p.length; i += 4){ var g = p[i] < 150 ? 0 : 255; p[i] = p[i + 1] = p[i + 2] = g; }
     ctx.putImageData(d, 0, 0);
@@ -1050,7 +1081,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       var vp = pg.getViewport({ scale: 2200 / v1.width });
       var c = document.createElement('canvas');
       c.width = Math.round(vp.width); c.height = Math.round(vp.height);
-      await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+      await pg.render({ canvasContext: c.getContext('2d'), viewport: vp, intent: 'print' }).promise;
       out.push(prepararCanvas(c, c.width, c.height));
     }
     return out;

@@ -100,6 +100,7 @@ table.hist td{padding:0 3px}
 table.hist input{width:100%; min-width:0; height:36px; background:var(--bg); color:var(--head); border:1px solid var(--border); border-radius:8px; padding:0 8px; font:inherit; font-size:13.5px; font-weight:600; font-variant-numeric:tabular-nums}
 table.hist input:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:transparent}
 table.hist input.h-mes{font-weight:500; color:var(--body)}
+table.hist input.duvida{border-color:var(--warn); color:var(--warn)}
 table.hist tfoot th, table.hist tfoot td{padding-top:9px; border-top:1px solid var(--border)}
 table.hist tfoot td{font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:14px; color:var(--head); padding-left:11px; font-variant-numeric:tabular-nums}
 .tabacts{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap}
@@ -641,6 +642,8 @@ body.pdf-mode footer{margin-top:18px}
   }
 
   // colar varias linhas/colunas de uma vez, como numa planilha
+  // valor conferido a mao deixa de ficar marcado
+  $('hist').addEventListener('input', function(e){ if (e.target.classList) e.target.classList.remove('duvida'); });
   $('hist').addEventListener('paste', function(e){
     var alvo = e.target;
     if (!alvo || alvo.tagName !== 'INPUT') return;
@@ -1067,7 +1070,18 @@ body.pdf-mode footer{margin-top:18px}
       if (t){ dentro = false; if (t[1]) r.total = lerNum(t[1]); return; }
       var rot, q = NaN, p = NaN, v = NaN;
       var m = ITEM_RE.exec(l.txt);
-      if (m){ rot = m[1]; q = lerNum(m[3]); p = lerNum(m[4]); v = lerNum(m[5]); }
+      if (m){
+        rot = m[1]; q = lerNum(m[3]); p = lerNum(m[4]); v = lerNum(m[5]);
+        // na imagem o OCR as vezes perde o preco unitario e os numeros andam
+        // uma coluna. quantidade x preco tem que dar o valor; se nao der e o
+        // "preco" aparecer de novo mais adiante (a base do ICMS repete o
+        // valor), ele e o valor. sem essa confirmacao, a linha fica de fora
+        if (paginas.ocr && q > 0 && isFinite(p) && isFinite(v) && Math.abs(q * p - v) > Math.max(0.05, v * 0.01)){
+          var resto = (l.txt.slice(m.index + m[0].length).match(/-?\d[\d.]*(?:,\d+)?/g) || []).map(lerNum);
+          if (resto.indexOf(p) >= 0){ v = p; p = v / q; }
+          else return;
+        }
+      }
       else {
         var m2 = ITEM_SO_VALOR_RE.exec(l.txt);
         if (!m2) return;
@@ -1090,6 +1104,15 @@ body.pdf-mode footer{margin-top:18px}
       var escolhida = cand.filter(function(c){ return c.fora && isFinite(c.v); })[0] || cand.filter(function(c){ return isFinite(c.v); })[0];
       if (escolhida) r.contratada = escolhida.v;
       break;
+    }
+    // sem o titulo "Grandezas Contratadas" (o OCR as vezes nao le): procura
+    // "Demanda Fora Ponta 90" em qualquer linha
+    if (!isFinite(r.contratada)){
+      linhas.some(function(l){
+        var m = /Demanda\s+(?:Fora\s+Ponta|[ÚU]nica)\s+(\d[\d.,]*)\b/i.exec(l.txt);
+        if (m && isFinite(lerNum(m[1])) && lerNum(m[1]) >= 30){ r.contratada = lerNum(m[1]); return true; }
+        return false;
+      });
     }
 
     // historico: linhas "AGO/26 dem HP, dem HFP, energia HP, energia HFP, HR".
@@ -1116,10 +1139,10 @@ body.pdf-mode footer{margin-top:18px}
     // lida de imagem: o OCR le bem os numeros, mas costuma errar o nome do
     // mes ("AGO/26" vira "aos"). o historico da CEMIG e sempre a sequencia de
     // meses terminando no mes da fatura, entao o mes vem da posicao da linha
-    if (paginas.ocr && r.referencia){
-      var porPosicao = historicoPorPosicao(linhas, r.referencia, limite);
-      if (porPosicao.filter(function(h){ return !h.vazio; }).length > r.hist.length) r.hist = porPosicao;
-    }
+    // junta as duas leituras mes a mes: vale o mes lido pelo nome; o que
+    // faltar vem da posicao; o que nenhuma leu fica marcado como em branco
+    // (e entra na segunda leitura do quadro)
+    if (paginas.ocr && r.referencia) r.hist = juntarHistorico(r.hist, historicoPorPosicao(linhas, r.referencia, limite), r.referencia);
 
     // geracao propria: quanto foi compensado no mes desta conta
     var qtd = function(x){ return x && isFinite(x.q) ? Math.abs(x.q) : 0; };
@@ -1146,10 +1169,37 @@ body.pdf-mode footer{margin-top:18px}
   // da distancia ate o titulo "Mes/Ano": a primeira linha de dados fica duas
   // linhas abaixo dele e e o mes da fatura. linha ilegivel vira um buraco no
   // lugar certo, sem empurrar os outros meses
+  // titulo do quadro do historico. a conta pode ter outro "Mes/Ano" antes (o
+  // quadro de debitos), entao vale o que fala de demanda/energia ou o que vem
+  // logo depois de "Historico de Consumo"
+  function cabecalhoHistorico(linhas){
+    var i, depoisDoTitulo = -1, primeiro = -1;
+    for (i = 0; i < linhas.length; i++){
+      var t = linhas[i].txt;
+      if (/M[eê]s\s*\/\s*Ano/i.test(t) && /Demanda|Energia|Consumo/i.test(t)) return i;
+      if (primeiro < 0 && /M[eê]s\s*\/\s*Ano/i.test(t)) primeiro = i;
+      if (/Hist[oó]rico de Consumo/i.test(t)) depoisDoTitulo = i;
+      if (depoisDoTitulo >= 0 && i > depoisDoTitulo && /M[eê]s\s*\/\s*Ano/i.test(t)) return i;
+    }
+    return primeiro;
+  }
+  function juntarHistorico(porNome, porPosicao, referencia){
+    var mRef = /^(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/(\d{4})$/i.exec(referencia);
+    if (!mRef) return porNome;
+    var ord0 = +mRef[2] * 12 + MESES.indexOf(mRef[1].toUpperCase()), nome = {}, pos = {}, out = [];
+    porNome.forEach(function(h){ nome[h.mes] = h; });
+    porPosicao.forEach(function(h){ if (!h.vazio) pos[h.mes] = h; });
+    for (var n = 0; n < 12; n++){
+      var ord = ord0 - n, mes = MESES[ord % 12] + '/' + String(Math.floor(ord / 12)).slice(2);
+      var h = nome[mes] || pos[mes] || { mes: mes, vazio: true };
+      h.ord = ord;
+      out.push(h);
+    }
+    return out;
+  }
   function historicoPorPosicao(linhas, referencia, limite){
     var mRef = /^(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/(\d{4})$/i.exec(referencia);
-    var iCab = -1;
-    for (var i = 0; i < linhas.length; i++) if (/M[eê]s\s*\/\s*Ano/i.test(linhas[i].txt)){ iCab = i; break; }
+    var iCab = cabecalhoHistorico(linhas);
     if (!mRef || iCab < 0) return [];
     var cand = [];
     for (var k = iCab + 1; k < linhas.length; k++){
@@ -1219,7 +1269,7 @@ body.pdf-mode footer{margin-top:18px}
     // na modalidade Verde a demanda e uma so e a faturada e a fora ponta
     // ("Demanda Ativa HFP"). fora da Verde fica a maior das duas
     var verde = !r.modalidade || /verde/i.test(r.modalidade);
-    var ilegiveis = [];
+    var ilegiveis = [], duvidas = [];
     hist.forEach(function(h, i){
       if (i > 0) novaLinha();
       var ins = rows[i].querySelectorAll('input');
@@ -1228,6 +1278,15 @@ body.pdf-mode footer{margin-top:18px}
       ins[1].value = fN0.format(h.enHFP);
       ins[2].value = fN0.format(h.enHP);
       ins[3].value = fN1.format(verde ? h.demHFP : Math.max(h.demHP, h.demHFP));
+      // celula em que as duas leituras da imagem nao bateram fica marcada
+      if (h.duvida){
+        var d = h.duvida, nomes = [];
+        if (d.enHFP){ ins[1].classList.add('duvida'); nomes.push('a energia fora ponta saiu ' + fN0.format(h.enHFP) + ' numa leitura e ' + d.enHFP.map(function(v){ return fN0.format(v); }).join(' / ') + ' em outra'); }
+        if (d.enHP){ ins[2].classList.add('duvida'); nomes.push('a energia ponta saiu ' + fN0.format(h.enHP) + ' numa leitura e ' + d.enHP.map(function(v){ return fN0.format(v); }).join(' / ') + ' em outra'); }
+        var dd = verde ? d.demHFP : (d.demHFP || d.demHP);
+        if (dd){ ins[3].classList.add('duvida'); nomes.push('a demanda saiu ' + fN1.format(verde ? h.demHFP : Math.max(h.demHP, h.demHFP)) + ' numa leitura e ' + dd.map(function(v){ return fN1.format(v); }).join(' / ') + ' em outra'); }
+        if (nomes.length) duvidas.push('<b>Em ' + esc(h.mes) + ', ' + nomes.join('; ') + '.</b> Ficou o valor mais perto dos outros meses, marcado em vermelho: confira na conta.');
+      }
     });
     var nLidos = hist.length - ilegiveis.length;
     if (nLidos) lidos.push(nLidos + ' meses de histórico (' + esc(hist[hist.length - 1].mes) + ' a ' + esc(hist[0].mes) + '), com a demanda '
@@ -1236,6 +1295,9 @@ body.pdf-mode footer{margin-top:18px}
     if (ilegiveis.length) avisos.push('<b>Na imagem não deu para ler ' + ilegiveis.map(esc).join(', ') + '.</b> Essas linhas ficaram em branco no histórico: preencha à mão olhando a conta.');
     var recuperados = hist.filter(function(h){ return h.recuperado; }).map(function(h){ return esc(h.mes); });
     if (recuperados.length) avisos.push(recuperados.join(', ') + (recuperados.length === 1 ? ' saiu' : ' saíram') + ' numa segunda leitura do quadro do histórico: confira com atenção.');
+    var corrigidos = hist.filter(function(h){ return h.corrigido && !h.duvida; }).map(function(h){ return esc(h.mes); });
+    if (corrigidos.length) avisos.push('A releitura do quadro corrigiu dígitos em ' + corrigidos.join(', ') + ': confira com a conta.');
+    avisos.push.apply(avisos, duvidas);
 
     // geracao propria: o historico mostra o consumo bruto. o que o cliente
     // de fato compra da rede e o historico menos a energia compensada (SCEE
@@ -1360,15 +1422,16 @@ body.pdf-mode footer{margin-top:18px}
     ctx.putImageData(d, 0, 0);
     return c;
   }
-  // recorta um trecho, amplia e passa para preto e branco: letra pequena de
-  // tabela fica mais legivel para o OCR
-  function recortar(canvas, x, y, w, h, escala){
+  // recorta um trecho, amplia e passa para preto e branco (ou deixa em tons
+  // de cinza): letra pequena de tabela fica mais legivel para o OCR
+  function recortar(canvas, x, y, w, h, escala, cinza){
     var c = document.createElement('canvas');
     c.width = Math.round(w * escala); c.height = Math.round(h * escala);
     var ctx = c.getContext('2d');
     ctx.imageSmoothingQuality = 'high';
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
     ctx.drawImage(canvas, x, y, w, h, 0, 0, c.width, c.height);
+    if (cinza) return c;
     var d = ctx.getImageData(0, 0, c.width, c.height), p = d.data;
     for (var i = 0; i < p.length; i += 4){ var g = p[i] < 150 ? 0 : 255; p[i] = p[i + 1] = p[i + 2] = g; }
     ctx.putImageData(d, 0, 0);
@@ -1391,7 +1454,7 @@ body.pdf-mode footer{margin-top:18px}
       var vp = pg.getViewport({ scale: 2200 / v1.width });
       var c = document.createElement('canvas');
       c.width = Math.round(vp.width); c.height = Math.round(vp.height);
-      await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+      await pg.render({ canvasContext: c.getContext('2d'), viewport: vp, intent: 'print' }).promise;
       out.push(prepararCanvas(c, c.width, c.height));
     }
     return out;
@@ -1466,43 +1529,91 @@ body.pdf-mode footer{margin-top:18px}
     };
   }
 
-  // segunda leitura so do quadro do historico (recortado, ampliado, preto e
-  // branco), para os meses que a primeira nao conseguiu ler. so entra se as
-  // duas leituras baterem nos outros meses, e linha com digito duvidoso
-  // (barra no meio do numero) fica de fora
-  async function completarHistorico(r, linhas, canvas, ocr){
-    var sc = 595 / canvas.width, iCab = -1, iFim = -1;
-    for (var i = 0; i < linhas.length; i++){
-      if (iCab < 0 && /M[eê]s\s*\/\s*Ano/i.test(linhas[i].txt)) iCab = i;
-      else if (iCab >= 0 && /Fale com|C[oó]digo de D[eé]bito/i.test(linhas[i].txt)){ iFim = i; break; }
-    }
-    if (iCab < 0) return;
-    var y0 = Math.max(0, (-linhas[iCab].y - 8) / sc);
-    var y1 = iFim > 0 ? (-linhas[iFim].y - 3) / sc : y0 + 175 / sc;
-    var texto = await ocr.lerBloco(recortar(canvas, 0, y0, 248 / sc, Math.min(canvas.height, y1) - y0, 3));
+  // linhas de numeros do quadro do historico lido como bloco: tira o rotulo
+  // do mes e os sinais que o OCR cola no numero ("14.432?"), troca barra no
+  // meio do numero por 7 e o "O" solto por zero. a 5a coluna e o HR
+  function linhasDoQuadro(texto){
     var dados = [];
     texto.split('\n').forEach(function(l){
-      var toks = l.trim().split(/\s+/).map(function(t){ return /^[oO]$/.test(t) ? '0' : t; });
-      var nums = toks.filter(function(t){ return /^-?\d[\d.,/]*$/.test(t); });
-      if (nums.length >= 5 && numHist(nums[nums.length - 1]) === 0) nums = nums.slice(0, -1);   // coluna HR
+      var toks = l.trim().split(/\s+/), nums = [];
+      if (toks.length && /[A-Za-z\/]/.test(toks[0])) toks.shift();
+      toks.forEach(function(t){
+        if (/^[oOÓóÒòQ]\W*$/.test(t)) t = '0';
+        t = t.replace(/[^\d]+$/, '').replace(/\//g, '7');
+        if (/^\d[\d.,]*$/.test(t)) nums.push(t);
+      });
       if (nums.length < 4) return;
-      nums = nums.slice(-4);
-      dados.push({ suspeita: nums.some(function(t){ return t.indexOf('/') >= 0; }), ns: nums.map(numHist) });
+      dados.push(nums.slice(0, 4).map(numHist));
     });
-    // confere o alinhamento: a energia fora ponta tem que bater nos meses lidos nas duas vezes
-    var iguais = 0, comparados = 0;
+    return dados;
+  }
+  // acha, numa leitura do quadro, a linha de cada mes. as linhas que repetem
+  // os valores de um mes ja lido viram ancoras; os outros meses so pegam a
+  // linha se as ancoras dos lados confirmarem a posicao dela
+  function linhasPorMes(r, dados){
+    // ancora so com as duas energias iguais, uma linha por mes e na ordem do
+    // quadro (meses vizinhos tem valores parecidos: aproximar engana)
+    var linhaDoMes = {}, out = {}, ultima = -1;
     r.hist.forEach(function(h, n){
-      var d = dados[n];
-      if (h.vazio || !d || d.suspeita) return;
-      comparados++;
-      if (Math.abs(d.ns[3] - h.enHFP) <= Math.max(2, h.enHFP * 0.01)) iguais++;
+      if (h.vazio) return;
+      for (var j = ultima + 1; j < dados.length; j++) if (dados[j][3] === h.enHFP && dados[j][2] === h.enHP){ linhaDoMes[n] = ultima = j; break; }
     });
-    if (comparados < 3 || iguais / comparados < 0.6) return;
+    var ancoras = Object.keys(linhaDoMes).map(Number);
+    if (ancoras.length < 3) return out;
     r.hist.forEach(function(h, n){
-      var d = dados[n];
-      if (!h.vazio || !d || d.suspeita || !d.ns.every(function(x){ return isFinite(x); })) return;
-      h.demHP = d.ns[0]; h.demHFP = d.ns[1]; h.enHP = d.ns[2]; h.enHFP = d.ns[3];
-      delete h.vazio; h.recuperado = true;
+      if (n in linhaDoMes){ out[n] = dados[linhaDoMes[n]]; return; }
+      var antes = ancoras.filter(function(a){ return a < n; }).pop();
+      var depois = ancoras.filter(function(a){ return a > n; })[0];
+      var j = null;
+      if (antes !== undefined && depois !== undefined){
+        // sem linha pulada entre as duas ancoras: a distancia tem que ser igual
+        if (linhaDoMes[depois] - linhaDoMes[antes] === depois - antes) j = linhaDoMes[antes] + (n - antes);
+      } else if (antes !== undefined) j = linhaDoMes[antes] + (n - antes);
+      else if (depois !== undefined) j = linhaDoMes[depois] - (depois - n);
+      if (j !== null && dados[j]) out[n] = dados[j];
+    });
+    return out;
+  }
+  // releitura so do quadro do historico, para completar os meses que a
+  // leitura da pagina nao pegou e conferir os que pegou. o recorte e lido
+  // duas vezes (ampliado em preto e branco e em tons de cinza), porque a foto
+  // engana o OCR em digitos como 7 e 1. cada numero vai a voto entre as tres
+  // leituras; empate fica com o mais proximo dos outros meses e a celula fica
+  // marcada para conferir
+  var COLS_HIST = ['demHP', 'demHFP', 'enHP', 'enHFP'];
+  async function completarHistorico(r, linhas, canvas, ocr){
+    var sc = 595 / canvas.width, iCab = cabecalhoHistorico(linhas), iFim = -1;
+    if (iCab < 0) return;
+    for (var i = iCab + 1; i < linhas.length; i++) if (/Fale com|C[oó]digo de D[eé]bito/i.test(linhas[i].txt)){ iFim = i; break; }
+    var y0 = Math.max(0, (-linhas[iCab].y - 8) / sc);
+    var y1 = iFim > 0 ? (-linhas[iFim].y - 3) / sc : y0 + 175 / sc;
+    var w = 248 / sc, h = Math.min(canvas.height, y1) - y0;
+    var leituras = [
+      linhasPorMes(r, linhasDoQuadro(await ocr.lerBloco(recortar(canvas, 0, y0, w, h, 3)))),
+      linhasPorMes(r, linhasDoQuadro(await ocr.lerBloco(recortar(canvas, 0, y0, w, h, 2, true))))
+    ];
+    // mediana de cada coluna nos meses lidos: valor muito fora dela e erro de leitura
+    var med = COLS_HIST.map(function(c){
+      var v = r.hist.filter(function(x){ return !x.vazio; }).map(function(x){ return x[c]; }).sort(function(a, b){ return a - b; });
+      return v.length ? v[Math.floor(v.length / 2)] : 0;
+    });
+    var plausivel = function(v, k){ return isFinite(v) && (med[k] <= 0 || (v >= med[k] * 0.1 && v <= med[k] * 5)); };
+    var distancia = function(v, k){ return Math.abs(Math.log((v || 1) / (med[k] || 1))); };
+    r.hist.forEach(function(h, n){
+      var daPagina = h.vazio ? null : COLS_HIST.map(function(c){ return h[c]; });
+      var cands = [daPagina, leituras[0][n], leituras[1][n]].filter(function(d){ return d && d.every(plausivel); });
+      if (!cands.length) return;
+      var duvida = {};
+      COLS_HIST.forEach(function(c, k){
+        var votos = {};
+        cands.forEach(function(d){ votos[d[k]] = (votos[d[k]] || 0) + 1; });
+        var vs = Object.keys(votos).map(Number).sort(function(a, b){ return (votos[b] - votos[a]) || (distancia(a, k) - distancia(b, k)); });
+        if (!h.vazio && vs[0] !== h[c]) h.corrigido = true;
+        h[c] = vs[0];
+        if (votos[vs[0]] < 2 && vs.length > 1) duvida[c] = vs.slice(1);
+      });
+      if (h.vazio){ delete h.vazio; h.recuperado = true; }
+      if (Object.keys(duvida).length) h.duvida = duvida;
     });
   }
 
@@ -1531,8 +1642,8 @@ body.pdf-mode footer{margin-top:18px}
     if (porImagem) pags.ocr = true;
     var r = extrairFatura(pags);
     r.foto = porImagem;
-    if (porImagem && pagina1 && r.hist.some(function(h){ return h.vazio; })){
-      avisar('Relendo o quadro do histórico para completar os meses que faltaram…');
+    if (porImagem && pagina1 && r.hist.length){
+      avisar('Relendo o quadro do histórico para conferir os meses…');
       try { await completarHistorico(r, pags[0], pagina1, ocr); } catch (e){}
     }
     if (!r.hist.length && !r.itens.ehfp && !r.itens.dem) throw new Error(porImagem
