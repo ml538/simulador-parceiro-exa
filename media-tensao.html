@@ -12,7 +12,7 @@
 :root{
   --bg:#FBF4E6; --card:#FFFFFF; --card2:#F4EAD6; --panel:#EEF1DA; --chip:#EBDDC4;
   --accent:#1DA05A; --accent2:#17834B; --head:#12110E; --text:#3F3A32;
-  --body:#5E574C; --dim:#9A9286; --border:#E8DCC6; --warn:#C25B4E;
+  --body:#5E574C; --dim:#9A9286; --border:#E8DCC6; --warn:#C25B4E; --atento:#A0620A; --atento-bg:rgba(245,174,58,.13);
   --word:#123D2A; --mark:#123D2A; --onaccent:#12110E; --shadow:0 1px 2px rgba(74,42,14,.06);
   --grad:linear-gradient(115deg,#F9C846 0%,#F5AE3A 22%,#A9D06A 52%,#1DA05A 100%);
   --gradtxt:linear-gradient(100deg,#C77A0E 0%,#B98A12 30%,#4F8F33 65%,#17834B 100%);
@@ -21,7 +21,7 @@
   :root:not([data-theme="light"]){
   --bg:#13120E; --card:#1B1915; --card2:#24211C; --panel:#1E2719; --chip:#24211C;
   --accent:#2FA866; --accent2:#A9D06A; --head:#FBF4E6; --text:#EAE1CF;
-  --body:#B8AF9F; --dim:#8A8276; --border:#2E2A23; --warn:#E08C84;
+  --body:#B8AF9F; --dim:#8A8276; --border:#2E2A23; --warn:#E08C84; --atento:#F5B04A; --atento-bg:rgba(245,174,58,.10);
   --word:#FBF4E6; --mark:#FBF4E6; --onaccent:#12110E; --shadow:none;
   --grad:linear-gradient(115deg,#F9C846 0%,#F5AE3A 22%,#A9D06A 52%,#1DA05A 100%);
   --gradtxt:linear-gradient(100deg,#F9C846 0%,#F5AE3A 24%,#B5CF6A 56%,#2FA866 100%);
@@ -30,7 +30,7 @@
 :root[data-theme="dark"]{
   --bg:#13120E; --card:#1B1915; --card2:#24211C; --panel:#1E2719; --chip:#24211C;
   --accent:#2FA866; --accent2:#A9D06A; --head:#FBF4E6; --text:#EAE1CF;
-  --body:#B8AF9F; --dim:#8A8276; --border:#2E2A23; --warn:#E08C84;
+  --body:#B8AF9F; --dim:#8A8276; --border:#2E2A23; --warn:#E08C84; --atento:#F5B04A; --atento-bg:rgba(245,174,58,.10);
   --word:#FBF4E6; --mark:#FBF4E6; --onaccent:#12110E; --shadow:none;
   --grad:linear-gradient(115deg,#F9C846 0%,#F5AE3A 22%,#A9D06A 52%,#1DA05A 100%);
   --gradtxt:linear-gradient(100deg,#F9C846 0%,#F5AE3A 24%,#B5CF6A 56%,#2FA866 100%);
@@ -100,7 +100,7 @@ table.hist td{padding:0 3px}
 table.hist input{width:100%; min-width:0; height:36px; background:var(--bg); color:var(--head); border:1px solid var(--border); border-radius:8px; padding:0 8px; font:inherit; font-size:13.5px; font-weight:600; font-variant-numeric:tabular-nums}
 table.hist input:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:transparent}
 table.hist input.h-mes{font-weight:500; color:var(--body)}
-table.hist input.duvida{border-color:var(--warn); color:var(--warn)}
+table.hist input.duvida{border-color:var(--atento); color:var(--atento); background:var(--atento-bg)}
 table.hist tfoot th, table.hist tfoot td{padding-top:9px; border-top:1px solid var(--border)}
 table.hist tfoot td{font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:14px; color:var(--head); padding-left:11px; font-variant-numeric:tabular-nums}
 .tabacts{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap}
@@ -168,6 +168,18 @@ table.cmp td.melhor{color:var(--accent2)}
 .note.alert b{color:var(--warn)}
 .dot{width:7px; height:7px; border-radius:99px; background:var(--accent); margin-top:6px; flex:none}
 .note.alert .dot{background:var(--warn)}
+/* resultado da leitura da fatura: o texto fica normal; o que precisa de acao
+   vai num bloco vermelho e o que e so para conferir, num bloco ambar */
+#pdf-status .note.alert{color:var(--body)}
+#pdf-status .note.alert b{color:var(--head)}
+.bloco{margin-top:10px; padding:8px 10px 8px 12px; border-left:3px solid; border-radius:0 8px 8px 0}
+.bloco .rt{font-size:10px; text-transform:uppercase; letter-spacing:.12em; margin:0 0 3px}
+#pdf-status .bloco ul{margin:0}
+.bloco li{margin:2px 0}
+.bloco.atencao{border-color:var(--warn); background:transparent}
+.bloco.atencao .rt, .bloco.atencao b{color:var(--warn)}
+.bloco.conferir{border-color:var(--atento); background:var(--atento-bg)}
+.bloco.conferir .rt{color:var(--atento)}
 .gap{margin-top:12px}
 
 footer{margin-top:30px; font-size:11.5px; color:var(--dim); line-height:1.6}
@@ -1278,14 +1290,15 @@ body.pdf-mode footer{margin-top:18px}
       ins[1].value = fN0.format(h.enHFP);
       ins[2].value = fN0.format(h.enHP);
       ins[3].value = fN1.format(verde ? h.demHFP : Math.max(h.demHP, h.demHFP));
-      // celula em que as duas leituras da imagem nao bateram fica marcada
+      // celula em que as leituras da imagem nao bateram fica marcada
       if (h.duvida){
         var d = h.duvida, nomes = [];
-        if (d.enHFP){ ins[1].classList.add('duvida'); nomes.push('a energia fora ponta saiu ' + fN0.format(h.enHFP) + ' numa leitura e ' + d.enHFP.map(function(v){ return fN0.format(v); }).join(' / ') + ' em outra'); }
-        if (d.enHP){ ins[2].classList.add('duvida'); nomes.push('a energia ponta saiu ' + fN0.format(h.enHP) + ' numa leitura e ' + d.enHP.map(function(v){ return fN0.format(v); }).join(' / ') + ' em outra'); }
+        var outra = function(vs, f){ return vs.map(function(v){ return f.format(v); }).join(' ou '); };
+        if (d.enHFP){ ins[1].classList.add('duvida'); nomes.push('energia fora ponta ficou ' + fN0.format(h.enHFP) + ', mas uma leitura deu ' + outra(d.enHFP, fN0)); }
+        if (d.enHP){ ins[2].classList.add('duvida'); nomes.push('energia ponta ficou ' + fN0.format(h.enHP) + ', mas uma leitura deu ' + outra(d.enHP, fN0)); }
         var dd = verde ? d.demHFP : (d.demHFP || d.demHP);
-        if (dd){ ins[3].classList.add('duvida'); nomes.push('a demanda saiu ' + fN1.format(verde ? h.demHFP : Math.max(h.demHP, h.demHFP)) + ' numa leitura e ' + dd.map(function(v){ return fN1.format(v); }).join(' / ') + ' em outra'); }
-        if (nomes.length) duvidas.push('<b>Em ' + esc(h.mes) + ', ' + nomes.join('; ') + '.</b> Ficou o valor mais perto dos outros meses, marcado em vermelho: confira na conta.');
+        if (dd){ ins[3].classList.add('duvida'); nomes.push('demanda ficou ' + fN1.format(verde ? h.demHFP : Math.max(h.demHP, h.demHFP)) + ', mas uma leitura deu ' + outra(dd, fN1)); }
+        if (nomes.length) duvidas.push('<b>' + esc(h.mes) + '</b>: ' + nomes.join('; ') + '. Está marcado na tabela.');
       }
     });
     var nLidos = hist.length - ilegiveis.length;
@@ -1293,11 +1306,14 @@ body.pdf-mode footer{margin-top:18px}
       + (verde ? 'fora ponta de cada mês, que é a faturada na Verde' : 'de cada mês pela maior entre ponta e fora ponta'));
     else faltou.push('o histórico de consumo');
     if (ilegiveis.length) avisos.push('<b>Na imagem não deu para ler ' + ilegiveis.map(esc).join(', ') + '.</b> Essas linhas ficaram em branco no histórico: preencha à mão olhando a conta.');
-    var recuperados = hist.filter(function(h){ return h.recuperado; }).map(function(h){ return esc(h.mes); });
-    if (recuperados.length) avisos.push(recuperados.join(', ') + (recuperados.length === 1 ? ' saiu' : ' saíram') + ' numa segunda leitura do quadro do histórico: confira com atenção.');
+    // o que a releitura da imagem mexeu vai para "conferir", nao e erro
+    var conferir = duvidas.slice(), releitura = [];
+    var juntar = function(l){ return l.join(', ').replace(/, ([^,]*)$/, ' e $1'); };
+    var completados = hist.filter(function(h){ return h.recuperado; }).map(function(h){ return esc(h.mes); });
     var corrigidos = hist.filter(function(h){ return h.corrigido && !h.duvida; }).map(function(h){ return esc(h.mes); });
-    if (corrigidos.length) avisos.push('A releitura do quadro corrigiu dígitos em ' + corrigidos.join(', ') + ': confira com a conta.');
-    avisos.push.apply(avisos, duvidas);
+    if (completados.length) releitura.push('completou ' + juntar(completados));
+    if (corrigidos.length) releitura.push('corrigiu dígitos de ' + juntar(corrigidos));
+    if (releitura.length) conferir.push('A releitura do quadro do histórico ' + releitura.join(' e ') + '.');
 
     // geracao propria: o historico mostra o consumo bruto. o que o cliente
     // de fato compra da rede e o historico menos a energia compensada (SCEE
@@ -1332,7 +1348,8 @@ body.pdf-mode footer{margin-top:18px}
     }
     var nomes = contas.map(function(c){ return (c.cliente || '').toUpperCase(); }).filter(Boolean);
     if (nomes.some(function(n){ return n !== nomes[0]; })) avisos.push('<b>As contas enviadas parecem ser de clientes diferentes.</b> Confira se são todas da mesma unidade.');
-    if (contas.some(function(c){ return c.foto; })) avisos.push('<b>Fatura lida de imagem: confira o histórico e os preços com a conta.</b> A leitura por foto pode trocar algum dígito.');
+    var foto = contas.some(function(c){ return c.foto; });
+    if (foto) conferir.push('A leitura por foto pode trocar algum dígito: confira o histórico e os preços com a conta.');
 
     if (isFinite(r.contratada)){ $('dc').value = brNum(r.contratada, 2); lidos.push('demanda contratada de ' + fN1.format(r.contratada) + ' kW'); }
     else faltou.push('a demanda contratada');
@@ -1380,9 +1397,15 @@ body.pdf-mode footer{margin-top:18px}
       + (isFinite(r.total) ? ' · total de ' + fBRL.format(r.total) : '') + '.';
     var html = '<b>' + titulo + '</b> Confira os campos abaixo.<ul>'
       + lidos.map(function(s){ return '<li>' + s + '</li>'; }).join('') + '</ul>';
-    if (faltou.length) html += 'Não encontrei ' + faltou.join(', ').replace(/, ([^,]*)$/, ' e $1') + '; preencha à mão.';
-    if (avisos.length) html += '<br>' + avisos.join('<br>');
-    pdfStatus(html, faltou.length > 0 || avisos.length > 0);
+    // vermelho so para o que precisa de acao; o resto e "para conferir"
+    if (faltou.length) avisos.unshift('<b>Não encontrei ' + juntar(faltou) + '</b>: preencha à mão.');
+    html += blocoAviso('atencao', 'Atenção', avisos) + blocoAviso('conferir', 'Para conferir' + (foto ? ' · lida de imagem' : ''), conferir);
+    pdfStatus(html, avisos.length > 0);
+  }
+  function blocoAviso(tipo, titulo, itens){
+    if (!itens.length) return '';
+    return '<div class="bloco ' + tipo + '"><p class="rt">' + titulo + '</p><ul>'
+      + itens.map(function(s){ return '<li>' + s + '</li>'; }).join('') + '</ul></div>';
   }
 
   /* ---------- leitura de foto ou PDF escaneado (OCR no proprio aparelho) ---------- */
@@ -1684,8 +1707,13 @@ body.pdf-mode footer{margin-top:18px}
         + erros.map(function(x){ return esc(x.nome) + ' (' + esc(x.msg) + ')'; }).join('; ') + '.');
       if (sobra > 0) extra.push('Enviei só as primeiras ' + MAX_CONTAS + ' contas; as outras ' + sobra + ' ficaram de fora.');
       if (extra.length){
-        var nota = $('pdf-status').querySelector('.note > div');
-        if (nota) nota.insertAdjacentHTML('beforeend', '<br>' + extra.join('<br>'));
+        var lista = $('pdf-status').querySelector('.bloco.atencao ul'), nota = $('pdf-status').querySelector('.note > div');
+        if (lista) lista.insertAdjacentHTML('beforeend', extra.map(function(s){ return '<li>' + s + '</li>'; }).join(''));
+        else if (nota){
+          var conf = nota.querySelector('.bloco.conferir');
+          if (conf) conf.insertAdjacentHTML('beforebegin', blocoAviso('atencao', 'Atenção', extra));
+          else nota.insertAdjacentHTML('beforeend', blocoAviso('atencao', 'Atenção', extra));
+        }
         $('pdf-status').querySelector('.note').classList.add('alert');
       }
     } catch (e){

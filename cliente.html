@@ -12,7 +12,7 @@
 :root{
   --bg:#FBF4E6; --card:#FFFFFF; --card2:#F4EAD6; --panel:#EEF1DA; --chip:#EBDDC4;
   --accent:#1DA05A; --accent2:#17834B; --head:#12110E; --text:#3F3A32;
-  --body:#5E574C; --dim:#9A9286; --border:#E8DCC6; --warn:#C25B4E;
+  --body:#5E574C; --dim:#9A9286; --border:#E8DCC6; --warn:#C25B4E; --atento:#A0620A; --atento-bg:rgba(245,174,58,.13);
   --word:#123D2A; --mark:#123D2A; --onaccent:#12110E; --shadow:0 1px 2px rgba(74,42,14,.06);
   --grad:linear-gradient(115deg,#F9C846 0%,#F5AE3A 22%,#A9D06A 52%,#1DA05A 100%);
   --gradtxt:linear-gradient(100deg,#C77A0E 0%,#B98A12 30%,#4F8F33 65%,#17834B 100%);
@@ -21,7 +21,7 @@
   :root:not([data-theme="light"]){
   --bg:#13120E; --card:#1B1915; --card2:#24211C; --panel:#1E2719; --chip:#24211C;
   --accent:#2FA866; --accent2:#A9D06A; --head:#FBF4E6; --text:#EAE1CF;
-  --body:#B8AF9F; --dim:#8A8276; --border:#2E2A23; --warn:#E08C84;
+  --body:#B8AF9F; --dim:#8A8276; --border:#2E2A23; --warn:#E08C84; --atento:#F5B04A; --atento-bg:rgba(245,174,58,.10);
   --word:#FBF4E6; --mark:#FBF4E6; --onaccent:#12110E; --shadow:none;
   --grad:linear-gradient(115deg,#F9C846 0%,#F5AE3A 22%,#A9D06A 52%,#1DA05A 100%);
   --gradtxt:linear-gradient(100deg,#F9C846 0%,#F5AE3A 24%,#B5CF6A 56%,#2FA866 100%);
@@ -30,7 +30,7 @@
 :root[data-theme="dark"]{
   --bg:#13120E; --card:#1B1915; --card2:#24211C; --panel:#1E2719; --chip:#24211C;
   --accent:#2FA866; --accent2:#A9D06A; --head:#FBF4E6; --text:#EAE1CF;
-  --body:#B8AF9F; --dim:#8A8276; --border:#2E2A23; --warn:#E08C84;
+  --body:#B8AF9F; --dim:#8A8276; --border:#2E2A23; --warn:#E08C84; --atento:#F5B04A; --atento-bg:rgba(245,174,58,.10);
   --word:#FBF4E6; --mark:#FBF4E6; --onaccent:#12110E; --shadow:none;
   --grad:linear-gradient(115deg,#F9C846 0%,#F5AE3A 22%,#A9D06A 52%,#1DA05A 100%);
   --gradtxt:linear-gradient(100deg,#F9C846 0%,#F5AE3A 24%,#B5CF6A 56%,#2FA866 100%);
@@ -61,6 +61,15 @@ header{display:flex; align-items:center; justify-content:space-between; gap:16px
 .pdf-note ul{margin:4px 0 0; padding-left:16px}
 .pdf-note .dot{width:7px; height:7px; border-radius:99px; background:var(--accent); margin-top:6px; flex:none}
 .pdf-note.alerta .dot{background:var(--warn)}
+/* o que precisa de acao vai num bloco vermelho; o que e so para conferir, num bloco ambar */
+.bloco{margin-top:10px; padding:8px 10px 8px 12px; border-left:3px solid; border-radius:0 8px 8px 0}
+.bloco .rt{font-size:10px; text-transform:uppercase; letter-spacing:.12em; margin:0 0 3px}
+.pdf-note .bloco ul{margin:0}
+.bloco li{margin:2px 0}
+.bloco.atencao{border-color:var(--warn); background:transparent}
+.bloco.atencao .rt, .bloco.atencao b{color:var(--warn)}
+.bloco.conferir{border-color:var(--atento); background:var(--atento-bg)}
+.bloco.conferir .rt{color:var(--atento)}
 .btn{background:var(--card); color:var(--body); border:1px solid var(--border); border-radius:999px; padding:8px 15px; font:inherit; font-size:12px; cursor:pointer}
 .btn:hover{color:var(--head)}
 .backbtn{text-decoration:none; display:inline-flex; align-items:center; gap:5px}
@@ -1160,13 +1169,20 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     $('pdf-status').innerHTML = '<div class="pdf-note' + (alerta ? ' alerta' : '') + '"><span class="dot"></span><div>' + html + '</div></div>';
   }
 
+  function blocoAviso(tipo, titulo, itens){
+    if (!itens.length) return '';
+    return '<div class="bloco ' + tipo + '"><p class="rt">' + titulo + '</p><ul>'
+      + itens.map(function(s){ return '<li>' + s + '</li>'; }).join('') + '</ul></div>';
+  }
+
   function aplicarContas(contas, erros){
     var foto = capturar();
     var base = contas.slice().sort(function(a, b){ return ordRef(b.referencia) - ordRef(a.referencia); })[0];
-    var itens = [], avisos = [];
+    // avisos: o que precisa de acao (vermelho). conferir: so para olhar (ambar)
+    var itens = [], avisos = [], conferir = [];
     if (!$('cliente').value.trim() && base.cliente) $('cliente').value = base.cliente;
     if (isFinite(base.tarifa)) $('tarifa').value = +base.tarifa.toFixed(6);
-    else avisos.push('Não encontrei a tarifa na conta mais recente (acontece quando toda a energia é compensada). Preencha à mão.');
+    else avisos.push('<b>Não encontrei a tarifa</b> na conta mais recente (acontece quando toda a energia é compensada): preencha à mão.');
     $('ucs').innerHTML = '';
     contas.forEach(function(c, i){
       var nome = c.uc ? 'UC ' + c.uc : (contas.length > 1 ? 'Unidade ' + (i + 1) : '');
@@ -1177,23 +1193,25 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       itens.push('<li>' + esc(nome || 'Unidade') + ': média de <b>' + num.format(Math.round(c.media)) + ' kWh/mês</b> ('
         + c.meses + (c.meses === 1 ? ' mês' : ' meses') + (c.meses > 1 ? ', ' + esc(c.de) + ' a ' + esc(c.ate) : '') + ')'
         + (c.fase ? ' · ' + NOME_FASE[c.fase] : '') + (c.cip > 0 ? ' · CIP de ' + brl.format(c.cip) : '') + '</li>');
-      if (c.meses < 12) avisos.push(esc(nome || 'A unidade') + ' tem só ' + c.meses + (c.meses === 1 ? ' mês' : ' meses') + ' de histórico na conta.');
-      if (c.gd) avisos.push(esc(nome || 'A unidade') + ' tem geração própria (Energia SCEE isenta): a média do histórico inclui a energia compensada. Confira o consumo antes de propor.');
+      if (c.faltando && c.faltando.length) conferir.push('Na imagem não deu para ler ' + c.faltando.map(esc).join(', ') + ': a média de ' + esc(nome || 'a unidade') + ' usou os outros ' + c.meses + ' meses.');
+      else if (c.meses < 12) conferir.push(esc(nome || 'A unidade') + ' tem só ' + c.meses + (c.meses === 1 ? ' mês' : ' meses') + ' de histórico na conta.');
+      if (c.gd) avisos.push('<b>' + esc(nome || 'A unidade') + ' tem geração própria</b> (Energia SCEE isenta): a média do histórico inclui a energia compensada. Confira o consumo antes de propor.');
       // lida de imagem: mostra mes a mes para conferir com a conta
-      if (c.foto) avisos.push('<b>' + esc(nome || 'A conta') + ' foi lida de imagem: confira os números com a conta.</b> Meses lidos: '
+      if (c.foto) conferir.push((contas.length > 1 ? esc(nome || 'Conta ' + (i + 1)) + ', meses' : 'Meses') + ' lidos: '
         + c.ult.map(function(h){ return esc(h.mes) + ' ' + num.format(h.kwh); }).join(' · ')
         + (isFinite(c.tarifa) ? '. Tarifa lida: ' + brl4.format(c.tarifa) + '/kWh' : '') + '. Se algum número estiver errado, corrija a média na unidade.');
-      if (c.faltando && c.faltando.length) avisos.push('Na imagem não deu para ler ' + c.faltando.map(esc).join(', ') + ': a média de ' + esc(nome || 'a unidade') + ' usou os outros ' + c.meses + ' meses.');
     });
     atualizarTetos();
     var tars = contas.map(function(c){ return c.tarifa; }).filter(function(t){ return isFinite(t); });
-    if (tars.some(function(t){ return Math.abs(t - tars[0]) / tars[0] > 0.01; })) avisos.push('As contas têm tarifas diferentes; usei a da mais recente.');
-    if (erros.length) avisos.push('Não li ' + erros.map(function(x){ return esc(x.nome) + ' (' + esc(x.msg) + ')'; }).join('; ') + '.');
+    if (tars.some(function(t){ return Math.abs(t - tars[0]) / tars[0] > 0.01; })) conferir.push('As contas têm tarifas diferentes; usei a da mais recente.');
+    if (erros.length) avisos.push('<b>Não li ' + erros.map(function(x){ return esc(x.nome); }).join(', ') + '</b>: ' + erros.map(function(x){ return esc(x.msg); }).join('; '));
+    var foto = contas.some(function(c){ return c.foto; });
+    if (foto) conferir.push('A leitura por foto pode trocar algum dígito: confira os números com a conta.');
     var html = '<b>' + (contas.length > 1 ? contas.length + ' contas lidas.' : 'Conta' + (base.referencia ? ' de ' + esc(base.referencia) : '') + ' lida.') + '</b> Confira os campos.'
       + '<ul>' + itens.join('') + '</ul>'
       + (isFinite(base.tarifa) ? 'Tarifa de <b>' + brl4.format(base.tarifa) + '/kWh</b> com impostos' + (base.referencia ? ', da conta de ' + esc(base.referencia) : '') + '.' : '')
       + (contas.some(function(c){ return c.fase || c.cip > 0; }) ? ' A ligação e a CIP já estão nas unidades: a taxa mínima fica com a CEMIG e a exa cobra só o consumo acima dela.' : '');
-    if (avisos.length) html += '<br>' + avisos.join('<br>');
+    html += blocoAviso('atencao', 'Atenção', avisos) + blocoAviso('conferir', 'Para conferir' + (foto ? ' · lida de imagem' : ''), conferir);
     pdfStatus(html, avisos.length > 0);
     // um toque para voltar ao que estava antes da leitura
     desfazerFoto = foto;
