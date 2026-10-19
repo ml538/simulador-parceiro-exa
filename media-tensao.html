@@ -296,9 +296,9 @@ body.pdf-mode footer{margin-top:18px}
       <section class="card">
         <p class="label">Fatura em PDF</p>
         <div class="drop" id="drop">
-          <input type="file" id="arq" accept="application/pdf,.pdf" multiple hidden>
+          <input type="file" id="arq" accept="application/pdf,.pdf,image/*" multiple hidden>
           <button class="btn solid" id="arq-btn" type="button">Ler faturas da CEMIG</button>
-          <span class="hint">ou arraste os PDFs aqui. Dá para enviar até 12 contas juntas: se o cliente tiver geração própria, o consumo é descontado mês a mês. A leitura é feita no próprio aparelho e nada é enviado para lugar nenhum.</span>
+          <span class="hint">ou arraste os PDFs ou fotos aqui. Dá para enviar até 12 contas juntas: se o cliente tiver geração própria, o consumo é descontado mês a mês. A leitura é feita no próprio aparelho e nada é enviado para lugar nenhum.</span>
         </div>
         <div id="pdf-status" aria-live="polite"></div>
       </section>
@@ -988,7 +988,8 @@ body.pdf-mode footer{margin-top:18px}
   // colunas vizinhas num pedaco so ("0,635 29.174,88")
   var NUM = '(-?\\d[\\d.]*(?:,\\d+)?)';
   var ITEM_RE = new RegExp('^(.+?)\\s+(kWh|kW|kVArh|kVAr)\\s+' + NUM + '\\s+' + NUM + '\\s+' + NUM, 'i');
-  var ITEM_SO_VALOR_RE = /^(.*?[A-Za-zÀ-ÿ.)])\s+(-?\d[\d.]*,\d{2})(?:\s|$)/;
+  // aceita ponto no lugar da virgula, que o OCR as vezes troca
+  var ITEM_SO_VALOR_RE = /^(.*?[A-Za-zÀ-ÿ.)])\s+(-?\d[\d.]*[,.]\d{2})(?:\s|$)/;
 
   function categoria(rot){
     var s = rot.toLowerCase();
@@ -1015,7 +1016,8 @@ body.pdf-mode footer{margin-top:18px}
       if (/\bhp\b|ponta/.test(s)) return 'ehp';
       return null;
     }
-    if (/ilum|\bcip\b|cosip/.test(s)) return 'cip';
+    // tolera o OCR lendo "Ilum" como "llum"
+    if (/[il1|]lum|\bcip\b|cosip|contrib/.test(s)) return 'cip';
     return null;
   }
   // varias linhas do mesmo item: componentes (mesma quantidade) ou periodos
@@ -1042,8 +1044,8 @@ body.pdf-mode footer{margin-top:18px}
     var ref = tudo.match(/\b(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/\d{4}\b/i);
     if (ref) r.referencia = ref[0].toUpperCase();
     linhas.some(function(l){
-      var m = /Cliente:\s*(.+?)(?:\s+Unidade:|$)/i.exec(l.txt);
-      if (m && m[1].trim()){ r.cliente = m[1].trim(); return true; }
+      var m = /Cliente:\s*(.+?)(?:\s+Unidade:|$)/i.exec(l.txt) || /^(.+?)\s+Referente a\b/i.exec(l.txt);
+      if (m && m[1].trim().length > 2){ r.cliente = m[1].trim(); return true; }
       return false;
     });
     // classe: linha de baixo do cabecalho "Classe  Subclasse ..."
@@ -1190,6 +1192,7 @@ body.pdf-mode footer{margin-top:18px}
     }
     var nomes = contas.map(function(c){ return (c.cliente || '').toUpperCase(); }).filter(Boolean);
     if (nomes.some(function(n){ return n !== nomes[0]; })) avisos.push('<b>As contas enviadas parecem ser de clientes diferentes.</b> Confira se são todas da mesma unidade.');
+    if (contas.some(function(c){ return c.foto; })) avisos.push('<b>Fatura lida de imagem: confira o histórico e os preços com a conta.</b> A leitura por foto pode trocar algum dígito.');
 
     if (isFinite(r.contratada)){ $('dc').value = brNum(r.contratada, 2); lidos.push('demanda contratada de ' + fN1.format(r.contratada) + ' kW'); }
     else faltou.push('a demanda contratada');
@@ -1242,18 +1245,155 @@ body.pdf-mode footer{margin-top:18px}
     pdfStatus(html, faltou.length > 0 || avisos.length > 0);
   }
 
-  async function lerUmaFatura(file){
-    var buf = await lerArquivo(file);
-    var pags;
-    try { pags = await paginasDoPdf(buf); }
-    catch (e){
-      if (e && e.message === 'leitor') throw new Error('Não consegui carregar o leitor de PDF. Confira a internet e tente de novo, ou preencha à mão.');
-      throw new Error('Não consegui abrir este arquivo como PDF.');
+  /* ---------- leitura de foto ou PDF escaneado (OCR no proprio aparelho) ---------- */
+  // a imagem vira texto com o Tesseract, que roda no navegador: nada e
+  // enviado. as palavras viram linhas no mesmo formato do PDF, entao a mesma
+  // leitura da conta vale para os dois. foto pode trocar digito: o resultado
+  // vem sempre com aviso para conferir
+  var TESS = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+  var carregandoOcr = null;
+  function carregarOcr(){
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (carregandoOcr) return carregandoOcr;
+    carregandoOcr = new Promise(function(res, rej){
+      var s = document.createElement('script');
+      s.src = TESS;
+      s.onload = function(){ if (window.Tesseract) res(window.Tesseract); else rej(new Error('ocr')); };
+      s.onerror = function(){ carregandoOcr = null; rej(new Error('ocr')); };
+      document.head.appendChild(s);
+    });
+    return carregandoOcr;
+  }
+  function ehImagem(f){ return /^image\//i.test(f.type) || /\.(jpe?g|png|webp|heic|heif|bmp|gif)$/i.test(f.name); }
+  // canvas de ~2200 px de largura, em tons de cinza e com mais contraste: o OCR erra menos
+  function prepararCanvas(fonte, w, h){
+    var k = Math.min(3, 2200 / w);
+    var c = document.createElement('canvas');
+    c.width = Math.round(w * k); c.height = Math.round(h * k);
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(fonte, 0, 0, c.width, c.height);
+    var d = ctx.getImageData(0, 0, c.width, c.height), p = d.data;
+    for (var i = 0; i < p.length; i += 4){
+      var g = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2];
+      g = Math.max(0, Math.min(255, (g - 128) * 1.35 + 128));
+      p[i] = p[i + 1] = p[i + 2] = g;
     }
-    var nTexto = pags.reduce(function(n, p){ return n + p.length; }, 0);
-    if (!nTexto) throw new Error('Este PDF parece ser uma imagem escaneada, sem texto para ler. Baixe a 2ª via em PDF no site da CEMIG ou preencha à mão.');
+    ctx.putImageData(d, 0, 0);
+    return c;
+  }
+  function canvasDaImagem(file){
+    return new Promise(function(res, rej){
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function(){ URL.revokeObjectURL(url); res(prepararCanvas(img, img.naturalWidth, img.naturalHeight)); };
+      img.onerror = function(){ URL.revokeObjectURL(url); rej(new Error('formato')); };
+      img.src = url;
+    });
+  }
+  // PDF escaneado: desenha as paginas (ate 2) para o OCR ler
+  async function canvasesDoPdf(buf){
+    var lib = await carregarPdfJs();
+    var doc = await lib.getDocument({ data: new Uint8Array(buf) }).promise, out = [];
+    for (var p = 1; p <= Math.min(doc.numPages, 2); p++){
+      var pg = await doc.getPage(p), v1 = pg.getViewport({ scale: 1 });
+      var vp = pg.getViewport({ scale: 2200 / v1.width });
+      var c = document.createElement('canvas');
+      c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+      await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+      out.push(prepararCanvas(c, c.width, c.height));
+    }
+    return out;
+  }
+  function palavrasDoOcr(data){
+    if (data.words && data.words.length) return data.words;
+    var out = [];
+    (data.blocks || []).forEach(function(b){ (b.paragraphs || []).forEach(function(p){ (p.lines || []).forEach(function(l){ (l.words || []).forEach(function(w){ out.push(w); }); }); }); });
+    return out;
+  }
+  // palavras do OCR -> linhas {y, it, txt}, na escala de uma pagina A4 em pontos
+  function linhasTess(data){
+    if (data.lines && data.lines.length) return data.lines;
+    var out = [];
+    (data.blocks || []).forEach(function(b){ (b.paragraphs || []).forEach(function(p){ (p.lines || []).forEach(function(l){ out.push(l); }); }); });
+    return out;
+  }
+  async function linhasDoOcr(worker, canvas){
+    // o OCR endireita a pagina; o que sobrar de inclinacao sai pelo angulo
+    // medio das linhas de texto, para as colunas da tabela cairem na mesma linha
+    var res = await worker.recognize(canvas, { rotateAuto: true });
+    var angs = linhasTess(res.data).filter(function(l){ return l.baseline && (l.baseline.x1 - l.baseline.x0) > canvas.width * 0.12; })
+      .map(function(l){ return Math.atan2(l.baseline.y1 - l.baseline.y0, l.baseline.x1 - l.baseline.x0); }).sort(function(a, b){ return a - b; });
+    var ang = angs.length ? angs[Math.floor(angs.length / 2)] : 0;
+    var co = Math.cos(-ang), se = Math.sin(-ang);
+    var sc = 595 / canvas.width, palavras = [];
+    palavrasDoOcr(res.data).forEach(function(w){
+      var t = (w.text || '').trim();
+      // descarta sinais soltos que o OCR inventa entre colunas (traco, barra, aspas)
+      if (!t || w.confidence < 10 || /^[—–\-|_~'‘’"“”.,:;·•]+$/.test(t)) return;
+      var cy = (w.bbox.y0 + w.bbox.y1) / 2, x0 = w.bbox.x0;
+      var xr = x0 * co - cy * se, yr = x0 * se + cy * co;
+      palavras.push({ s: t, x: xr * sc, y: -yr * sc, h: (w.bbox.y1 - w.bbox.y0) * sc });
+    });
+    palavras.sort(function(a, b){ return b.y - a.y; });
+    var grupos = [];
+    palavras.forEach(function(w){
+      var g = null;
+      for (var k = grupos.length - 1; k >= 0 && k >= grupos.length - 4; k--){
+        if (Math.abs(grupos[k].y - w.y) <= Math.max(2.5, 0.5 * Math.min(grupos[k].h, w.h))){ g = grupos[k]; break; }
+      }
+      if (!g){ g = { y: w.y, h: w.h, it: [] }; grupos.push(g); }
+      g.it.push({ s: w.s, x: w.x, y: w.y });
+    });
+    grupos.forEach(function(g){
+      g.it.sort(function(a, b){ return a.x - b.x; });
+      g.txt = g.it.map(function(i){ return i.s; }).join(' ');
+    });
+    return grupos.sort(function(a, b){ return b.y - a.y; });
+  }
+  // abre um leitor de OCR por leva de arquivos e fecha no fim
+  function leitorOcr(avisar){
+    var worker = null;
+    return {
+      ler: async function(canvases){
+        if (!worker){
+          avisar('Preparando a leitura de imagem… na primeira vez o aparelho baixa o leitor, leva alguns segundos.');
+          var T = await carregarOcr();
+          worker = await T.createWorker('por');
+        }
+        var pags = [];
+        for (var i = 0; i < canvases.length; i++) pags.push(await linhasDoOcr(worker, canvases[i]));
+        return pags;
+      },
+      fechar: function(){ if (worker) worker.terminate(); worker = null; }
+    };
+  }
+
+  // PDF com texto, PDF escaneado ou foto: os dois ultimos passam pelo OCR
+  async function lerUmaFatura(file, ocr, avisar){
+    var pags, porImagem = ehImagem(file);
+    if (porImagem){
+      var cv;
+      try { cv = await canvasDaImagem(file); }
+      catch (e){ throw new Error('Não abri essa imagem (foto do iPhone em HEIC: mande em JPG ou um print da tela).'); }
+      pags = await ocr.ler([cv]);
+    } else {
+      var buf = await lerArquivo(file);
+      try { pags = await paginasDoPdf(buf.slice(0)); }
+      catch (e){
+        if (e && e.message === 'leitor') throw new Error('Não consegui carregar o leitor de PDF. Confira a internet e tente de novo, ou preencha à mão.');
+        throw new Error('Não consegui abrir este arquivo como PDF.');
+      }
+      if (!pags.reduce(function(n, p){ return n + p.length; }, 0)){
+        porImagem = true;
+        avisar('PDF escaneado: lendo como imagem, leva alguns segundos…');
+        pags = await ocr.ler(await canvasesDoPdf(buf.slice(0)));
+      }
+    }
     var r = extrairFatura(pags);
-    if (!r.hist.length && !r.itens.ehfp && !r.itens.dem) throw new Error('Não reconheci o layout desta fatura. Preencha à mão.');
+    r.foto = porImagem;
+    if (!r.hist.length && !r.itens.ehfp && !r.itens.dem) throw new Error(porImagem
+      ? 'Não consegui ler a fatura na imagem. Tente uma foto mais reta e nítida, ou um print da tela.'
+      : 'Não reconheci o layout desta fatura. Preencha à mão.');
     return r;
   }
 
@@ -1262,20 +1402,22 @@ body.pdf-mode footer{margin-top:18px}
   // descontar a geracao propria mes a mes
   var MAX_CONTAS = 13;
   async function importar(lista){
-    var arquivos = Array.prototype.slice.call(lista || []).filter(function(f){ return /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name); });
-    if (!arquivos.length){ pdfStatus('<b>Envie a fatura em PDF.</b>', true); return; }
+    var arquivos = Array.prototype.slice.call(lista || []).filter(function(f){ return /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name) || ehImagem(f); });
+    if (!arquivos.length){ pdfStatus('<b>Envie a fatura em PDF ou em foto.</b>', true); return; }
     var sobra = arquivos.length - MAX_CONTAS;
     arquivos = arquivos.slice(0, MAX_CONTAS);
     var btn = $('arq-btn');
     btn.disabled = true;
     var lidas = [], erros = [];
+    var ocr = leitorOcr(function(m){ pdfStatus(m); });
     try {
       for (var i = 0; i < arquivos.length; i++){
-        var msg = arquivos.length > 1 ? 'Lendo a fatura ' + (i + 1) + ' de ' + arquivos.length + '…' : 'Lendo a fatura…';
-        btn.textContent = msg; pdfStatus(msg);
-        try { lidas.push(await lerUmaFatura(arquivos[i])); }
+        var msg = (arquivos.length > 1 ? 'Lendo a fatura ' + (i + 1) + ' de ' + arquivos.length : 'Lendo a fatura') + (ehImagem(arquivos[i]) ? ' (imagem, leva alguns segundos)…' : '…');
+        btn.textContent = 'Lendo…'; pdfStatus(msg);
+        try { lidas.push(await lerUmaFatura(arquivos[i], ocr, function(m){ pdfStatus(m); })); }
         catch (e){
           if (e && /leitor de PDF/.test(e.message)) throw e;
+          if (e && e.message === 'ocr') throw new Error('Não consegui carregar o leitor de imagem. Confira a internet e tente de novo, ou preencha à mão.');
           erros.push({ nome: arquivos[i].name, msg: (e && e.message) || 'Não consegui ler a fatura.' });
         }
       }
@@ -1294,6 +1436,7 @@ body.pdf-mode footer{margin-top:18px}
     } catch (e){
       pdfStatus('<b>' + esc(e.message || 'Não consegui ler a fatura.') + '</b>', true);
     } finally {
+      ocr.fechar();
       btn.disabled = false; btn.textContent = 'Ler faturas da CEMIG';
     }
   }
