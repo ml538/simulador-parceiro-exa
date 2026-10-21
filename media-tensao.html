@@ -131,6 +131,19 @@ table.hist .del:hover{color:var(--warn)}
 .balao + .balao{margin-top:12px}
 .balao .tt{font-size:10px; font-weight:700; letter-spacing:.17em; text-transform:uppercase; color:var(--accent2); margin:0 0 8px}
 .balao .duo > div{background:var(--panel)}
+/* olho para tirar a otimizacao da demanda da proposta (tela e impressao) */
+.tt-linha{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 8px}
+.tt-linha .tt{margin:0}
+.olho{flex:none; width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; background:transparent; color:var(--body); border:1px solid var(--border); border-radius:999px; cursor:pointer; padding:0}
+.olho:hover{color:var(--head)}
+.olho:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+.olho .risco{display:none}
+.oculto-t{display:none; margin:0; font-size:12px; color:var(--dim)}
+.balao.fora > :not(.tt-linha):not(.oculto-t){display:none}
+.balao.fora .oculto-t{display:block}
+.balao.fora .tt{color:var(--dim)}
+.balao.fora .olho .risco{display:inline}
+.row.tarc{border-top:1px solid var(--border); border-bottom:none; margin-top:2px}
 .manchete{font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:clamp(19px,2.6vw,23px); line-height:1.2; color:var(--head); margin:0; text-wrap:balance}
 .manchete em{font-style:normal; color:var(--accent2)}
 .explica{font-size:12.5px; color:var(--body); margin:8px 0 0; line-height:1.5}
@@ -236,6 +249,7 @@ body.pdf-mode h1 em{background:none; -webkit-text-fill-color:currentColor; color
   @page{margin:0}
   body{background:var(--bg)}
   .no-print{display:none !important}
+  .balao.fora, #c-otim.sem-print{display:none !important}
   .so-print{display:revert}
   .wrap{max-width:none; padding:12mm}
   header{margin-bottom:16px}
@@ -252,6 +266,7 @@ body.pdf-mode h1 em{background:none; -webkit-text-fill-color:currentColor; color
 /* modo PDF · gerado pelo botao no iPad/iPhone, com o mesmo layout da impressao.
    a folha vai sem margem e o .wrap pinta o fundo inteiro no tema da tela */
 body.pdf-mode .no-print{display:none !important}
+body.pdf-mode .balao.fora, body.pdf-mode #c-otim.sem-print{display:none !important}
 body.pdf-mode .so-print{display:revert}
 body.pdf-mode .wrap{width:210mm; max-width:none; margin:0; padding:34px; background:var(--bg)}
 body.pdf-mode header{margin-bottom:16px}
@@ -442,6 +457,7 @@ body.pdf-mode footer{margin-top:18px}
         <div class="row" id="rw-cip"><span class="k">Iluminação pública</span><span class="v big" id="r-cip">—</span></div>
         <div class="row" id="rw-rea"><span class="k">Energia reativa excedente <small>último mês</small></span><span class="v big" id="r-rea">—</span></div>
         <div class="row tot"><span class="k">Total por mês <small id="r-tot-d"></small></span><span class="v big" id="r-tot">—</span></div>
+        <div class="row tarc"><span class="k">Tarifa média ponderada da conta <small id="r-tarc-d"></small></span><span class="v big" id="r-tarc">—</span></div>
       </section>
 
       <section class="card green" id="c-energia" hidden>
@@ -470,7 +486,13 @@ body.pdf-mode footer{margin-top:18px}
         <p class="label">Demais otimizações</p>
 
         <div class="balao" id="o-dem">
-          <p class="tt">Otimização da demanda contratada</p>
+          <div class="tt-linha">
+            <p class="tt">Otimização da demanda contratada</p>
+            <button type="button" class="olho no-print" id="o-dem-olho" aria-pressed="true" aria-label="Mostrar a otimização da demanda na proposta" title="Ocultar da proposta">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="risco" d="M3 3l18 18"/></svg>
+            </button>
+          </div>
+          <p class="oculto-t">Oculta: não aparece no resultado nem na impressão. Toque no olho para mostrar de novo.</p>
           <div id="o-dem-falta" class="hint">Informe a demanda contratada, o preço da demanda e a demanda medida no histórico.</div>
           <div id="o-dem-corpo">
            <div id="o-dem-rural" hidden>
@@ -841,6 +863,7 @@ body.pdf-mode footer{margin-top:18px}
     }
 
     mostrar('o-reat', reat > 0);
+    marcarCardOtim();
     if (reat > 0){
       mostrar('rw-r-hfp', rHFP > 0); $('o-r-hfp').textContent = fBRL.format(rHFP);
       mostrar('rw-r-hp', rHP > 0);   $('o-r-hp').textContent  = fBRL.format(rHP);
@@ -878,6 +901,11 @@ body.pdf-mode footer{margin-top:18px}
     var totConta = cHFP + cHP + cip + reat + (hoje ? hoje.tot : 0);
     $('r-tot').textContent = fBRL.format(totConta);
     $('r-tot-d').textContent = (hoje ? '' : 'sem a demanda · ') + 'média de ' + nMeses + (nMeses === 1 ? ' mês' : ' meses');
+    // o que o cliente paga hoje por kWh, com a ponta e a fora ponta como estao
+    // na conta (sem o ajuste do fator que vale para o credito)
+    var kwhConta = mHFP + mHP;
+    $('r-tarc').textContent = fBRL4.format((cHFP + cHP) / kwhConta) + '/kWh';
+    $('r-tarc-d').textContent = fBRL.format(cHFP + cHP) + ' ÷ ' + fN0.format(kwhConta) + ' kWh de ponta e fora ponta, pelos preços da ' + dist.nome + ', sem o ajuste do fator';
 
     /* tarifa ponderada, so energia */
     $('p-hfp').textContent = fBRL.format(cHFP);
@@ -900,10 +928,12 @@ body.pdf-mode footer{margin-top:18px}
       else       { descB = db / 100;  preco = tb * (1 - descB);       descMT = 1 - preco / tarPond; }
       var eco = kwhEq * (tarPond - preco);
       var refB = 'um cliente do Grupo B da ' + d.nome + ' a ' + fBRL.format(tb) + '/kWh: o kWh de crédito sai a ' + fBRL4.format(preco) + '.';
-      $('b-desc-t').textContent = modoMT ? 'Desconto equivalente · Grupo B, baixa tensão' : 'Desconto equivalente · Grupo A, média tensão';
-      $('b-desc').textContent = fPct.format(modoMT ? descB : descMT);
+      // a proposta e para o cliente do Grupo A: o destaque e sempre o desconto
+      // dele; o do Grupo B fica no texto, como comparacao
+      $('b-desc-t').textContent = modoMT ? 'Desconto · Grupo A, média tensão' : 'Desconto equivalente · Grupo A, média tensão';
+      $('b-desc').textContent = fPct.format(descMT);
       $('b-desc-s').textContent = modoMT
-        ? 'Dar ' + fN2.format(dm) + '% neste cliente do Grupo A é o mesmo que dar ' + fPct.format(descB) + ' a ' + refB
+        ? 'Equivale a dar ' + fPct.format(descB) + ' a ' + refB
         : 'O mesmo que dar ' + fN2.format(db) + '% a ' + refB;
       if (modoMT) $('db').placeholder = fN2.format(descB * 100) + ' · equivale';
       else        $('dm').placeholder = fN2.format(descMT * 100) + ' · equivale';
@@ -916,6 +946,19 @@ body.pdf-mode footer{margin-top:18px}
         : '';
     }
   }
+
+  /* ---------- olho da otimizacao da demanda ---------- */
+  // tira (ou volta) a otimizacao da demanda do resultado e da impressao. se o
+  // card "Demais otimizacoes" ficar sem nada, ele tambem sai da impressao
+  function marcarCardOtim(){
+    $('c-otim').classList.toggle('sem-print', $('o-dem').classList.contains('fora') && $('o-reat').hidden);
+  }
+  $('o-dem-olho').addEventListener('click', function(){
+    var fora = $('o-dem').classList.toggle('fora');
+    this.setAttribute('aria-pressed', fora ? 'false' : 'true');
+    this.title = fora ? 'Mostrar na proposta' : 'Ocultar da proposta';
+    marcarCardOtim();
+  });
 
   /* ---------- distribuidora ---------- */
   function distAtual(){
