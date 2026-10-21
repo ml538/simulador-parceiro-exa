@@ -158,6 +158,15 @@ input.pct{flex:none; width:70px; text-align:center; padding:8px 4px}
 .tier.exa .nm, .tier.exa .pv{color:var(--accent2)}
 .tier.exa .track{background:var(--card)}
 .tier.exa .note b{color:var(--head)}
+/* desconto e economia em destaque na faixa "Com a exa energia" */
+.tier .destaque{display:flex; align-items:flex-end; justify-content:space-between; gap:10px 18px; flex-wrap:wrap; margin:6px 0 4px}
+.tier .pct-grande{display:flex; align-items:baseline; gap:8px}
+.tier .pct-grande .n{font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:clamp(38px,5.4vw,52px); line-height:1; color:var(--accent2)}
+.tier .pct-grande small{font-size:15px; font-weight:600; color:var(--head)}
+.tier .eco-grande{text-align:right}
+.tier .eco-grande .v{display:block; font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:clamp(24px,3.6vw,32px); line-height:1.05; color:var(--head); letter-spacing:-.025em}
+.tier .eco-grande small{display:block; font-size:12px; color:var(--body); margin-top:3px}
+.tier .eco-grande small b{color:var(--head)}
 .tier.total .top{border-top:2px solid var(--border); padding-top:12px; margin-top:2px}
 .tier.total .nm{font-weight:700; color:var(--head)}
 .tier.total .pv{color:var(--head)}
@@ -343,17 +352,20 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       </div>
 
       <div class="tier" id="t2" style="display:none">
-        <div class="top"><span class="nm">Hoje, com o desconto atual<span class="tag" id="t2-tag">20% off</span></span><span class="pv" id="t2-v">—</span></div>
+        <div class="top"><span class="nm">Hoje, com o desconto atual<span class="tag" id="t2-tag">20% de desconto</span></span><span class="pv" id="t2-v">—</span></div>
         <div class="note right" id="t2-ano">—</div>
         <div class="track"><div class="paga" id="t2-paga">paga</div><div class="eco" id="t2-eco"></div></div>
         <div class="note" id="t2-n"></div>
       </div>
 
       <div class="tier exa">
-        <div class="top"><span class="nm">Com a exa energia<span class="tag" id="t3-tag">30% off</span></span><span class="pv" id="t3-v">—</span></div>
+        <div class="top"><span class="nm">Com a exa energia</span><span class="pv" id="t3-v">—</span></div>
         <div class="note right" id="t3-ano">—</div>
+        <div class="destaque">
+          <div class="pct-grande"><span class="n" id="t3-pct">0%</span><small>de desconto</small></div>
+          <div class="eco-grande"><span class="v" id="t3-eco-m">R$ 0,00</span><small>de economia por mês · <b id="t3-eco-a">R$ 0,00</b> por ano*</small></div>
+        </div>
         <div class="track"><div class="paga" id="t3-paga">paga</div><div class="eco" id="t3-eco"></div></div>
-        <div class="note" id="t3-n"></div>
         <div class="note" id="t3-k"></div>
       </div>
 
@@ -570,7 +582,7 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
     $('t2').style.display = temAtual ? '' : 'none';
     if (temAtual){
       var ecoA = cheio - atual;
-      $('t2-tag').textContent = pct.format(datual) + '% off';
+      $('t2-tag').textContent = pct.format(datual) + '% de desconto';
       $('t2-v').textContent   = brl.format(atual);
       $('t2-ano').textContent = brl.format(atual * 12) + ' por ano';
       $('t2-paga').style.width = (100 - datual) + '%';
@@ -579,13 +591,15 @@ body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
       $('t2-n').textContent    = 'economia de ' + brl.format(ecoA) + ' por mês · ' + brl.format(ecoA * 12) + ' por ano';
     }
 
-    $('t3-tag').textContent = pct.format(dexa) + '% off';
+    // o desconto e a economia sao o centro da proposta: vem em destaque
+    $('t3-pct').textContent = pct.format(dexa) + '%';
+    $('t3-eco-m').textContent = brl.format(ecoE);
+    $('t3-eco-a').textContent = brl.format(ecoE * 12);
     $('t3-v').textContent   = brl.format(comExa);
     $('t3-ano').textContent = brl.format(comExa * 12) + ' por ano';
     $('t3-paga').style.width = (100 - dexa) + '%';
     $('t3-eco').style.width  = dexa + '%';
     $('t3-eco').textContent  = '+ ' + brl0.format(ecoE);
-    $('t3-n').innerHTML      = 'economia de <b>' + brl.format(ecoE) + '</b> por mês · <b>' + brl.format(ecoE * 12) + '</b> por ano*';
     $('t3-k').textContent    = total > 0
       ? 'Sobre ' + num.format(kwhComp) + ' kWh por mês: a média de ' + num.format(total) + ' kWh menos os ' + num.format(kwhMin) + ' kWh da taxa mínima, que ficam com a CEMIG.'
       : '';

@@ -207,10 +207,67 @@ header .btn.solid{font-size:12px; padding:8px 15px}
 .toast button{background:none; border:none; color:var(--accent2); font:inherit; font-weight:700; cursor:pointer; padding:5px 10px; border-radius:999px; white-space:nowrap}
 .toast button:hover{background:var(--panel)}
 .so-print, .logo-pdf{display:none}
-.label .quando{font-weight:500; letter-spacing:.06em; text-transform:none; color:var(--dim); margin-left:6px}
-.rp{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px}
-.rp .k{display:block; font-size:11px; color:var(--body)}
-.rp .v{display:block; font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:15px; color:var(--head); line-height:1.3; overflow-wrap:anywhere}
+
+/* ---- proposta impressa · mesmo visual da baixa tensao ---- */
+.doc .who{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:16px}
+.doc .who .nome{font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:20px; color:var(--head); line-height:1.2}
+.doc .who .quando{font-size:12px; color:var(--dim); text-align:right; white-space:nowrap}
+.ucs{background:var(--bg); border-radius:11px; padding:14px 16px; margin-bottom:18px}
+.ucline{display:flex; justify-content:space-between; gap:12px; padding:6px 0; font-size:13px}
+.ucline .n{color:var(--text)} .ucline .v{color:var(--head); font-weight:600; white-space:nowrap}
+.ucs .tot{display:flex; justify-content:space-between; gap:12px; border-top:1px solid var(--border); margin-top:7px; padding-top:9px; font-size:14px}
+.ucs .tot .n{color:var(--head); font-weight:600} .ucs .tot .v{color:var(--head); font-weight:700; font-family:'Instrument Sans',system-ui,sans-serif}
+
+.tier{margin-bottom:16px}
+.tier .top{display:flex; justify-content:space-between; align-items:baseline; gap:12px}
+.tier .nm{font-size:14.5px; font-weight:600; color:var(--head)}
+.tier .tag{font-size:10.5px; font-weight:700; background:var(--panel); color:var(--accent2); border-radius:99px; padding:2px 9px; margin-left:7px; white-space:nowrap}
+.tier .pv{font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:clamp(19px,2.6vw,25px); color:var(--head); white-space:nowrap}
+.tier .track{height:26px; background:var(--bg); border-radius:7px; margin:8px 0 6px; display:flex; overflow:hidden}
+.tier .paga{height:100%; background:var(--card2); display:flex; align-items:center; padding-left:11px; font-size:11.5px; color:var(--body)}
+.tier .eco{height:100%; background:var(--accent); display:flex; align-items:center; justify-content:flex-end; padding-right:11px; font-size:11.5px; font-weight:700; color:var(--onaccent); white-space:nowrap; overflow:hidden}
+.tier .note{font-size:12px; color:var(--body)}
+.tier .note.right{text-align:right; margin-top:4px}
+.tier.exa{background:var(--panel); border-radius:12px; padding:15px 16px; margin-left:-16px; margin-right:-16px}
+.tier.exa .nm, .tier.exa .pv{color:var(--accent2)}
+.tier.exa .track{background:var(--card)}
+.tier.exa .note b{color:var(--head)}
+/* desconto e economia em destaque na faixa "Com a exa energia" */
+.tier .destaque{display:flex; align-items:flex-end; justify-content:space-between; gap:10px 18px; flex-wrap:wrap; margin:6px 0 4px}
+.tier .pct-grande{display:flex; align-items:baseline; gap:8px}
+.tier .pct-grande .n{font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:clamp(38px,5.4vw,52px); line-height:1; color:var(--accent2)}
+.tier .pct-grande small{font-size:15px; font-weight:600; color:var(--head)}
+.tier .eco-grande{text-align:right}
+.tier .eco-grande .v{display:block; font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:clamp(24px,3.6vw,32px); line-height:1.05; color:var(--head); letter-spacing:-.025em}
+.tier .eco-grande small{display:block; font-size:12px; color:var(--body); margin-top:3px}
+.tier .eco-grande small b{color:var(--head)}
+.tier.total .top{border-top:2px solid var(--border); padding-top:12px; margin-top:2px}
+.tier.total .nm{font-weight:700; color:var(--head)}
+.tier.total .pv{color:var(--head)}
+
+.final{background:var(--accent); color:var(--onaccent); border-radius:13px; padding:18px 20px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-top:4px}
+.final .n{font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:clamp(28px,4.6vw,40px); line-height:1; letter-spacing:-.02em}
+.final .t{font-size:13.5px; line-height:1.45}
+.final .t b{font-weight:700}
+
+.benef{display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-top:18px}
+@media (max-width:620px){.benef{grid-template-columns:1fr 1fr}}
+.benef div{display:flex; gap:8px; align-items:flex-start; background:var(--bg); border-radius:9px; padding:10px 11px; font-size:11.5px; color:var(--head); line-height:1.35}
+.benef .ck{color:var(--accent2); font-weight:700; flex:none}
+.foot{font-size:11px; color:var(--dim); margin-top:14px; line-height:1.55}
+.foot b{color:var(--body); font-weight:600}
+
+/* a media tensao tem um .note proprio (caixa com bolinha): na proposta ele
+   volta a ser so a linha de texto, como na baixa tensao */
+.doc .tier .note{display:block; background:none; border:0; border-radius:0; padding:0; margin:0; font-size:12px; color:var(--body); line-height:1.45}
+.doc .tier .note.right{text-align:right; margin-top:4px}
+.doc .nota-doc{font-size:11.5px; color:var(--body); line-height:1.5; margin:-8px 0 16px}
+.doc .nota-doc b{color:var(--head)}
+.oport{background:var(--bg); border-radius:18px; padding:13px 15px; margin-top:9px; font-size:12px; color:var(--body); line-height:1.5}
+.oport .tt{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent2); margin:0 0 5px}
+.oport .manchete{font-size:17px; margin:0 0 4px}
+.oport .num{font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:15px; color:var(--head)}
+.oport p{margin:0}
 
 /* ---- impressao · so o resultado, no tema da tela ---- */
 
@@ -243,47 +300,33 @@ header > .logo{width:118px}
 /* o gerador de PDF do iPad nao desenha texto com degrade: vai em cor solida */
 body.pdf-mode h1 em{background:none; -webkit-text-fill-color:currentColor; color:var(--accent2)}
 
+/* impressao e PDF: sai so a proposta (#proposta), com o mesmo visual da
+   baixa tensao. a analise da tela fica para o consultor */
 @media print{
   /* sem isso o navegador imprime os fundos em branco */
   *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important}
   /* margem 0 tira o cabecalho e o rodape do navegador (data, URL, pagina) */
   @page{margin:0}
-  body{background:var(--bg)}
-  .no-print{display:none !important}
-  .balao.fora, #c-otim.sem-print{display:none !important}
+  body{background:var(--card)}
+  .no-print, .grid, footer{display:none !important}
   .so-print{display:revert}
-  .wrap{max-width:none; padding:12mm}
-  header{margin-bottom:16px}
-  /* folha 1: conta atual e economia lado a lado · depois as otimizacoes */
-  .grid{display:block; margin-top:14px}
-  .grid > .col:last-child{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; align-items:start}
-  #c-vazio, #c-otim{grid-column:1 / -1}
-  #c-energia .duo > div{padding:10px 12px}
-  #c-energia .duo .n{font-size:16px; white-space:nowrap}
-  .card{box-shadow:none; padding:16px 18px}
-  .card, .balao, .regras, .note, .hero, table.cmp{break-inside:avoid}
-  footer{margin-top:18px}
+  .wrap{max-width:none; padding:13mm}
+  header{margin-bottom:18px}
+  .card.doc{border:none; box-shadow:none; padding:0; background:transparent}
+  .tier.exa{margin:0; border:1px solid var(--border)}
+  .tier, .final, .benef, .oport, .ucs{break-inside:avoid}
 }
 /* modo PDF · gerado pelo botao no iPad/iPhone, com o mesmo layout da impressao.
    a folha vai sem margem e o .wrap pinta o fundo inteiro no tema da tela */
-body.pdf-mode .no-print{display:none !important}
-body.pdf-mode .balao.fora, body.pdf-mode #c-otim.sem-print{display:none !important}
+body.pdf-mode .no-print, body.pdf-mode .grid, body.pdf-mode footer{display:none !important}
 body.pdf-mode .so-print{display:revert}
-body.pdf-mode .wrap{width:210mm; max-width:none; margin:0; padding:34px; background:var(--bg)}
-body.pdf-mode header{margin-bottom:16px}
+body.pdf-mode .wrap{width:210mm; max-width:none; margin:0; padding:36px; background:var(--card)}
+body.pdf-mode header{margin-bottom:18px}
 body.pdf-mode .brand .logo{display:none}
-body.pdf-mode .logo-pdf{display:block; width:140px; height:auto}
-body.pdf-mode .grid{display:block; margin-top:14px}
-body.pdf-mode .grid > .col:last-child{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; align-items:start}
-body.pdf-mode #c-vazio, body.pdf-mode #c-otim{grid-column:1 / -1}
-body.pdf-mode #c-energia .duo > div{padding:10px 12px}
-body.pdf-mode #c-energia .duo .n{font-size:16px; white-space:nowrap}
-body.pdf-mode .card{box-shadow:none; padding:16px 18px}
-/* o gerador insere um espacador antes do que nao pode ser cortado. dentro
-   da grade so o #c-otim leva a regra: ele ocupa a linha inteira, entao o
-   espacador vira uma linha vazia e nao empurra os cartoes lado a lado */
-body.pdf-mode #c-otim, body.pdf-mode .balao, body.pdf-mode .regras, body.pdf-mode .note, body.pdf-mode .hero, body.pdf-mode table.cmp{break-inside:avoid}
-body.pdf-mode footer{margin-top:18px}
+body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
+body.pdf-mode .card.doc{border:none; box-shadow:none; padding:0; background:transparent}
+body.pdf-mode .tier.exa{margin:0; border:1px solid var(--border)}
+body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .oport, body.pdf-mode .ucs{break-inside:avoid}
 </style>
 </head>
 <body>
@@ -302,19 +345,92 @@ body.pdf-mode footer{margin-top:18px}
     </div>
   </header>
 
-  <p class="kicker">Simulador de média tensão · Grupo A</p>
-  <h1>Quanto dá para <em>economizar</em> nesta conta.</h1>
-  <p class="sub no-print">Envie a fatura ou preencha os dados e veja na hora o desconto ideal para o cliente de MT e onde mais dá para economizar.</p>
+  <div class="no-print">
+    <p class="kicker">Simulador de média tensão · Grupo A</p>
+    <h1>Quanto dá para <em>economizar</em> nesta conta.</h1>
+    <p class="sub">Envie a fatura ou preencha os dados e veja na hora o desconto ideal para o cliente de MT e onde mais dá para economizar.</p>
+  </div>
 
-  <!-- ============ DADOS CONSIDERADOS · so no papel ============ -->
-  <section class="card so-print" style="margin-top:18px">
-    <p class="label">Dados considerados<span class="quando" id="rp-data"></span></p>
-    <div class="rp">
-      <div><span class="k">Cliente</span><span class="v" id="rp-nome">—</span></div>
-      <div><span class="k">Distribuidora</span><span class="v" id="rp-dist">—</span></div>
-      <div><span class="k">Demanda contratada</span><span class="v" id="rp-dc">—</span></div>
-      <div><span class="k">Histórico</span><span class="v" id="rp-hist">—</span></div>
+  <!-- ============ PROPOSTA · so no papel, com o visual da baixa tensao ============ -->
+  <section class="card doc so-print" id="proposta">
+    <div class="who">
+      <div>
+        <div class="nome" id="pp-cliente">Nome do cliente</div>
+        <div class="hint">economia na conta de energia · Grupo A, média tensão</div>
+      </div>
+      <div class="quando" id="pp-data"></div>
     </div>
+
+    <p class="label">Dados considerados</p>
+    <div class="ucs">
+      <div id="pp-dados"></div>
+      <div class="tot"><span class="n">Tarifa média ponderada com o ajuste do solar</span><span class="v" id="pp-tarpond">—</span></div>
+    </div>
+    <p class="nota-doc" id="pp-fator"></p>
+    <p class="nota-doc" id="pp-gd" hidden></p>
+
+    <p class="nota-doc" id="pp-vazio" hidden>Preencha o histórico e os preços da fatura para montar a proposta.</p>
+    <div id="pp-corpo">
+      <p class="label">Quanto custa por mês</p>
+
+      <div class="tier">
+        <div class="top"><span class="nm">Só com a distribuidora</span><span class="pv" id="pp1-v">—</span></div>
+        <div class="note right" id="pp1-ano">—</div>
+        <div class="note" id="pp1-d"></div>
+      </div>
+
+      <div class="tier exa">
+        <div class="top"><span class="nm">Com a exa energia</span><span class="pv" id="pp3-v">—</span></div>
+        <div class="note right" id="pp3-ano">—</div>
+        <div class="destaque">
+          <div class="pct-grande"><span class="n" id="pp3-pct">0%</span><small>de desconto</small></div>
+          <div class="eco-grande"><span class="v" id="pp3-eco-m">R$ 0,00</span><small>de economia por mês · <b id="pp3-eco-a">R$ 0,00</b> por ano*</small></div>
+        </div>
+        <div class="track"><div class="paga" id="pp3-paga">paga</div><div class="eco" id="pp3-eco"></div></div>
+        <div class="note" id="pp3-k"></div>
+      </div>
+
+      <div class="tier" id="ppc">
+        <div class="top"><span class="nm"><span id="ppc-nm">Conta da distribuidora</span> <span class="tag" id="ppc-tag">demanda</span></span><span class="pv" id="ppc-v">—</span></div>
+        <div class="note" id="ppc-n"></div>
+      </div>
+
+      <div class="tier total">
+        <div class="top"><span class="nm">Total que você paga com a exa</span><span class="pv" id="ppt-v">—</span></div>
+        <div class="note right" id="ppt-ano">—</div>
+      </div>
+
+      <div class="final">
+        <div class="n" id="ppf-n">—</div>
+        <div class="t" id="ppf-t"></div>
+      </div>
+
+      <div id="pp-oport" hidden>
+        <p class="label" style="margin:20px 0 0">Outras oportunidades na conta</p>
+        <div class="oport" id="pp-o-dem" hidden>
+          <p class="tt">Demanda contratada</p>
+          <p class="manchete" id="pp-o-dem-m"></p>
+          <p><span class="num" id="pp-o-dem-v"></span> <span id="pp-o-dem-l"></span></p>
+          <p id="pp-o-dem-n"></p>
+        </div>
+        <div class="oport" id="pp-o-reat" hidden>
+          <p class="tt">Energia reativa excedente</p>
+          <p><span class="num" id="pp-o-reat-v"></span> <span id="pp-o-reat-l"></span></p>
+          <p>Dá para eliminar esse custo com um banco de capacitores, orçado caso a caso.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="benef">
+      <div><span class="ck">✓</span><span>Uma cobrança só, com a conta da distribuidora dentro</span></div>
+      <div><span class="ck">✓</span><span>Atendimento 24 horas, com resposta em minutos</span></div>
+      <div><span class="ck">✓</span><span>A exa revisa a sua fatura item por item, todo mês</span></div>
+      <div><span class="ck">✓</span><span>Consumo e faturas no app, no portal e no WhatsApp</span></div>
+      <div><span class="ck">✓</span><span>Sem obra, sem instalação e sem investimento inicial</span></div>
+      <div><span class="ck">✓</span><span>A mesma rede e a mesma distribuidora de sempre</span></div>
+    </div>
+
+    <p class="foot" id="pp-foot"></p>
   </section>
 
   <div class="grid">
@@ -874,7 +990,7 @@ body.pdf-mode footer{margin-top:18px}
       $('o-r-ano').textContent = 'cerca de ' + fBRL.format(reat * 12) + ' por ano, se o último mês se repetir';
     }
 
-    if (!temEnergia) return;
+    if (!temEnergia){ proposta(null); return; }
 
     /* ---------- energia ---------- */
     var cHFP = mHFP * pHFP, cHP = mHP * pHP;
@@ -947,6 +1063,95 @@ body.pdf-mode footer{margin-top:18px}
         ? '<div class="note alert"><span class="dot"></span><div><b>Com esse desconto no Grupo A, o kWh de crédito sai acima da tarifa do Grupo B.</b> Para um cliente do Grupo B, seria um aumento, não um desconto.</div></div>'
         : '';
     }
+
+    // desconto da proposta: o do Grupo A preenchido, ou o equivalente ao do
+    // Grupo B (que precisa da tarifa B). sem nenhum, a proposta sai com 0%
+    var descProp = 0;
+    if (modoMT && dm >= 0 && dm < 100) descProp = dm / 100;
+    else if (!modoMT && isFinite(db) && db >= 0 && db < 100 && pos(tb)) descProp = Math.max(0, 1 - tb * (1 - db / 100) / tarPond);
+    proposta({ dist: dist, dc: dc, mHFP: mHFP, mHP: mHP, eqHP: eqHP, kwhEq: kwhEq, energia: cHFP + cHP, tarPond: tarPond,
+               demanda: hoje ? hoje.tot : 0, cip: cip, reat: reat, total: totConta, nMeses: nMeses, desc: descProp,
+               otimDem: temDem && !temRural && !$('o-dem').classList.contains('fora'), igualDem: temDem && !temRural && Math.abs(prop.D - dc) < 0.05,
+               reduzir: temDem && !temRural && prop.D < dc });
+  }
+
+  /* ---------- proposta impressa (mesmo visual da baixa tensao) ---------- */
+  var fBRL0 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+  // "a, b e c" (os itens podem ter virgula, como "R$ 50,63")
+  function juntarE(l){ return l.length < 2 ? l.join('') : l.slice(0, -1).join(', ') + ' e ' + l[l.length - 1]; }
+  function proposta(p){
+    $('pp-cliente').textContent = $('nome').value.trim() || 'Nome do cliente';
+    $('pp-data').textContent = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    mostrar('pp-corpo', !!p); mostrar('pp-vazio', !p);
+    var dist = distAtual(), linhas = [['Distribuidora', dist.nome + ' · ' + dist.subgrupo + ' ' + dist.modalidade]];
+    if (p && p.dc > 0) linhas.push(['Demanda contratada', fN1.format(p.dc) + ' kW']);
+    var per = periodoHist();
+    if (per) linhas.push(['Histórico', per]);
+    if (p){
+      linhas.push(['Consumo médio fora ponta', fN0.format(p.mHFP) + ' kWh/mês']);
+      linhas.push(['Consumo médio ponta', fN0.format(p.mHP) + ' kWh/mês']);
+      linhas.push(['Tarifa média ponderada da conta', fBRL4.format(p.energia / (p.mHFP + p.mHP)) + '/kWh']);
+    }
+    $('pp-dados').innerHTML = linhas.map(function(l){ return '<div class="ucline"><span class="n">' + l[0] + '</span><span class="v">' + esc(l[1]) + '</span></div>'; }).join('');
+    $('pp-tarpond').textContent = p ? fBRL4.format(p.tarPond) + '/kWh' : '—';
+    $('pp-fator').textContent = p ? 'Na ponta, cada kWh pede ' + pctFator(dist) + ' a mais de crédito, pela relação entre as tarifas de energia de ponta e fora ponta homologadas pela ANEEL para a '
+      + dist.nome + ': ' + fN0.format(p.mHP) + ' kWh de ponta viram ' + fN0.format(p.eqHP) + ' kWh de crédito. É essa conta que dá a tarifa média ponderada com o ajuste do solar.' : '';
+    $('pp-gd').innerHTML = $('r-gd').hidden ? '' : $('r-gd').innerHTML;
+    $('pp-gd').hidden = $('r-gd').hidden;
+    $('pp-foot').innerHTML = '<b>* Valor aproximado, a confirmar no estudo completo.</b> '
+      + (p ? 'Estimativa sobre a média de ' + p.nMeses + (p.nMeses === 1 ? ' mês' : ' meses') + ' do histórico. ' : '')
+      + 'O desconto vale sobre a energia de ponta e fora ponta; a ponta entra pelo fator de compensação do SCEE, em que o crédito gerado fora da ponta e usado na ponta vale pela relação entre as TE homologadas pela ANEEL. '
+      + 'Demanda, iluminação pública e reativo continuam com a ' + dist.nome + ', com ou sem a exa. Não inclui a parcela não compensável do SCEE (Lei 14.300) nem bandeiras tarifárias. A troca da demanda contratada segue as regras e os prazos da distribuidora.';
+    if (!p) return;
+
+    var comExa = p.energia * (1 - p.desc), eco = p.energia * p.desc, resto = p.total - p.energia, totalExa = comExa + resto;
+    var partes = ['energia de ' + fBRL.format(p.energia)], fora = [];
+    if (p.demanda > 0.005){ partes.push('demanda de ' + fBRL.format(p.demanda)); fora.push('demanda'); }
+    if (p.cip > 0.005){ partes.push('iluminação pública de ' + fBRL.format(p.cip)); fora.push('iluminação pública'); }
+    if (p.reat > 0.005){ partes.push('reativo de ' + fBRL.format(p.reat)); fora.push('reativo'); }
+    $('pp1-v').textContent = fBRL.format(p.total);
+    $('pp1-ano').textContent = fBRL.format(p.total * 12) + ' por ano';
+    $('pp1-d').textContent = juntarE(partes).replace(/^e/, 'E') + ', tudo na conta da ' + dist.nome + '.';
+
+    $('pp3-v').textContent = fBRL.format(comExa);
+    $('pp3-ano').textContent = fBRL.format(comExa * 12) + ' por ano';
+    $('pp3-pct').textContent = fN2.format(p.desc * 100) + '%';
+    $('pp3-eco-m').textContent = fBRL.format(eco);
+    $('pp3-eco-a').textContent = fBRL.format(eco * 12);
+    $('pp3-paga').style.width = (100 - p.desc * 100) + '%';
+    $('pp3-eco').style.width = (p.desc * 100) + '%';
+    $('pp3-eco').textContent = eco > 0 ? '+ ' + fBRL0.format(eco) : '';
+    $('pp3-k').textContent = 'Sobre a energia de ponta e fora ponta, ' + fN0.format(p.kwhEq) + ' kWh de crédito por mês: o kWh sai a '
+      + fBRL4.format(p.tarPond * (1 - p.desc)) + ', contra a tarifa média ponderada de ' + fBRL4.format(p.tarPond) + '.';
+
+    mostrar('ppc', resto > 0.005);
+    $('ppc-nm').textContent = 'Conta da ' + dist.nome;
+    $('ppc-tag').textContent = juntarE(fora);
+    $('ppc-v').textContent = fBRL.format(resto);
+    $('ppc-n').textContent = juntarE(partes.slice(1)).replace(/^./, function(c){ return c.toUpperCase(); }) + '. Continuam com a ' + dist.nome + ', com ou sem a exa.';
+    $('ppt-v').textContent = fBRL.format(totalExa);
+    $('ppt-ano').textContent = fBRL.format(totalExa * 12) + ' por ano, contra ' + fBRL.format(p.total * 12) + ' só com a distribuidora';
+
+    $('ppf-n').textContent = fBRL0.format(eco * 12) + '*';
+    $('ppf-t').innerHTML = '<b>de economia por ano</b> nesta unidade.<br>São ' + fBRL.format(eco) + ' por mês que deixam de sair do caixa.';
+
+    // outras oportunidades: a demanda (se o olho estiver aberto) e o reativo
+    mostrar('pp-o-dem', p.otimDem);
+    if (p.otimDem){
+      $('pp-o-dem-m').innerHTML = $('o-manchete').innerHTML;
+      var temEco = !p.igualDem && $('o-eco-m').textContent !== fBRL.format(0);
+      $('pp-o-dem-v').textContent = temEco ? $('o-eco-m').textContent : '';
+      $('pp-o-dem-l').textContent = temEco ? $('o-eco-ml').textContent + ' · ' + $('o-eco-a').textContent + ' ' + $('o-eco-al').textContent : '';
+      $('pp-o-dem-n').textContent = p.igualDem ? '' : (p.reduzir
+        ? 'A redução é pedida por escrito à distribuidora com 90 dias de antecedência no A4 (180 nos demais subgrupos), uma vez a cada 12 meses (REN ANEEL 1.000/2021).'
+        : 'O aumento é pedido à distribuidora; na prática, a resposta leva uns 45 dias (REN ANEEL 1.000/2021).');
+    }
+    mostrar('pp-o-reat', p.reat > 0.005);
+    if (p.reat > 0.005){
+      $('pp-o-reat-v').textContent = fBRL.format(p.reat);
+      $('pp-o-reat-l').textContent = 'no último mês, cerca de ' + fBRL.format(p.reat * 12) + ' por ano se ele se repetir.';
+    }
+    mostrar('pp-oport', p.otimDem || p.reat > 0.005);
   }
 
   /* ---------- olho da otimizacao da demanda ---------- */
@@ -1947,10 +2152,11 @@ body.pdf-mode footer{margin-top:18px}
     });
   }
 
-  // quadro "Dados considerados", que so aparece no papel
-  function prepararImpressao(){
-    calc();
-    var d = distAtual(), dc = val('dc');
+  // a proposta (so no papel) e preenchida pelo calculo
+  function prepararImpressao(){ calc(); }
+  // "12 meses, SET/25 a AGO/26": do mais antigo ao mais recente, venha a
+  // tabela em que ordem vier
+  function periodoHist(){
     var mesesLidos = [];
     Array.prototype.forEach.call($('hist').rows, function(tr){
       var ins = tr.querySelectorAll('input');
@@ -1967,11 +2173,7 @@ body.pdf-mode footer{margin-top:18px}
       var iMin = ords.indexOf(Math.min.apply(null, ords)), iMax = ords.indexOf(Math.max.apply(null, ords));
       rotulos = [rotulos[iMax], rotulos[iMin]];
     }
-    $('rp-data').textContent = '· ' + new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-    $('rp-nome').textContent = $('nome').value.trim() || '—';
-    $('rp-dist').textContent = d.nome + ' · ' + d.subgrupo + ' ' + d.modalidade;
-    $('rp-dc').textContent   = isFinite(dc) && dc > 0 ? fN1.format(dc) + ' kW' : '—';
-    $('rp-hist').textContent = !mesesLidos.length ? '—'
+    return !mesesLidos.length ? ''
       : (mesesLidos.length === 1 ? '1 mês' : mesesLidos.length + ' meses')
         + (rotulos.length > 1 ? ', ' + rotulos[rotulos.length - 1] + ' a ' + rotulos[0] : '');
   }
@@ -2010,10 +2212,10 @@ body.pdf-mode footer{margin-top:18px}
     carregarHtml2pdf().then(montarLogoPdf).then(function(){
       prepararImpressao();
       document.body.classList.add('pdf-mode');
-      var fundo = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+      var fundo = getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || '#ffffff';
       return html2pdf().set({
         margin:      0,
-        filename:    'analise-mt-' + nome + '.pdf',
+        filename:    'proposta-mt-' + nome + '.pdf',
         image:       { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, backgroundColor: fundo, scrollX: 0, scrollY: 0 },
         jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
