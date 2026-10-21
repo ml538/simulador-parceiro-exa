@@ -267,7 +267,28 @@ header .btn.solid{font-size:12px; padding:8px 15px}
 .oport .tt{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent2); margin:0 0 5px}
 .oport .manchete{font-size:17px; margin:0 0 4px}
 .oport .num{font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:15px; color:var(--head)}
+/* a parte da economia cabe na folha 1: dados em duas colunas e espacos mais justos */
+#proposta .who{margin-bottom:12px}
+#proposta .label{margin-bottom:8px}
+#pp-dados{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:26px}
+#proposta .ucs{padding:10px 15px; margin-bottom:12px}
+#proposta .ucline{padding:4px 0; font-size:12.5px}
+#proposta .ucs .tot{margin-top:5px; padding-top:7px}
+#proposta .nota-doc{margin:-4px 0 12px; font-size:11px}
+#proposta #pp-gd{font-size:10.5px}
+#proposta .tier{margin-bottom:8px}
+#proposta .tier.exa{padding:11px 15px}
+#proposta .tier .track{height:22px; margin:5px 0 4px}
+#proposta .pct-grande .n{font-size:42px}
+#proposta .final{padding:12px 18px}
+#proposta .benef{margin-top:12px; gap:7px}
+#proposta .benef div{padding:8px 10px; font-size:11px}
+#proposta .foot{margin-top:10px; font-size:10.5px}
 .oport p{margin:0}
+.oport #pp-o-dem-x{margin-top:4px}
+.oport .eco-linha{margin-top:10px}
+.oport .regras{background:var(--card)}
+.oport + .oport{margin-top:12px}
 
 /* ---- impressao · so o resultado, no tema da tela ---- */
 
@@ -310,23 +331,26 @@ body.pdf-mode h1 em{background:none; -webkit-text-fill-color:currentColor; color
   body{background:var(--card)}
   .no-print, .grid, footer{display:none !important}
   .so-print{display:revert}
-  .wrap{max-width:none; padding:13mm}
-  header{margin-bottom:18px}
+  .wrap{max-width:none; padding:12mm 13mm}
+  header{margin-bottom:12px}
   .card.doc{border:none; box-shadow:none; padding:0; background:transparent}
   .tier.exa{margin:0; border:1px solid var(--border)}
   .tier, .final, .benef, .oport, .ucs{break-inside:avoid}
+  /* folha 1: a economia inteira · folha 2: demanda contratada e reativo */
+  #pp-oport{break-before:page; page-break-before:always; padding-top:13mm}
 }
 /* modo PDF · gerado pelo botao no iPad/iPhone, com o mesmo layout da impressao.
    a folha vai sem margem e o .wrap pinta o fundo inteiro no tema da tela */
 body.pdf-mode .no-print, body.pdf-mode .grid, body.pdf-mode footer{display:none !important}
 body.pdf-mode .so-print{display:revert}
 body.pdf-mode .wrap{width:210mm; max-width:none; margin:0; padding:36px; background:var(--card)}
-body.pdf-mode header{margin-bottom:18px}
+body.pdf-mode header{margin-bottom:12px}
 body.pdf-mode .brand .logo{display:none}
 body.pdf-mode .logo-pdf{display:block; width:150px; height:auto}
 body.pdf-mode .card.doc{border:none; box-shadow:none; padding:0; background:transparent}
 body.pdf-mode .tier.exa{margin:0; border:1px solid var(--border)}
 body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .oport, body.pdf-mode .ucs{break-inside:avoid}
+body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top:36px}
 </style>
 </head>
 <body>
@@ -405,20 +429,6 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
         <div class="t" id="ppf-t"></div>
       </div>
 
-      <div id="pp-oport" hidden>
-        <p class="label" style="margin:20px 0 0">Outras oportunidades na conta</p>
-        <div class="oport" id="pp-o-dem" hidden>
-          <p class="tt">Demanda contratada</p>
-          <p class="manchete" id="pp-o-dem-m"></p>
-          <p><span class="num" id="pp-o-dem-v"></span> <span id="pp-o-dem-l"></span></p>
-          <p id="pp-o-dem-n"></p>
-        </div>
-        <div class="oport" id="pp-o-reat" hidden>
-          <p class="tt">Energia reativa excedente</p>
-          <p><span class="num" id="pp-o-reat-v"></span> <span id="pp-o-reat-l"></span></p>
-          <p>Dá para eliminar esse custo com um banco de capacitores, orçado caso a caso.</p>
-        </div>
-      </div>
     </div>
 
     <div class="benef">
@@ -431,6 +441,24 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
     </div>
 
     <p class="foot" id="pp-foot"></p>
+
+    <!-- folha 2: demanda contratada e reativo -->
+    <div id="pp-oport" hidden>
+      <p class="label">Outras oportunidades na conta</p>
+      <div class="oport" id="pp-o-dem" hidden>
+        <p class="tt">Demanda contratada</p>
+        <p class="manchete" id="pp-o-dem-m"></p>
+        <p id="pp-o-dem-x"></p>
+        <div id="pp-o-dem-tab"></div>
+        <p class="eco-linha"><span class="num" id="pp-o-dem-v"></span> <span id="pp-o-dem-l"></span></p>
+        <div id="pp-o-dem-regras"></div>
+      </div>
+      <div class="oport" id="pp-o-reat" hidden>
+        <p class="tt">Energia reativa excedente</p>
+        <p><span class="num" id="pp-o-reat-v"></span> <span id="pp-o-reat-l"></span></p>
+        <p>Dá para eliminar esse custo com um banco de capacitores, orçado caso a caso.</p>
+      </div>
+    </div>
   </section>
 
   <div class="grid">
@@ -479,6 +507,11 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
           <button class="linkbtn" id="limpar-hist" type="button">limpar histórico</button>
         </div>
         <p class="fonte" id="hist-gd" style="margin-top:10px" hidden></p>
+        <div class="field" id="campo-ger" style="margin:12px 0 0" hidden>
+          <label for="ger">Geração da usina</label>
+          <div class="ig w-m" title="Em branco, os meses sem conta usam a média das contas enviadas. Preenchida, usam este valor."><input id="ger" inputmode="decimal" placeholder="média"><span class="unit">kWh/mês</span></div>
+          <p class="fonte" style="margin-top:6px">Opcional. Energia que a usina compensa por mês. Em branco, os meses sem conta usam a média das contas enviadas; preenchida, usam este valor, dividido entre fora ponta e ponta na mesma proporção das contas.</p>
+        </div>
       </section>
 
       <section class="card">
@@ -1075,6 +1108,44 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
                reduzir: temDem && !temRural && prop.D < dc });
   }
 
+  /* ---------- geracao propria nos meses sem conta ---------- */
+  // estadoGD vem da leitura das contas: os meses com conta, o consumo bruto
+  // dos meses sem conta e a media compensada. nesses meses sai a media ou, se
+  // preenchida, a geracao informada da usina, dividida entre fora ponta e
+  // ponta na mesma proporcao das contas. celula editada a mao fica como esta
+  var estadoGD = null;
+  function aplicarGeracao(){
+    var g = estadoGD, ok = !!(g && g.comConta.length), n = ok ? g.linhas.length : 0;
+    mostrar('campo-ger', n > 0);
+    $('r-gd').hidden = $('hist-gd').hidden = !ok;
+    if (!ok) return;
+    var media = g.gHFP + g.gHP, fHFP = media > 0 ? g.gHFP / media : 1;
+    var inf = val('ger'), usaInf = n > 0 && isFinite(inf) && inf >= 0;
+    var gH = usaInf ? inf * fHFP : g.gHFP, gP = usaInf ? inf * (1 - fHFP) : g.gHP;
+    $('ger').placeholder = fN0.format(media) + ' · média';
+    var tit = usaInf ? 'Sem a conta deste mês: descontada a geração informada da usina' : 'Sem a conta deste mês: descontada a média de geração dos meses com conta';
+    Array.prototype.forEach.call($('hist').rows, function(tr){
+      var ins = tr.querySelectorAll('input'), l = g.linhas.filter(function(x){ return x.mes === ins[0].value.trim(); })[0];
+      if (!l) return;
+      if (ins[1].classList.contains('estimado')){ ins[1].value = fN0.format(Math.max(0, l.hfp - gH)); ins[1].title = tit; }
+      if (ins[2].classList.contains('estimado')){ ins[2].value = fN0.format(Math.max(0, l.hp - gP)); ins[2].title = tit; }
+    });
+    var nMes = function(k){ return k + (k === 1 ? ' mês' : ' meses'); };
+    var meses = g.comConta.slice().reverse().map(esc);
+    var valTxt = fN0.format(gH) + ' kWh fora ponta e ' + fN0.format(gP) + ' kWh na ponta por mês';
+    // a mesma explicacao vai no resultado e na proposta impressa
+    $('r-gd').innerHTML = '<b>Geração própria:</b> o consumo já desconta a energia que o cliente compensou com a própria geração. '
+      + (n
+        ? (g.comConta.length <= 4 ? 'Com as contas de ' + juntarE(meses) : 'Com as ' + g.comConta.length + ' contas recebidas (' + meses[0] + ' a ' + meses[meses.length - 1] + ')')
+          + ', descontamos a geração de cada mês. Nos outros ' + nMes(n) + ' do histórico, sem conta, consideramos '
+          + (usaInf ? 'a geração informada da usina, de ' + fN0.format(inf) + ' kWh por mês: <b>' + valTxt + '</b>.' : 'a média de geração dos meses com conta: <b>' + valTxt + '</b>.')
+        : 'Descontamos a geração mês a mês, pelas contas dos ' + nMes(g.comConta.length) + '.');
+    $('hist-gd').innerHTML = '<b>Geração própria:</b> HFP e HP já descontados da energia compensada (SCEE isenta), ' + nMes(g.comConta.length) + ' pela conta do mês'
+      + (n ? ' e ' + nMes(n) + (usaInf ? ' pela geração informada da usina (' : ' pela média deles (') + valTxt + ', tracejados).' : '.');
+  }
+  // o calculo roda depois, pelo "input" da grade
+  $('ger').addEventListener('input', aplicarGeracao);
+
   /* ---------- proposta impressa (mesmo visual da baixa tensao) ---------- */
   var fBRL0 = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
   // "a, b e c" (os itens podem ter virgula, como "R$ 50,63")
@@ -1094,15 +1165,15 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
     }
     $('pp-dados').innerHTML = linhas.map(function(l){ return '<div class="ucline"><span class="n">' + l[0] + '</span><span class="v">' + esc(l[1]) + '</span></div>'; }).join('');
     $('pp-tarpond').textContent = p ? fBRL4.format(p.tarPond) + '/kWh' : '—';
-    $('pp-fator').textContent = p ? 'Na ponta, cada kWh pede ' + pctFator(dist) + ' a mais de crédito, pela relação entre as tarifas de energia de ponta e fora ponta homologadas pela ANEEL para a '
-      + dist.nome + ': ' + fN0.format(p.mHP) + ' kWh de ponta viram ' + fN0.format(p.eqHP) + ' kWh de crédito. É essa conta que dá a tarifa média ponderada com o ajuste do solar.' : '';
+    $('pp-fator').textContent = p ? 'Ajuste do solar na ponta: fator de ' + pctFator(dist) + ' da ' + dist.nome + ' (ANEEL), então '
+      + fN0.format(p.mHP) + ' kWh de ponta viram ' + fN0.format(p.eqHP) + ' kWh de crédito.' : '';
     $('pp-gd').innerHTML = $('r-gd').hidden ? '' : $('r-gd').innerHTML;
     $('pp-gd').hidden = $('r-gd').hidden;
     $('pp-foot').innerHTML = '<b>* Valor aproximado, a confirmar no estudo completo.</b> '
       + (p ? 'Estimativa sobre a média de ' + p.nMeses + (p.nMeses === 1 ? ' mês' : ' meses') + ' do histórico. ' : '')
-      + 'O desconto vale sobre a energia de ponta e fora ponta; a ponta entra pelo fator de compensação do SCEE, em que o crédito gerado fora da ponta e usado na ponta vale pela relação entre as TE homologadas pela ANEEL. '
-      + 'Demanda, iluminação pública e reativo continuam com a ' + dist.nome + ', com ou sem a exa. Não inclui a parcela não compensável do SCEE (Lei 14.300) nem bandeiras tarifárias. A troca da demanda contratada segue as regras e os prazos da distribuidora.';
-    if (!p) return;
+      + 'O desconto vale sobre a energia de ponta e fora ponta. Demanda, iluminação pública e reativo continuam com a ' + dist.nome
+      + '. Sem a parcela não compensável do SCEE (Lei 14.300) e sem bandeiras.';
+    if (!p){ mostrar('pp-oport', false); return; }
 
     var comExa = p.energia * (1 - p.desc), eco = p.energia * p.desc, resto = p.total - p.energia, totalExa = comExa + resto;
     var partes = ['energia de ' + fBRL.format(p.energia)], fora = [];
@@ -1121,8 +1192,8 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
     $('pp3-paga').style.width = (100 - p.desc * 100) + '%';
     $('pp3-eco').style.width = (p.desc * 100) + '%';
     $('pp3-eco').textContent = eco > 0 ? '+ ' + fBRL0.format(eco) : '';
-    $('pp3-k').textContent = 'Sobre a energia de ponta e fora ponta, ' + fN0.format(p.kwhEq) + ' kWh de crédito por mês: o kWh sai a '
-      + fBRL4.format(p.tarPond * (1 - p.desc)) + ', contra a tarifa média ponderada de ' + fBRL4.format(p.tarPond) + '.';
+    $('pp3-k').textContent = fN0.format(p.kwhEq) + ' kWh de crédito por mês a ' + fBRL4.format(p.tarPond * (1 - p.desc))
+      + ', contra a tarifa média ponderada de ' + fBRL4.format(p.tarPond) + '.';
 
     mostrar('ppc', resto > 0.005);
     $('ppc-nm').textContent = 'Conta da ' + dist.nome;
@@ -1136,15 +1207,18 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
     $('ppf-t').innerHTML = '<b>de economia por ano</b> nesta unidade.<br>São ' + fBRL.format(eco) + ' por mês que deixam de sair do caixa.';
 
     // outras oportunidades: a demanda (se o olho estiver aberto) e o reativo
+    // a analise da demanda da tela vai inteira para a folha 2 (sem os ids,
+    // que sao da tela)
+    var semIds = function(html){ return html.replace(/ id="[^"]*"/g, ''); };
     mostrar('pp-o-dem', p.otimDem);
     if (p.otimDem){
       $('pp-o-dem-m').innerHTML = $('o-manchete').innerHTML;
+      $('pp-o-dem-x').textContent = $('o-explica').textContent;
+      $('pp-o-dem-tab').innerHTML = semIds($('o-dem-normal').querySelector('table.cmp').outerHTML);
       var temEco = !p.igualDem && $('o-eco-m').textContent !== fBRL.format(0);
       $('pp-o-dem-v').textContent = temEco ? $('o-eco-m').textContent : '';
       $('pp-o-dem-l').textContent = temEco ? $('o-eco-ml').textContent + ' · ' + $('o-eco-a').textContent + ' ' + $('o-eco-al').textContent : '';
-      $('pp-o-dem-n').textContent = p.igualDem ? '' : (p.reduzir
-        ? 'A redução é pedida por escrito à distribuidora com 90 dias de antecedência no A4 (180 nos demais subgrupos), uma vez a cada 12 meses (REN ANEEL 1.000/2021).'
-        : 'O aumento é pedido à distribuidora; na prática, a resposta leva uns 45 dias (REN ANEEL 1.000/2021).');
+      $('pp-o-dem-regras').innerHTML = semIds($('o-dem').querySelector('.regras').outerHTML);
     }
     mostrar('pp-o-reat', p.reat > 0.005);
     if (p.reat > 0.005){
@@ -1519,7 +1593,7 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
   // traz todas as que foram enviadas juntas, para o desconto da geracao propria
   function aplicarFatura(r, contas){
     contas = contas && contas.length ? contas : [r];
-    ['nome','dc','di','pd','phfp','php','cip','rhfp','rhp','rdem'].forEach(function(id){ $(id).value = ''; });
+    ['nome','dc','di','pd','phfp','php','cip','rhfp','rhp','rdem','ger'].forEach(function(id){ $(id).value = ''; });
     var it = r.itens, lidos = [], faltou = [], avisos = [];
     if (r.cemig) $('dist').value = 'cemig-d';
     else avisos.push('Esta fatura não parece ser da CEMIG. O fator e o ICMS usados são os da distribuidora selecionada.');
@@ -1571,6 +1645,7 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
     // a media do que foi compensado nos meses com conta, para nenhum mes
     // ficar sem geracao
     $('hist-gd').hidden = true; $('r-gd').hidden = true;
+    estadoGD = null;
     if (contas.some(function(c){ return c.gd; })){
       var porConta = {};
       contas.forEach(function(c){ if (c.mesConsumo) porConta[c.mesConsumo] = c; });
@@ -1587,13 +1662,16 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
         comConta.push(h.mes);
       });
       var gHFP = comConta.length ? somaHFP / comConta.length : 0, gHP = comConta.length ? somaHP / comConta.length : 0;
+      // meses sem conta: ficam marcados e guardam o consumo bruto, para a
+      // geracao (media ou a informada da usina) ser descontada em aplicarGeracao
+      var linhasEst = [];
       if (comConta.length) semConta.forEach(function(i){
         var h = hist[i], ins = rows[i].querySelectorAll('input');
-        ins[1].value = fN0.format(Math.max(0, h.enHFP - gHFP));
-        ins[2].value = fN0.format(Math.max(0, h.enHP - gHP));
-        [ins[1], ins[2]].forEach(function(el){ el.classList.add('estimado'); el.title = 'Sem a conta deste mês: descontada a média de geração dos meses com conta'; });
+        ins[1].classList.add('estimado'); ins[2].classList.add('estimado');
+        linhasEst.push({ mes: h.mes, hfp: h.enHFP, hp: h.enHP });
         estimados.push(h.mes);
       });
+      estadoGD = { comConta: comConta, linhas: linhasEst, gHFP: gHFP, gHP: gHP };
       var nMes = function(n){ return n + (n === 1 ? ' mês' : ' meses'); };
       var mediaTxt = fN0.format(gHFP) + ' kWh fora ponta e ' + fN0.format(gHP) + ' kWh na ponta por mês';
       lidos.push('<b>geração própria</b> (Energia SCEE isenta): HFP e HP descontados da energia compensada em ' + nMes(comConta.length) + ' pela conta do mês'
@@ -1604,19 +1682,8 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
         + ': usei a média dos meses com conta (tracejados na tabela). '
         + 'A geração muda com o sol ao longo do ano, então quanto mais contas, mais fiel a referência. Se a geração começou há menos de 12 meses, corrija à mão os meses de antes dela.');
       if (!comConta.length) avisos.push('<b>O cliente tem geração própria, mas nenhuma conta enviada é de um mês do histórico.</b> O consumo ficou sem o desconto da geração: envie as contas dos últimos meses.');
-      // a mesma explicacao vai no resultado, que e o que sai na impressao
-      var meses = comConta.slice().reverse().map(esc);
-      $('r-gd').hidden = !comConta.length;
-      $('r-gd').innerHTML = '<b>Geração própria:</b> o consumo já desconta a energia que o cliente compensou com a própria geração. '
-        + (estimados.length
-          ? (comConta.length <= 4 ? 'Com as contas de ' + juntar(meses) : 'Com as ' + comConta.length + ' contas recebidas (' + meses[0] + ' a ' + meses[meses.length - 1] + ')')
-            + ', descontamos a geração de cada mês. Nos outros ' + nMes(estimados.length) + ' do histórico, sem conta, consideramos a média de geração dos meses com conta: <b>' + mediaTxt + '</b>.'
-          : 'Descontamos a geração mês a mês, pelas contas dos ' + nMes(comConta.length) + '.');
-      $('hist-gd').hidden = false;
-      $('hist-gd').innerHTML = '<b>Geração própria:</b> HFP e HP já descontados da energia compensada (SCEE isenta), '
-        + nMes(comConta.length) + ' pela conta do mês'
-        + (estimados.length ? ' e ' + nMes(estimados.length) + ' pela média deles (' + mediaTxt + ', tracejados).' : '.');
     }
+    aplicarGeracao();
     var nomes = contas.map(function(c){ return (c.cliente || '').toUpperCase(); }).filter(Boolean);
     if (nomes.some(function(n){ return n !== nomes[0]; })) avisos.push('<b>As contas enviadas parecem ser de clientes diferentes.</b> Confira se são todas da mesma unidade.');
     var foto = contas.some(function(c){ return c.foto; });
@@ -2013,7 +2080,7 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
   $('sw-rural').addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); definirRural(!temRural); calc(); } });
 
   /* ---------- botoes ---------- */
-  var CAMPOS = ['nome','dc','di','pd','phfp','php','cip','rhfp','rhp','rdem','tb','db','dm'];
+  var CAMPOS = ['nome','dc','di','pd','phfp','php','cip','rhfp','rhp','rdem','ger','tb','db','dm'];
   // a referencia do Grupo B e condicao do vendedor, definida antes da reuniao:
   // o Limpar apaga os dados do cliente e mantem ela
   var CONDICAO = ['tb','db','dm'];
@@ -2026,6 +2093,7 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
     CAMPOS.forEach(function(id){ if (CONDICAO.indexOf(id) < 0) $(id).value = ''; });
     $('pdf-status').innerHTML = '';
     $('hist-gd').hidden = true; $('r-gd').hidden = true;
+    estadoGD = null; aplicarGeracao();
     definirRural(false);
     montarHistorico();
     aplicarDistribuidora();
@@ -2042,7 +2110,9 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
       rural: temRural,
       status: $('pdf-status').innerHTML,
       gd: $('hist-gd').hidden ? '' : $('hist-gd').innerHTML,
-      gdRes: $('r-gd').hidden ? '' : $('r-gd').innerHTML
+      gdRes: $('r-gd').hidden ? '' : $('r-gd').innerHTML,
+      gdEstado: estadoGD,
+      est: Array.prototype.map.call($('hist').rows, function(tr){ return Array.prototype.map.call(tr.querySelectorAll('input'), function(i){ return i.classList.contains('estimado'); }); })
     };
   }
   function restaurar(s){
@@ -2058,6 +2128,8 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
     $('pdf-status').innerHTML = s.status;
     $('hist-gd').innerHTML = s.gd; $('hist-gd').hidden = !s.gd;
     $('r-gd').innerHTML = s.gdRes || ''; $('r-gd').hidden = !s.gdRes;
+    (s.est || []).forEach(function(fl, i){ var tr = $('hist').rows[i]; if (tr) tr.querySelectorAll('input').forEach(function(el, j){ if (fl[j]) el.classList.add('estimado'); }); });
+    estadoGD = s.gdEstado || null; aplicarGeracao();
     aplicarDistribuidora();
   }
 
@@ -2086,7 +2158,7 @@ body.pdf-mode .tier, body.pdf-mode .final, body.pdf-mode .benef, body.pdf-mode .
   });
   $('limpar-hist').addEventListener('click', function(){
     var foto = capturar();
-    montarHistorico(); $('hist-gd').hidden = true; $('r-gd').hidden = true; calc();
+    montarHistorico(); estadoGD = null; aplicarGeracao(); calc();
     oferecerDesfazer(foto, 'Histórico limpo.');
   });
 
