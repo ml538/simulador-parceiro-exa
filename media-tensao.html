@@ -101,6 +101,7 @@ table.hist input{width:100%; min-width:0; height:36px; background:var(--bg); col
 table.hist input:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:transparent}
 table.hist input.h-mes{font-weight:500; color:var(--body)}
 table.hist input.duvida{border-color:var(--atento); color:var(--atento); background:var(--atento-bg)}
+table.hist input.estimado{border-style:dashed; border-color:var(--dim)}
 table.hist tfoot th, table.hist tfoot td{padding-top:9px; border-top:1px solid var(--border)}
 table.hist tfoot td{font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:14px; color:var(--head); padding-left:11px; font-variant-numeric:tabular-nums}
 .tabacts{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap}
@@ -458,6 +459,7 @@ body.pdf-mode footer{margin-top:18px}
         <div class="row" id="rw-rea"><span class="k">Energia reativa excedente <small>último mês</small></span><span class="v big" id="r-rea">—</span></div>
         <div class="row tot"><span class="k">Total por mês <small id="r-tot-d"></small></span><span class="v big" id="r-tot">—</span></div>
         <div class="row tarc"><span class="k">Tarifa média ponderada da conta <small id="r-tarc-d"></small></span><span class="v big" id="r-tarc">—</span></div>
+        <p class="fonte" id="r-gd" hidden></p>
       </section>
 
       <section class="card green" id="c-energia" hidden>
@@ -677,7 +679,7 @@ body.pdf-mode footer{margin-top:18px}
 
   // colar varias linhas/colunas de uma vez, como numa planilha
   // valor conferido a mao deixa de ficar marcado
-  $('hist').addEventListener('input', function(e){ if (e.target.classList) e.target.classList.remove('duvida'); });
+  $('hist').addEventListener('input', function(e){ if (e.target.classList){ e.target.classList.remove('duvida', 'estimado'); e.target.removeAttribute('title'); } });
   $('hist').addEventListener('paste', function(e){
     var alvo = e.target;
     if (!alvo || alvo.tagName !== 'INPUT') return;
@@ -1360,34 +1362,55 @@ body.pdf-mode footer{margin-top:18px}
 
     // geracao propria: o historico mostra o consumo bruto. o que o cliente
     // de fato compra da rede e o historico menos a energia compensada (SCEE
-    // isenta), que so aparece na conta de cada mes
-    $('hist-gd').hidden = true;
+    // isenta), que so aparece na conta de cada mes. nos meses sem conta, vale
+    // a media do que foi compensado nos meses com conta, para nenhum mes
+    // ficar sem geracao
+    $('hist-gd').hidden = true; $('r-gd').hidden = true;
     if (contas.some(function(c){ return c.gd; })){
-      var porMes = {};
       var porConta = {};
       contas.forEach(function(c){ if (c.mesConsumo) porConta[c.mesConsumo] = c; });
-      var ajustados = [], faltam = [], semHFP = 0, semHP = 0;
+      var comConta = [], semConta = [], estimados = [], semHFP = 0, semHP = 0, somaHFP = 0, somaHP = 0;
       hist.forEach(function(h, i){
         var c = porConta[h.mes];
         if (h.vazio) return;
-        if (!c){ faltam.push(h.mes); return; }
+        if (!c){ semConta.push(i); return; }
         var ins = rows[i].querySelectorAll('input');
         ins[1].value = fN0.format(Math.max(0, h.enHFP - c.scee.hfp));
         ins[2].value = fN0.format(Math.max(0, h.enHP - c.scee.hp));
+        somaHFP += c.scee.hfp; somaHP += c.scee.hp;
         semHFP += c.sceeSem.hfp; semHP += c.sceeSem.hp;
-        ajustados.push(h.mes);
+        comConta.push(h.mes);
       });
-      lidos.push('<b>geração própria</b> (Energia SCEE isenta): HFP e HP descontados da energia compensada em '
-        + ajustados.length + ' de ' + hist.length + ' meses');
-      if (semHFP + semHP > 0) lidos.push(fN0.format(semHFP) + ' kWh fora ponta e ' + fN0.format(semHP) + ' kWh na ponta vieram de um gerador de fora (Energia SCEE s/ ICMS) nesses meses: '
+      var gHFP = comConta.length ? somaHFP / comConta.length : 0, gHP = comConta.length ? somaHP / comConta.length : 0;
+      if (comConta.length) semConta.forEach(function(i){
+        var h = hist[i], ins = rows[i].querySelectorAll('input');
+        ins[1].value = fN0.format(Math.max(0, h.enHFP - gHFP));
+        ins[2].value = fN0.format(Math.max(0, h.enHP - gHP));
+        [ins[1], ins[2]].forEach(function(el){ el.classList.add('estimado'); el.title = 'Sem a conta deste mês: descontada a média de geração dos meses com conta'; });
+        estimados.push(h.mes);
+      });
+      var nMes = function(n){ return n + (n === 1 ? ' mês' : ' meses'); };
+      var mediaTxt = fN0.format(gHFP) + ' kWh fora ponta e ' + fN0.format(gHP) + ' kWh na ponta por mês';
+      lidos.push('<b>geração própria</b> (Energia SCEE isenta): HFP e HP descontados da energia compensada em ' + nMes(comConta.length) + ' pela conta do mês'
+        + (estimados.length ? ' e nos outros ' + estimados.length + ' pela média desses ' + comConta.length + ' (' + mediaTxt + ')' : ''));
+      if (semHFP + semHP > 0) lidos.push(fN0.format(semHFP) + ' kWh fora ponta e ' + fN0.format(semHP) + ' kWh na ponta vieram de um gerador de fora (Energia SCEE s/ ICMS) nos meses com conta: '
         + 'continuam no consumo de referência, porque não são geração própria');
-      if (faltam.length) avisos.push('<b>O cliente tem geração própria, então o histórico bruto não serve de referência.</b> '
-        + 'Faltam as contas de ' + faltam.map(esc).join(', ') + ': nesses meses o consumo ainda está sem o desconto. '
-        + 'Envie as 12 contas juntas para descontar mês a mês.');
+      if (estimados.length) conferir.push('<b>Geração estimada</b> ' + (estimados.length <= 3 ? 'em ' + juntar(estimados.map(esc)) + ', que ficaram sem conta' : 'nos ' + estimados.length + ' meses sem conta')
+        + ': usei a média dos meses com conta (tracejados na tabela). '
+        + 'A geração muda com o sol ao longo do ano, então quanto mais contas, mais fiel a referência. Se a geração começou há menos de 12 meses, corrija à mão os meses de antes dela.');
+      if (!comConta.length) avisos.push('<b>O cliente tem geração própria, mas nenhuma conta enviada é de um mês do histórico.</b> O consumo ficou sem o desconto da geração: envie as contas dos últimos meses.');
+      // a mesma explicacao vai no resultado, que e o que sai na impressao
+      var meses = comConta.slice().reverse().map(esc);
+      $('r-gd').hidden = !comConta.length;
+      $('r-gd').innerHTML = '<b>Geração própria:</b> o consumo já desconta a energia que o cliente compensou com a própria geração. '
+        + (estimados.length
+          ? (comConta.length <= 4 ? 'Com as contas de ' + juntar(meses) : 'Com as ' + comConta.length + ' contas recebidas (' + meses[0] + ' a ' + meses[meses.length - 1] + ')')
+            + ', descontamos a geração de cada mês. Nos outros ' + nMes(estimados.length) + ' do histórico, sem conta, consideramos a média de geração dos meses com conta: <b>' + mediaTxt + '</b>.'
+          : 'Descontamos a geração mês a mês, pelas contas dos ' + nMes(comConta.length) + '.');
       $('hist-gd').hidden = false;
-      $('hist-gd').innerHTML = '<b>Geração própria:</b> HFP e HP já descontados da energia compensada (SCEE isenta) em '
-        + ajustados.length + ' de ' + hist.length + ' meses'
-        + (faltam.length ? '. Ainda sem a conta de ' + faltam.map(esc).join(', ') + '.' : '.');
+      $('hist-gd').innerHTML = '<b>Geração própria:</b> HFP e HP já descontados da energia compensada (SCEE isenta), '
+        + nMes(comConta.length) + ' pela conta do mês'
+        + (estimados.length ? ' e ' + nMes(estimados.length) + ' pela média deles (' + mediaTxt + ', tracejados).' : '.');
     }
     var nomes = contas.map(function(c){ return (c.cliente || '').toUpperCase(); }).filter(Boolean);
     if (nomes.some(function(n){ return n !== nomes[0]; })) avisos.push('<b>As contas enviadas parecem ser de clientes diferentes.</b> Confira se são todas da mesma unidade.');
@@ -1797,7 +1820,7 @@ body.pdf-mode footer{margin-top:18px}
   function limparTudo(){
     CAMPOS.forEach(function(id){ if (CONDICAO.indexOf(id) < 0) $(id).value = ''; });
     $('pdf-status').innerHTML = '';
-    $('hist-gd').hidden = true;
+    $('hist-gd').hidden = true; $('r-gd').hidden = true;
     definirRural(false);
     montarHistorico();
     aplicarDistribuidora();
@@ -1813,7 +1836,8 @@ body.pdf-mode footer{margin-top:18px}
       }),
       rural: temRural,
       status: $('pdf-status').innerHTML,
-      gd: $('hist-gd').hidden ? '' : $('hist-gd').innerHTML
+      gd: $('hist-gd').hidden ? '' : $('hist-gd').innerHTML,
+      gdRes: $('r-gd').hidden ? '' : $('r-gd').innerHTML
     };
   }
   function restaurar(s){
@@ -1828,6 +1852,7 @@ body.pdf-mode footer{margin-top:18px}
     definirRural(s.rural);
     $('pdf-status').innerHTML = s.status;
     $('hist-gd').innerHTML = s.gd; $('hist-gd').hidden = !s.gd;
+    $('r-gd').innerHTML = s.gdRes || ''; $('r-gd').hidden = !s.gdRes;
     aplicarDistribuidora();
   }
 
@@ -1856,7 +1881,7 @@ body.pdf-mode footer{margin-top:18px}
   });
   $('limpar-hist').addEventListener('click', function(){
     var foto = capturar();
-    montarHistorico(); $('hist-gd').hidden = true; calc();
+    montarHistorico(); $('hist-gd').hidden = true; $('r-gd').hidden = true; calc();
     oferecerDesfazer(foto, 'Histórico limpo.');
   });
 
