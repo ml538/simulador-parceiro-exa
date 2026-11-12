@@ -104,6 +104,9 @@ table.hist input.duvida{border-color:var(--atento); color:var(--atento); backgro
 table.hist input.estimado{border-style:dashed; border-color:var(--dim)}
 table.hist tfoot th, table.hist tfoot td{padding-top:9px; border-top:1px solid var(--border)}
 table.hist tfoot td{font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:14px; color:var(--head); padding-left:11px; font-variant-numeric:tabular-nums}
+table.hist tfoot tr.m-ponta th, table.hist tfoot tr.m-ponta td{border-top:0; padding-top:4px}
+table.hist tfoot #m-pct{font-weight:500; font-size:12.5px; color:var(--body)}
+table.hist tfoot #m-pct b{font-weight:700; font-size:14px; color:var(--head)}
 .tabacts{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap}
 table.hist .del{width:26px; height:36px; background:none; border:none; color:var(--dim); font-size:17px; line-height:1; cursor:pointer; padding:0}
 table.hist .del:hover{color:var(--warn)}
@@ -419,7 +422,7 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
         <div class="top"><span class="nm">Com a exa energia</span><span class="pv" id="pp3-v">—</span></div>
         <div class="note right" id="pp3-ano">—</div>
         <div class="destaque">
-          <div class="pct-grande"><span class="n" id="pp3-pct">0%</span><small>de desconto</small></div>
+          <div class="pct-grande"><span class="n" id="pp3-pct">0%</span><small id="pp3-pct-l">de desconto</small></div>
           <div class="eco-grande"><span class="v" id="pp3-eco-m">R$ 0,00</span><small>de economia por mês · <b id="pp3-eco-a">R$ 0,00</b> por ano*</small></div>
         </div>
         <div class="track"><div class="paga" id="pp3-paga">paga</div><div class="eco" id="pp3-eco"></div></div>
@@ -473,7 +476,7 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
           <label for="uc-nome">Nome da unidade</label>
           <div class="ig"><input class="t" id="uc-nome" placeholder="UC 1" autocomplete="off"></div>
         </div>
-        <p class="fonte" style="margin-top:8px">Cada unidade tem a sua fatura, histórico, preços e demanda; o cliente, a tarifa do Grupo B e o desconto valem para todas. A proposta impressa soma as unidades. Faturas de várias unidades enviadas juntas vão cada uma para a sua aba.</p>
+        <p class="fonte" style="margin-top:8px">Cada unidade tem a sua fatura, histórico, preços, demanda e desconto; o cliente e a tarifa do Grupo B valem para todas. A proposta impressa soma as unidades. Faturas de várias unidades enviadas juntas vão cada uma para a sua aba.</p>
       </section>
 
       <section class="card">
@@ -508,7 +511,8 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
             <colgroup><col style="width:22%"><col><col><col><col style="width:30px"></colgroup>
             <thead><tr><th>Mês</th><th>HFP · kWh</th><th>HP · kWh</th><th>Demanda · kW</th><th></th></tr></thead>
             <tbody id="hist"></tbody>
-            <tfoot><tr><th id="m-n">Média</th><td id="m-hfp">—</td><td id="m-hp">—</td><td id="m-dem">—</td><td></td></tr></tfoot>
+            <tfoot><tr><th id="m-n">Média</th><td id="m-hfp">—</td><td id="m-hp">—</td><td id="m-dem">—</td><td></td></tr>
+              <tr class="m-ponta"><th>Ponta</th><td colspan="3" id="m-pct">—</td><td></td></tr></tfoot>
           </table>
         </div>
         <button class="addbtn" id="add-mes" type="button">+ adicionar mês</button>
@@ -595,7 +599,7 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
             <div class="ig w-m"><input id="dm" inputmode="decimal" placeholder="0"><span class="unit">%</span></div>
           </div>
         </div>
-        <p class="fonte">Tarifa convencional do Grupo B (baixa tensão), com impostos. Preencha um dos dois descontos e o outro mostra o equivalente: o do Grupo B diz quanto dar a este cliente do Grupo A, e o do Grupo A diz quanto isso seria para um cliente do Grupo B.</p>
+        <p class="fonte">Tarifa convencional do Grupo B (baixa tensão), com impostos. Preencha um dos dois descontos e o outro mostra o equivalente: o do Grupo B diz quanto dar a este cliente do Grupo A, e o do Grupo A diz quanto isso seria para um cliente do Grupo B. O desconto é da unidade aberta: cada unidade pode ter o seu, e uma unidade nova começa com o desta.</p>
       </section>
     </div>
 
@@ -901,9 +905,10 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
 
   /* ---------- calculo ---------- */
   // cada aba e uma unidade consumidora. a aberta esta na tela; as outras
-  // ficam guardadas em unidades[]. o cliente, a distribuidora, a tarifa do
-  // Grupo B e o desconto valem para todas
-  var UC_CAMPOS = ['uc-nome','dc','di','pd','phfp','php','cip','rhfp','rhp','rdem','ger'];
+  // ficam guardadas em unidades[]. o cliente, a distribuidora e a tarifa do
+  // Grupo B valem para todas; o desconto e de cada unidade
+  var UC_CAMPOS = ['uc-nome','dc','di','pd','phfp','php','cip','rhfp','rhp','rdem','ger','db','dm'];
+  var UC_DADOS = ['dc','di','pd','phfp','php','cip','rhfp','rhp','rdem'];
   var unidades = [], atual = 0;
   function ucVazia(){
     return { uc: '', campos: UC_CAMPOS.map(function(){ return ''; }), hist: [['', '', '', '']], est: [],
@@ -913,7 +918,7 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
     var n = function(id){ return lerNum(s.campos[UC_CAMPOS.indexOf(id)] || ''); };
     return { hist: s.hist.map(function(v){ return { hfp: lerNum(v[1]), hp: lerNum(v[2]), dem: lerNum(v[3]) }; }),
              pd: n('pd'), phfp: n('phfp'), php: n('php'), dc: n('dc'), di: n('di'),
-             cip: n('cip'), rhfp: n('rhfp'), rhp: n('rhp'), rdem: n('rdem'), rural: s.rural };
+             cip: n('cip'), rhfp: n('rhfp'), rhp: n('rhp'), rdem: n('rdem'), db: n('db'), dm: n('dm'), rural: s.rural };
   }
 
   // tudo o que sai de uma unidade, sem mexer na tela
@@ -925,10 +930,12 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
     var hps  = e.hist.map(function(x){ return x.hp; }).filter(okN);
     var dems = e.hist.map(function(x){ return x.dem; }).filter(posN);
     var a = { dems: dems, mHFP: media(hfps), mHP: media(hps), mDem: media(dems), nMeses: Math.max(hfps.length, hps.length),
-              pD: e.pd, dc: e.dc, rural: !!e.rural,
+              pD: e.pd, dc: e.dc, rural: !!e.rural, db: e.db, dm: e.dm,
               cip: isFinite(e.cip) ? e.cip : 0, rHFP: isFinite(e.rhfp) ? e.rhfp : 0,
               rHP: isFinite(e.rhp) ? e.rhp : 0, rDem: isFinite(e.rdem) ? e.rdem : 0 };
     a.reat = a.rHFP + a.rHP + a.rDem;
+    // quanto do consumo cai na ponta
+    a.pctPonta = isFinite(a.mHFP) && isFinite(a.mHP) && a.mHFP + a.mHP > 0 ? a.mHP / (a.mHFP + a.mHP) : NaN;
     /* demanda: independente da energia */
     a.temDem = dems.length > 0 && posN(e.pd) && posN(e.dc);
     a.hoje = a.temDem ? resumo(dems, e.dc, e.pd, icms, a.rural) : null;
@@ -956,18 +963,18 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
     return a;
   }
 
-  // desconto: o do Grupo A vale igual para todas as unidades; o do Grupo B
-  // fixa o preco do kWh de credito, e o desconto de cada unidade sai da
-  // tarifa ponderada dela. sem nenhum, fica 0%
+  // desconto da unidade: o do Grupo A direto; o do Grupo B fixa o preco do
+  // kWh de credito (com a tarifa B, que vale para todas) e o desconto sai da
+  // tarifa ponderada da unidade. sem nenhum, fica 0%
   function condicao(){
     var tb = val('tb'), db = val('db'), dm = val('dm');
     return { tb: tb, db: db, dm: dm, modoMT: !isFinite(db) && isFinite(dm) };
   }
-  function economia(a, c){
+  function economia(a, tb){
     if (!a.temEnergia) return { eco: 0, preco: NaN, desc: 0 };
-    var preco = a.tarPond;
-    if (c.modoMT && c.dm >= 0 && c.dm < 100) preco = a.tarPond * (1 - c.dm / 100);
-    else if (!c.modoMT && isFinite(c.db) && c.db >= 0 && c.db < 100 && posN(c.tb)) preco = Math.min(a.tarPond, c.tb * (1 - c.db / 100));
+    var modoMT = !isFinite(a.db) && isFinite(a.dm), preco = a.tarPond;
+    if (modoMT && a.dm >= 0 && a.dm < 100) preco = a.tarPond * (1 - a.dm / 100);
+    else if (!modoMT && isFinite(a.db) && a.db >= 0 && a.db < 100 && posN(tb)) preco = Math.min(a.tarPond, tb * (1 - a.db / 100));
     var eco = a.kwhEq * (a.tarPond - preco);
     return { eco: eco, preco: preco, desc: a.energia > 0 ? eco / a.energia : 0 };
   }
@@ -1049,6 +1056,7 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
     $('m-hp').textContent  = isFinite(mHP)  ? fN0.format(mHP)  : '—';
     $('m-dem').textContent = isFinite(mDem) ? fN1.format(mDem) : '—';
     $('m-n').textContent = nMeses > 1 ? 'Média · ' + nMeses : 'Média';
+    $('m-pct').innerHTML = isFinite(a.pctPonta) ? '<b>' + fN2.format(a.pctPonta * 100) + '%</b> do consumo cai na ponta (' + fN0.format(mHP) + ' de ' + fN0.format(mHFP + mHP) + ' kWh/mês)' : '—';
 
     var pD = a.pD, dc = a.dc, cip = a.cip, rHFP = a.rHFP, rHP = a.rHP, rDem = a.rDem, reat = a.reat;
     var tb = c.tb, db = c.db, dm = c.dm, pos = posN;
@@ -1116,7 +1124,7 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
     $('r-hfp').textContent = fBRL.format(cHFP);
     $('r-hfp-d').textContent = fN0.format(mHFP) + ' kWh × ' + fBRL4.format(pHFP);
     $('r-hp').textContent = fBRL.format(cHP);
-    $('r-hp-d').textContent = fN0.format(mHP) + ' kWh × ' + fBRL4.format(pHP);
+    $('r-hp-d').textContent = fN0.format(mHP) + ' kWh × ' + fBRL4.format(pHP) + ' · ' + fN2.format(a.pctPonta * 100) + '% do consumo';
     mostrar('rw-cip', cip > 0);  $('r-cip').textContent = fBRL.format(cip);
     mostrar('rw-rea', reat > 0); $('r-rea').textContent = fBRL.format(reat);
     $('r-tot').textContent = fBRL.format(a.totConta);
@@ -1176,7 +1184,7 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
     $('t-linhas').innerHTML = todas.map(function(a, i){
       var nm = esc(nomeUC(unidades[i], i)) + (i === atual ? ' <span class="chip">aberta</span>' : '');
       if (!a.temEnergia) return '<div class="row"><span class="k">' + nm + ' <small>falta preencher ' + esc(juntarE(a.falta)) + '</small></span><span class="v">—</span></div>';
-      var e = economia(a, c);
+      var e = economia(a, c.tb);
       soma += e.eco; n++;
       return '<div class="row"><span class="k">' + nm + ' <small>energia de ' + fBRL.format(a.energia) + ' por mês · '
         + fN2.format(e.desc * 100) + '% de desconto</small></span><span class="v big">' + fBRL.format(e.eco) + '</span></div>';
@@ -1236,7 +1244,7 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
     $('pp-data').textContent = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     var lista = [], faltam = [];
     todas.forEach(function(a, i){
-      if (a.temEnergia) lista.push({ a: a, s: unidades[i], nome: nomeUC(unidades[i], i), e: economia(a, c) });
+      if (a.temEnergia) lista.push({ a: a, s: unidades[i], nome: nomeUC(unidades[i], i), e: economia(a, c.tb) });
       else faltam.push(nomeUC(unidades[i], i));
     });
     var tem = lista.length > 0, varias = unidades.length > 1;
@@ -1256,12 +1264,13 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
       if (a0.dc > 0) linhas.push(['Demanda contratada', fN1.format(a0.dc) + ' kW']);
       if (per) linhas.push(['Histórico', per]);
       linhas.push(['Consumo médio fora ponta', fN0.format(a0.mHFP) + ' kWh/mês']);
-      linhas.push(['Consumo médio ponta', fN0.format(a0.mHP) + ' kWh/mês']);
+      linhas.push(['Consumo médio ponta', fN0.format(a0.mHP) + ' kWh/mês · ' + fN2.format(a0.pctPonta * 100) + '% do total']);
     } else {
       lista.forEach(function(u){
-        linhas.push([u.nome, 'fora ponta ' + fN0.format(u.a.mHFP) + ' · ponta ' + fN0.format(u.a.mHP) + ' kWh/mês'
-          + (u.a.dc > 0 ? ' · ' + fN1.format(u.a.dc) + ' kW contratados' : '')]);
+        linhas.push([u.nome, 'fora ponta ' + fN0.format(u.a.mHFP) + ' · ponta ' + fN0.format(u.a.mHP) + ' kWh/mês (' + fN2.format(u.a.pctPonta * 100) + '%)'
+          + (u.a.dc > 0 ? ' · ' + fN1.format(u.a.dc) + ' kW' : '') + ' · ' + fN2.format(u.e.desc * 100) + '% de desconto']);
       });
+      if (tem) linhas.push(['Consumo na ponta, todas as unidades', fN2.format(S.mHP / S.kwh * 100) + '% do total']);
     }
     if (tem) linhas.push(['Tarifa média ponderada da conta', fBRL4.format(S.energia / S.kwh) + '/kWh']);
     $('pp-dados').classList.toggle('lista', varias);
@@ -1294,6 +1303,9 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
     $('pp3-v').textContent = fBRL.format(comExa);
     $('pp3-ano').textContent = fBRL.format(comExa * 12) + ' por ano';
     $('pp3-pct').textContent = fN2.format(desc * 100) + '%';
+    // descontos diferentes entre as unidades: o numero e a media ponderada
+    var iguais = lista.every(function(u){ return Math.abs(u.e.desc - lista[0].e.desc) < 0.00005; });
+    $('pp3-pct-l').textContent = iguais ? 'de desconto' : 'de desconto médio';
     $('pp3-eco-m').textContent = fBRL.format(S.eco);
     $('pp3-eco-a').textContent = fBRL.format(S.eco * 12);
     $('pp3-paga').style.width = (100 - desc * 100) + '%';
@@ -2150,7 +2162,7 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
     arquivos = arquivos.slice(0, MAX_CONTAS);
     var btn = $('arq-btn');
     btn.disabled = true;
-    var lidas = [], erros = [], statusAntes = $('pdf-status').innerHTML;
+    var lidas = [], erros = [], statusAntes = $('pdf-status').innerHTML, descAntes = [$('db').value, $('dm').value];
     var ocr = leitorOcr(function(m){ pdfStatus(m); });
     try {
       for (var i = 0; i < arquivos.length; i++){
@@ -2182,7 +2194,7 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
         var idx = -1;
         if (g.uc) unidades.forEach(function(su, iu){ if (su.uc === g.uc && destinos.indexOf(iu) < 0) idx = iu; });
         if (idx < 0 && destinos.indexOf(atual) < 0 && (grupos.length === 1 || ucSemDados(unidades[atual]))) idx = atual;
-        if (idx < 0){ unidades.push(ucVazia()); idx = unidades.length - 1; }
+        if (idx < 0){ unidades.push(ucNova(descAntes)); idx = unidades.length - 1; }
         destinos.push(idx);
         selecionarUC(idx);
         aplicarFatura(g.contas[0], g.contas);
@@ -2236,8 +2248,8 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
   /* ---------- botoes ---------- */
   // campos que valem para todas as unidades. a referencia do Grupo B e
   // condicao do vendedor, definida antes da reuniao: o Limpar mantem ela
-  var GLOBAIS = ['nome','tb','db','dm'];
-  var CONDICAO = ['tb','db','dm'];
+  var GLOBAIS = ['nome','tb'];
+  var CONDICAO = ['tb'];
 
   // so um dos dois descontos vale por vez: digitar em um limpa o outro
   $('db').addEventListener('input', function(){ if ($('db').value.trim()) $('dm').value = ''; });
@@ -2278,7 +2290,13 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
   }
   function ucSemDados(s){
     return s.hist.every(function(v){ return v.slice(1).every(function(x){ return !String(x).trim(); }); })
-        && s.campos.slice(1).every(function(x){ return !String(x).trim(); });
+        && UC_DADOS.every(function(id){ return !String(s.campos[UC_CAMPOS.indexOf(id)] || '').trim(); });
+  }
+  // unidade nova comeca com o desconto da aba aberta (da para mudar a mao)
+  function ucNova(desc){
+    var u = ucVazia();
+    u.campos[UC_CAMPOS.indexOf('db')] = desc[0]; u.campos[UC_CAMPOS.indexOf('dm')] = desc[1];
+    return u;
   }
   function nomeUC(s, i){ return (s.campos[0] || '').trim() || (s.uc ? 'UC ' + s.uc : 'UC ' + (i + 1)); }
   function selecionarUC(i){
@@ -2300,7 +2318,7 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
   $('uc-abas').addEventListener('click', function(e){
     var x = e.target.closest('[data-x]'), aba = e.target.closest('.uc-aba');
     if (e.target.closest('#uc-add')){
-      salvarUC(); unidades.push(ucVazia()); atual = unidades.length - 1; carregarUC(unidades[atual]);
+      salvarUC(); unidades.push(ucNova([$('db').value, $('dm').value])); atual = unidades.length - 1; carregarUC(unidades[atual]);
       return;
     }
     if (x){
@@ -2319,8 +2337,10 @@ body.pdf-mode #pp-oport{break-before:page; page-break-before:always; padding-top
   });
 
   function limparTudo(){
+    // o desconto da aba aberta fica, como condicao do vendedor
+    var desc = unidades.length ? [$('db').value, $('dm').value] : ['', ''];
     GLOBAIS.forEach(function(id){ if (CONDICAO.indexOf(id) < 0) $(id).value = ''; });
-    unidades = [ucVazia()]; atual = 0;
+    unidades = [ucNova(desc)]; atual = 0;
     carregarUC(unidades[0]);
   }
 
